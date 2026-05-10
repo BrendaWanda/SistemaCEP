@@ -19,10 +19,9 @@ class ParametroController extends Controller
         $this->modelProducto = new Producto();
     }
 
-    // GET /m0/productos/:id/parametros
     public function index(array $params): void
     {
-        $producto   = $this->modelProducto->conDetalle((int)$params['id']);
+        $producto = $this->modelProducto->conDetalle((int)$params['id']);
         if (!$producto) { $this->flash('error','Producto no encontrado.'); $this->redirect('/m0/productos'); }
         $parametros = $this->model->porProductoAgrupado((int)$params['id']);
         $this->render('m0_configuracion/parametros/index', [
@@ -41,7 +40,6 @@ class ParametroController extends Controller
         ]);
     }
 
-    // GET /m0/productos/:id/parametros/nuevo
     public function nuevo(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
@@ -55,24 +53,24 @@ class ParametroController extends Controller
                 ['label'=>$producto['nombre'],'url'=>APP_URL.'/m0/productos/'.$producto['id']],
                 ['label'=>'Nuevo Parámetro'],
             ],
-            'producto'   => $producto,
-            'parametro'  => null,
-            'etapas'     => ParametroProceso::ETAPAS,
-            'tipos'      => ParametroProceso::TIPOS,
-            'accion'     => 'crear',
+            'producto'  => $producto,
+            'parametro' => null,
+            'etapas'    => ParametroProceso::ETAPAS,
+            'tipos'     => ParametroProceso::TIPOS,
+            'accion'    => 'crear',
         ]);
     }
 
-    // POST /m0/productos/:id/parametros/nuevo
     public function crear(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
         $this->verifyCsrf();
         $productoId = (int)$params['id'];
 
-        $data = [
+        $etapa = $this->input('etapa');
+        $data  = [
             'producto_id'      => $productoId,
-            'etapa'            => $this->input('etapa'),
+            'etapa'            => $etapa,
             'nombre'           => $this->input('nombre'),
             'unidad'           => $this->input('unidad'),
             'tipo_dato'        => $this->input('tipo_dato'),
@@ -83,7 +81,7 @@ class ParametroController extends Controller
             'tamanio_subgrupo' => $this->inputInt('tamanio_subgrupo') ?: null,
             'opciones_json'    => $this->input('opciones_json') ?: null,
             'obligatorio'      => isset($_POST['obligatorio']) ? 1 : 0,
-            'orden_display'    => $this->model->siguienteOrden($productoId, $this->input('etapa')),
+            'orden_display'    => $this->model->siguienteOrden($productoId, $etapa),
             'activo'           => 1,
             'creado_por'       => Auth::id(),
         ];
@@ -103,12 +101,11 @@ class ParametroController extends Controller
             'Parámetro creado correctamente.');
     }
 
-    // GET /m0/parametros/:id/editar
     public function editar(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
         $parametro = $this->model->find((int)$params['id']);
-        if (!$parametro) { $this->flash('error','Parámetro no encontrado.'); $this->redirect('/m0/productos'); }
+        if (!$parametro) { $this->flash('error','No encontrado.'); $this->redirect('/m0/productos'); }
         $producto = $this->modelProducto->find($parametro['producto_id']);
         $this->render('m0_configuracion/parametros/form', [
             'pageTitle'  => 'Editar Parámetro',
@@ -118,15 +115,14 @@ class ParametroController extends Controller
                 ['label'=>$producto['nombre'],'url'=>APP_URL.'/m0/productos/'.$producto['id']],
                 ['label'=>'Editar Parámetro'],
             ],
-            'producto'   => $producto,
-            'parametro'  => $parametro,
-            'etapas'     => ParametroProceso::ETAPAS,
-            'tipos'      => ParametroProceso::TIPOS,
-            'accion'     => 'editar',
+            'producto'  => $producto,
+            'parametro' => $parametro,
+            'etapas'    => ParametroProceso::ETAPAS,
+            'tipos'     => ParametroProceso::TIPOS,
+            'accion'    => 'editar',
         ]);
     }
 
-    // POST /m0/parametros/:id/editar
     public function actualizar(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
@@ -155,14 +151,13 @@ class ParametroController extends Controller
         );
     }
 
-    // POST /m0/parametros/:id/eliminar
     public function eliminar(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
         $this->verifyCsrf();
         $id        = (int)$params['id'];
         $parametro = $this->model->find($id);
-        if (!$parametro) { $this->jsonError('No encontrado', 404); }
+        if (!$parametro) { $this->flash('error','No encontrado.'); $this->redirect('/m0/productos'); }
         $this->model->softDelete($id);
         $this->redirectWithSuccess(
             "/m0/productos/{$parametro['producto_id']}/parametros",
@@ -170,7 +165,6 @@ class ParametroController extends Controller
         );
     }
 
-    // API GET /api/parametros-por-producto?producto_id=1
     public function porProducto(): void
     {
         $productoId = $this->inputInt('producto_id');
