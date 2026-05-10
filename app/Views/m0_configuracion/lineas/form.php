@@ -2,7 +2,6 @@
 /** @var bool $canWrite @var string $accion @var array|null $linea */
 ?>
 <?php require __DIR__ . '/../_nav.php'; ?>
-<?php require __DIR__ . '/../_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
 <?php $esEditar  = $accion === 'editar'; ?>
 

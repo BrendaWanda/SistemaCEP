@@ -2,7 +2,6 @@
 /** @var bool $canWrite @var array $lineas */
 ?>
 <?php require __DIR__ . '/../_nav.php'; ?>
-<?php require __DIR__ . '/../_nav.php'; ?>
 
 <div class="page-header">
     <div>

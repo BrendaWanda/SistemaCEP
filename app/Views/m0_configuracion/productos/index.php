@@ -103,11 +103,26 @@
                     </td>
                     <td>
                         <a href="<?= APP_URL ?>/m0/productos/<?= $p['id'] ?>"
-                            class="btn btn-sm btn-secondary">Ver</a>
-                        <?php if ($canWrite): ?>
-                        <a href="<?= APP_URL ?>/m0/productos/<?= $p['id'] ?>/editar"
-                            class="btn btn-sm btn-secondary">Editar</a>
-                        <?php endif ?>
+    class="btn btn-sm btn-secondary">Ver</a>
+
+<?php if ($canWrite): ?>
+<a href="<?= APP_URL ?>/m0/productos/<?= $p['id'] ?>/editar"
+    class="btn btn-sm btn-secondary">Editar</a>
+
+<form method="POST"
+        action="<?= APP_URL ?>/m0/productos/<?= $p['id'] ?>/toggle"
+        style="display:inline">
+    <input type="hidden" name="_token"
+            value="<?= \App\Core\Controller::csrfToken() ?>">
+    <button type="submit"
+            class="btn btn-sm <?= $p['activo'] ? 'btn-warning' : 'btn-success' ?>"
+            data-confirm="<?= $p['activo']
+                ? '¿Desactivar '.$p['nombre'].'?'
+                : '¿Activar '.$p['nombre'].'?' ?>">
+        <?= $p['activo'] ? 'Desactivar' : 'Activar' ?>
+    </button>
+</form>
+<?php endif ?>
                     </td>
                 </tr>
                 <?php endforeach ?>

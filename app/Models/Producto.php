@@ -26,14 +26,18 @@ class Producto extends Model
 
     // Todos los productos con su línea
     public function todosConLinea(): array
-    {
-        return $this->query(
-            "SELECT p.*, l.nombre AS linea_nombre, l.codigo AS linea_codigo
+{
+    return $this->query(
+        "SELECT p.*, l.nombre AS linea_nombre, l.codigo AS linea_codigo,
+                COUNT(pp.id) AS total_parametros,
+                SUM(pp.es_variable_spc) AS parametros_spc
             FROM productos p
             JOIN lineas_produccion l ON l.id = p.linea_id
+            LEFT JOIN parametros_proceso pp ON pp.producto_id = p.id AND pp.activo = 1
+            GROUP BY p.id
             ORDER BY l.nombre, p.nombre"
-        );
-    }
+    );
+}
 
     // Productos de una línea específica
     public function porLinea(int $lineaId): array
