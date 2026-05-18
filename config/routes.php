@@ -78,8 +78,7 @@ $router->get( '/m0/recetas/:id/editar',        'M0_Configuracion\RecetaControlle
 $router->post('/m0/recetas/:id/editar',        'M0_Configuracion\RecetaController@actualizar');
 
 // ── M1 — RECEPCIÓN DE MATERIA PRIMA ──────────────────────────────────────────
-// ── M1 — RECEPCIÓN DE MATERIA PRIMA ──────────────────────────────────────────
-// ⚠️ IMPORTANTE: rutas fijas ANTES que rutas con :id
+
 $router->get( '/m1',                           'M1_RecepcionMP\RecepcionController@index');
 $router->get( '/m1/nueva',                     'M1_RecepcionMP\RecepcionController@nueva');
 $router->post('/m1/nueva',                     'M1_RecepcionMP\RecepcionController@guardar');
@@ -98,20 +97,19 @@ $router->post('/m1/proveedores/:id/editar',    'M1_RecepcionMP\ProveedorControll
 $router->get( '/m1/:id',                       'M1_RecepcionMP\RecepcionController@ver');
 $router->get( '/m1/:id/imprimir',              'M1_RecepcionMP\RecepcionController@imprimir');
 // ── M2 — REGISTRO DE PROCESO ──────────────────────────────────────────────────
-$router->get( '/m2',                           'M2_RegistroProceso\SesionRegistroController@index');
-$router->get( '/m2/nueva-sesion',              'M2_RegistroProceso\SesionRegistroController@nuevaSesion');
-$router->post('/m2/nueva-sesion',              'M2_RegistroProceso\SesionRegistroController@crearSesion');
-$router->get( '/m2/sesion/:id',                'M2_RegistroProceso\SesionRegistroController@ver');
-$router->get( '/m2/sesion/:id/imprimir',       'M2_RegistroProceso\SesionRegistroController@imprimir');
-
-// Sub-registros del proceso (AJAX)
-$router->post('/m2/sesion/:id/amasado',        'M2_RegistroProceso\AmasadoController@guardar');
-$router->post('/m2/sesion/:id/pesos',          'M2_RegistroProceso\PesosController@guardar');
-$router->get( '/m2/sesion/:id/pesos/datos',    'M2_RegistroProceso\PesosController@datos');    // JSON para gráfico en vivo
-$router->post('/m2/sesion/:id/horneado',       'M2_RegistroProceso\HorneadoController@guardar');
-$router->post('/m2/sesion/:id/envasado',       'M2_RegistroProceso\EnvasadoController@guardar');
-$router->post('/m2/sesion/:id/analisis-pt',    'M2_RegistroProceso\AnalisisPTController@guardar');
-$router->post('/m2/sesion/:id/liberacion',     'M2_RegistroProceso\LiberacionController@guardar');
+// ── M2 — REGISTRO DE PROCESO ──
+$router->get( '/m2',                        'M2_RegistroProceso\SesionRegistroController@index');
+$router->get( '/m2/nueva-sesion',           'M2_RegistroProceso\SesionRegistroController@nuevaSesion');
+$router->post('/m2/nueva-sesion',           'M2_RegistroProceso\SesionRegistroController@crearSesion');
+// Rutas con :id AL FINAL — igual que en M1
+$router->get( '/m2/sesion/:id',             'M2_RegistroProceso\SesionRegistroController@ver');
+$router->get( '/m2/sesion/:id/imprimir',    'M2_RegistroProceso\SesionRegistroController@imprimir');
+$router->post('/m2/sesion/:id/amasado',     'M2_RegistroProceso\AmasadoController@guardar');
+$router->post('/m2/sesion/:id/pesos',       'M2_RegistroProceso\PesosController@guardar');
+$router->get( '/m2/sesion/:id/pesos/datos', 'M2_RegistroProceso\PesosController@datos');
+$router->post('/m2/sesion/:id/horneado',    'M2_RegistroProceso\HorneadoController@guardar');
+$router->post('/m2/sesion/:id/envasado',    'M2_RegistroProceso\EnvasadoController@guardar');
+$router->post('/m2/sesion/:id/liberacion',  'M2_RegistroProceso\LiberacionController@guardar');
 
 // ── M3 — MANTENIMIENTO ────────────────────────────────────────────────────────
 $router->get( '/m3',                           'M3_Mantenimiento\MantenimientoController@index');
