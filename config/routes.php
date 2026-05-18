@@ -78,11 +78,11 @@ $router->get( '/m0/recetas/:id/editar',        'M0_Configuracion\RecetaControlle
 $router->post('/m0/recetas/:id/editar',        'M0_Configuracion\RecetaController@actualizar');
 
 // ── M1 — RECEPCIÓN DE MATERIA PRIMA ──────────────────────────────────────────
+// ── M1 — RECEPCIÓN DE MATERIA PRIMA ──────────────────────────────────────────
+// ⚠️ IMPORTANTE: rutas fijas ANTES que rutas con :id
 $router->get( '/m1',                           'M1_RecepcionMP\RecepcionController@index');
 $router->get( '/m1/nueva',                     'M1_RecepcionMP\RecepcionController@nueva');
 $router->post('/m1/nueva',                     'M1_RecepcionMP\RecepcionController@guardar');
-$router->get( '/m1/:id',                       'M1_RecepcionMP\RecepcionController@ver');
-$router->get( '/m1/:id/imprimir',              'M1_RecepcionMP\RecepcionController@imprimir');
 $router->get( '/m1/historial',                 'M1_RecepcionMP\RecepcionController@historial');
 $router->get( '/m1/stock',                     'M1_RecepcionMP\RecepcionController@stock');
 $router->get( '/m1/alertas-vencimiento',       'M1_RecepcionMP\RecepcionController@alertasVencimiento');
@@ -94,6 +94,9 @@ $router->post('/m1/proveedores/nuevo',         'M1_RecepcionMP\ProveedorControll
 $router->get( '/m1/proveedores/:id/editar',    'M1_RecepcionMP\ProveedorController@editar');
 $router->post('/m1/proveedores/:id/editar',    'M1_RecepcionMP\ProveedorController@actualizar');
 
+// Rutas con :id AL FINAL
+$router->get( '/m1/:id',                       'M1_RecepcionMP\RecepcionController@ver');
+$router->get( '/m1/:id/imprimir',              'M1_RecepcionMP\RecepcionController@imprimir');
 // ── M2 — REGISTRO DE PROCESO ──────────────────────────────────────────────────
 $router->get( '/m2',                           'M2_RegistroProceso\SesionRegistroController@index');
 $router->get( '/m2/nueva-sesion',              'M2_RegistroProceso\SesionRegistroController@nuevaSesion');
