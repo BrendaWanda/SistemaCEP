@@ -112,20 +112,16 @@ $router->post('/m2/sesion/:id/envasado',    'M2_RegistroProceso\EnvasadoControll
 $router->post('/m2/sesion/:id/liberacion',  'M2_RegistroProceso\LiberacionController@guardar');
 
 // ── M3 — MANTENIMIENTO ────────────────────────────────────────────────────────
-$router->get( '/m3',                           'M3_Mantenimiento\MantenimientoController@index');
-$router->get( '/m3/nuevo',                     'M3_Mantenimiento\MantenimientoController@nuevo');
-$router->post('/m3/nuevo',                     'M3_Mantenimiento\MantenimientoController@guardar');
-$router->get( '/m3/:id',                       'M3_Mantenimiento\MantenimientoController@ver');
-$router->get( '/m3/:id/editar',                'M3_Mantenimiento\MantenimientoController@editar');
-$router->post('/m3/:id/editar',                'M3_Mantenimiento\MantenimientoController@actualizar');
-$router->get( '/m3/calendario',                'M3_Mantenimiento\MantenimientoController@calendario');
-$router->get( '/m3/alertas',                   'M3_Mantenimiento\MantenimientoController@alertas');
-
-// Calibraciones
-$router->get( '/m3/calibraciones',             'M3_Mantenimiento\CalibracionController@index');
-$router->get( '/m3/calibraciones/nueva',       'M3_Mantenimiento\CalibracionController@nueva');
-$router->post('/m3/calibraciones/nueva',       'M3_Mantenimiento\CalibracionController@guardar');
-$router->get( '/m3/calibraciones/:id',         'M3_Mantenimiento\CalibracionController@ver');
+// ── M3 — MANTENIMIENTO ────────────────────────────────────────────────────────
+$router->get( '/m3',                'M3_Mantenimiento\MantenimientoController@index');
+$router->get( '/m3/nuevo',          'M3_Mantenimiento\MantenimientoController@nuevo');
+$router->post('/m3/nuevo',          'M3_Mantenimiento\MantenimientoController@guardar');
+$router->get( '/m3/alertas',        'M3_Mantenimiento\MantenimientoController@alertas');
+$router->get( '/m3/calendario',     'M3_Mantenimiento\MantenimientoController@calendario');
+// Rutas con :id AL FINAL
+$router->get( '/m3/:id',            'M3_Mantenimiento\MantenimientoController@ver');
+$router->get( '/m3/:id/editar',     'M3_Mantenimiento\MantenimientoController@editar');
+$router->post('/m3/:id/editar',     'M3_Mantenimiento\MantenimientoController@actualizar');
 
 // ── M4 — SEGUIMIENTO DE PRODUCCIÓN ───────────────────────────────────────────
 $router->get( '/m4',                           'M4_SeguimientoProduccion\LoteController@index');
