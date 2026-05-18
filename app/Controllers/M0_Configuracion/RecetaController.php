@@ -173,9 +173,25 @@ class RecetaController extends Controller
         $this->redirectWithSuccess("/m0/recetas/{$id}", 'Receta actualizada correctamente.');
     }
 
+    // API GET /api/recetas-por-producto?producto_id=1
     public function porProducto(): void
     {
         $productoId = $this->inputInt('producto_id');
-        $this->jsonSuccess($this->model->paraSelect($productoId));
+        if (!$productoId) {
+            $this->jsonSuccess([]);
+            return;
+        }
+
+        $recetas = $this->db->fetchAll(
+            "SELECT id,
+                CONCAT(nombre, ' v', version) AS label
+            FROM recetas
+            WHERE producto_id = ? AND vigente = 1
+            ORDER BY version DESC",
+            [$productoId]
+        );
+
+        $this->jsonSuccess(array_column($recetas, 'label', 'id'));
     }
+
 }

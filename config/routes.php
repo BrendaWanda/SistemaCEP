@@ -111,7 +111,7 @@ $router->post('/m2/sesion/:id/horneado',    'M2_RegistroProceso\HorneadoControll
 $router->post('/m2/sesion/:id/envasado',    'M2_RegistroProceso\EnvasadoController@guardar');
 $router->post('/m2/sesion/:id/liberacion',  'M2_RegistroProceso\LiberacionController@guardar');
 
-// ── M3 — MANTENIMIENTO ────────────────────────────────────────────────────────
+//
 // ── M3 — MANTENIMIENTO ────────────────────────────────────────────────────────
 $router->get( '/m3',                'M3_Mantenimiento\MantenimientoController@index');
 $router->get( '/m3/nuevo',          'M3_Mantenimiento\MantenimientoController@nuevo');
@@ -143,30 +143,21 @@ $router->post('/m4/lote/:codigo/mp/:id/eliminar','M4_SeguimientoProduccion\Consu
 // Tiempos por etapa
 $router->post('/m4/lote/:codigo/tiempos',      'M4_SeguimientoProduccion\TiemposController@guardar');
 
-// ── M5 — TRAZABILIDAD ─────────────────────────────────────────────────────────
-$router->get( '/m5',                           'M5_Trazabilidad\TrazabilidadController@index');
-$router->get( '/m5/lote/:codigo',              'M5_Trazabilidad\TrazabilidadController@lote');
-$router->get( '/m5/insumo/:codigo',            'M5_Trazabilidad\TrazabilidadController@insumo');
-$router->get( '/m5/lote/:codigo/pdf',          'M5_Trazabilidad\TrazabilidadController@exportarPdf');
+// ── M5 — TRAZABILIDAD ────────────────────────────────────────────────────────
+$router->get('/m5',                     'M5_Trazabilidad\TrazabilidadController@index');
+$router->get('/m5/lote/:codigo',        'M5_Trazabilidad\TrazabilidadController@lote');
+$router->get('/m5/lote/:codigo/pdf',    'M5_Trazabilidad\TrazabilidadController@exportarPdf');
+$router->get('/m5/insumo/:codigo',      'M5_Trazabilidad\TrazabilidadController@insumo');
 
-// ── M6 — SPC ──────────────────────────────────────────────────────────────────
-$router->get( '/m6',                           'M6_SPC\SPCController@index');
-$router->get( '/m6/xbar-r',                    'M6_SPC\GraficoXbarRController@index');
-$router->post('/m6/xbar-r/datos',              'M6_SPC\GraficoXbarRController@datos');   // JSON para Chart.js
-$router->get( '/m6/capacidad',                 'M6_SPC\CapacidadController@index');
-$router->post('/m6/capacidad/calcular',        'M6_SPC\CapacidadController@calcular');   // JSON
-$router->get( '/m6/pareto',                    'M6_SPC\ParetoController@index');
-$router->post('/m6/pareto/datos',              'M6_SPC\ParetoController@datos');
-$router->get( '/m6/normalidad',                'M6_SPC\NormalidadController@index');
-$router->post('/m6/normalidad/calcular',       'M6_SPC\NormalidadController@calcular');
-$router->get( '/m6/estadistica-descriptiva',   'M6_SPC\EstadisticaController@index');
-$router->post('/m6/estadistica-descriptiva/calcular', 'M6_SPC\EstadisticaController@calcular');
-$router->get( '/m6/senales',                   'M6_SPC\SenalesController@index');
-$router->post('/m6/senales/:id/resolver',      'M6_SPC\SenalesController@resolver');
-$router->get( '/m6/analisis-guardados',        'M6_SPC\AnalisisGuardadoController@index');
-$router->post('/m6/analisis-guardados/guardar','M6_SPC\AnalisisGuardadoController@guardar');
-$router->get( '/m6/analisis-guardados/:id',    'M6_SPC\AnalisisGuardadoController@ver');
+// ── M6 — SPC ─────────────────────────────────────────────────────────────────
+$router->get('/m6',                     'M6_SPC\SPCController@index');
+$router->get('/m6/sesion/:sesion',      'M6_SPC\SPCController@tiempoReal');
 
+// ── APIs internas ─────────────────────────────────────────────────────────────
+$router->get('/api/stock-disponible',   'M1_RecepcionMP\RecepcionController@stockDisponible');
+$router->get('/api/recetas-por-producto','M0_Configuracion\RecetaController@porProducto');
+$router->get('/api/lotes-activos',      'M4_SeguimientoProduccion\LoteController@activos');
+$router->get('/api/spc-tiempo-real/:sesion','M6_SPC\SPCController@tiempoReal');
 // ── M7 — DASHBOARD / KPIs ─────────────────────────────────────────────────────
 $router->get( '/m7',                           'M7_Dashboard\DashboardController@index');
 $router->get( '/m7/oee',                       'M7_Dashboard\OEEController@index');
