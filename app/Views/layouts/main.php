@@ -125,11 +125,12 @@ $active = fn(string $prefijo) => str_starts_with($uri, $prefijo) ? 'active' : ''
         <?php endif ?>
 
         <?php if (isset($modulos['menu_trimestral'])): ?>
-        <div class="nav-section">Planificación</div>
-        <a href="<?= APP_URL ?>/menu" class="nav-item <?= $active('/menu') ?>">
-            <span class="nav-icon">📅</span>
-            <span class="nav-label">Menú trimestral</span>
-        </a>
+            <div class="nav-section">Planificación</div>
+            <a href="<?= APP_URL ?>/menu-trimestral" 
+            class="nav-item <?= $active('/menu-trimestral') ?>">
+                <span class="nav-icon">📅</span>
+                <span class="nav-label">Menú trimestral</span>
+            </a>
         <?php endif ?>
 
         <?php if (isset($modulos['reportes'])): ?>
