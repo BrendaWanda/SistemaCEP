@@ -158,13 +158,13 @@ $router->get('/api/stock-disponible',   'M1_RecepcionMP\RecepcionController@stoc
 $router->get('/api/recetas-por-producto','M0_Configuracion\RecetaController@porProducto');
 $router->get('/api/lotes-activos',      'M4_SeguimientoProduccion\LoteController@activos');
 $router->get('/api/spc-tiempo-real/:sesion','M6_SPC\SPCController@tiempoReal');
-// ── M7 — DASHBOARD / KPIs ─────────────────────────────────────────────────────
-$router->get( '/m7',                           'M7_Dashboard\DashboardController@index');
-$router->get( '/m7/oee',                       'M7_Dashboard\OEEController@index');
-$router->post('/m7/oee/datos',                 'M7_Dashboard\OEEController@datos');       // JSON
-$router->get( '/m7/produccion',                'M7_Dashboard\ProduccionController@index');
-$router->get( '/m7/calidad',                   'M7_Dashboard\CalidadController@index');
-$router->get( '/m7/mp',                        'M7_Dashboard\MPController@index');
+// ── M7 — DASHBOARD ────────────────────────────────────────────────────────────
+$router->get('/dashboard', 'M7_Dashboard\DashboardController@index');
+$router->get('/m7',        'M7_Dashboard\DashboardController@index');
+
+// ── M6 — SPC ─────────────────────────────────────────────────────────────────
+$router->get('/m6',                        'M6_SPC\SPCController@index');
+$router->get('/api/spc-tiempo-real/:sesion','M6_SPC\SPCController@tiempoReal');
 
 // ── MENÚ TRIMESTRAL ───────────────────────────────────────────────────────────
 $router->get( '/menu',                         'Menu_Trimestral\MenuController@index');
