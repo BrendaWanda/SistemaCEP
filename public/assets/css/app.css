@@ -3,7 +3,7 @@
 
 :root {
     /* ── Sidebar azul oscuro cálido ─────────────────────────────────────────── */
-    --sb-bg:         #0e1531;
+    --sb-bg:         #090e22;
     --sb-bg2:        #121932;
     --sb-hover:      rgba(255,255,255,.06);
     --sb-active-bg:  rgba(63, 26, 26, 0.1);

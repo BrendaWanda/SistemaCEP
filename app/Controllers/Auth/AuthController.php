@@ -15,11 +15,10 @@ class AuthController extends Controller
     // ── GET /auth/login ───────────────────────────────────────────────────────
     public function showLogin(): void
     {
-        // Si ya está logueado, redirigir al dashboard
         if (Auth::check()) {
             $this->redirect('/dashboard');
         }
-        $this->render('auth/login', [], 'auth'); // layout mínimo sin sidebar
+        $this->renderPlain('auth/login', []);
     }
 
     // ── POST /auth/login ──────────────────────────────────────────────────────
