@@ -39,7 +39,10 @@ class RecetaController extends Controller
     public function ver(array $params): void
     {
         $receta = $this->model->conIngredientes((int)$params['id']);
-        if (!$receta) { $this->flash('error','Receta no encontrada.'); $this->redirect('/m0/recetas'); }
+        if (!$receta) {
+            $this->flash('error','Receta no encontrada.');
+            $this->redirect('/m0/recetas');
+        }
         $this->render('m0_configuracion/recetas/ver', [
             'pageTitle'  => $receta['nombre'],
             'breadcrumb' => [
@@ -77,15 +80,15 @@ class RecetaController extends Controller
         $productoId = $this->inputInt('producto_id');
         $nombre     = $this->input('nombre');
         $desc       = $this->input('descripcion');
-        $insumoIds  = $_POST['insumo_id'] ?? [];
-        $cantidades = $_POST['cantidad']  ?? [];
-        $unidades   = $_POST['unidad']    ?? [];
+        $insumoIds  = $_POST['insumo_id']  ?? [];
+        $cantidades = $_POST['cantidad']   ?? [];
+        $unidades   = $_POST['unidad']     ?? [];
         $criticos   = $_POST['es_critico'] ?? [];
 
         $errores = [];
-        if (!$productoId)       $errores[] = 'Seleccione un producto.';
-        if (empty($nombre))     $errores[] = 'El nombre es requerido.';
-        if (empty($insumoIds))  $errores[] = 'Agregue al menos un ingrediente.';
+        if (!$productoId)      $errores[] = 'Seleccione un producto.';
+        if (empty($nombre))    $errores[] = 'El nombre es requerido.';
+        if (empty($insumoIds)) $errores[] = 'Agregue al menos un ingrediente.';
 
         if (!empty($errores)) {
             foreach ($errores as $e) $this->flash('error', $e);
@@ -105,8 +108,9 @@ class RecetaController extends Controller
         foreach ($insumoIds as $i => $insumoId) {
             if (empty($insumoId) || empty($cantidades[$i])) continue;
             $this->db->execute(
-                "INSERT INTO receta_insumos (receta_id, insumo_id, cantidad, unidad_medida, es_critico)
-                 VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO receta_insumos
+                (receta_id, insumo_id, cantidad, unidad_medida, es_critico)
+                VALUES (?, ?, ?, ?, ?)",
                 [
                     $recetaId,
                     (int)$insumoId,
@@ -125,7 +129,10 @@ class RecetaController extends Controller
     {
         Auth::requireWrite('m0_configuracion');
         $receta = $this->model->conIngredientes((int)$params['id']);
-        if (!$receta) { $this->flash('error','Receta no encontrada.'); $this->redirect('/m0/recetas'); }
+        if (!$receta) {
+            $this->flash('error','Receta no encontrada.');
+            $this->redirect('/m0/recetas');
+        }
         $this->render('m0_configuracion/recetas/form', [
             'pageTitle'  => 'Editar: '.$receta['nombre'],
             'breadcrumb' => [
@@ -161,30 +168,61 @@ class RecetaController extends Controller
         foreach ($insumoIds as $i => $insumoId) {
             if (empty($insumoId) || empty($cantidades[$i])) continue;
             $this->db->execute(
-                "INSERT INTO receta_insumos (receta_id, insumo_id, cantidad, unidad_medida, es_critico)
+                "INSERT INTO receta_insumos
+                (receta_id, insumo_id, cantidad, unidad_medida, es_critico)
                 VALUES (?, ?, ?, ?, ?)",
-                [$id, (int)$insumoId,
-                (float)str_replace(',', '.', $cantidades[$i]),
-                $unidades[$i] ?? 'kg',
-                isset($criticos[$i]) ? 1 : 0]
+                [
+                    $id,
+                    (int)$insumoId,
+                    (float)str_replace(',', '.', $cantidades[$i]),
+                    $unidades[$i] ?? 'kg',
+                    isset($criticos[$i]) ? 1 : 0,
+                ]
             );
         }
 
         $this->redirectWithSuccess("/m0/recetas/{$id}", 'Receta actualizada correctamente.');
     }
 
+    // POST /m0/recetas/:id/eliminar ← NUEVO
+    public function eliminar(array $params): void
+    {
+        Auth::requireWrite('m0_configuracion');
+        $this->verifyCsrf();
+        $id     = (int)$params['id'];
+        $receta = $this->model->find($id);
+
+        if (!$receta) {
+            $this->flash('error', 'Receta no encontrada.');
+            $this->redirect('/m0/recetas');
+        }
+
+        // Verificar que no tenga lotes asociados
+        $tieneUso = (int)$this->db->fetchScalar(
+            "SELECT COUNT(*) FROM lotes_produccion WHERE receta_id = ?", [$id]
+        );
+        if ($tieneUso > 0) {
+            $this->flash('error',
+                "No se puede eliminar '{$receta['nombre']}' — tiene {$tieneUso} lote(s) asociado(s). Márquela como obsoleta en su lugar.");
+            $this->redirect('/m0/recetas');
+        }
+
+        $nombre = $receta['nombre'];
+        // Eliminar ingredientes primero
+        $this->db->execute("DELETE FROM receta_insumos WHERE receta_id = ?", [$id]);
+        $this->model->delete($id);
+        $this->redirectWithSuccess('/m0/recetas',
+            "Receta '{$nombre}' eliminada correctamente.");
+    }
+
     // API GET /api/recetas-por-producto?producto_id=1
     public function porProducto(): void
     {
         $productoId = $this->inputInt('producto_id');
-        if (!$productoId) {
-            $this->jsonSuccess([]);
-            return;
-        }
+        if (!$productoId) { $this->jsonSuccess([]); return; }
 
         $recetas = $this->db->fetchAll(
-            "SELECT id,
-                CONCAT(nombre, ' v', version) AS label
+            "SELECT id, CONCAT(nombre, ' v', version) AS label
             FROM recetas
             WHERE producto_id = ? AND vigente = 1
             ORDER BY version DESC",
@@ -193,5 +231,4 @@ class RecetaController extends Controller
 
         $this->jsonSuccess(array_column($recetas, 'label', 'id'));
     }
-
 }
