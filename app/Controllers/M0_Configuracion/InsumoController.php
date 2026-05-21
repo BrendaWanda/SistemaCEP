@@ -31,6 +31,39 @@ class InsumoController extends Controller
         ]);
     }
 
+    // GET /m0/insumos/:id
+    public function ver(array $params): void
+    {
+        $insumo = $this->model->find((int)$params['id']);
+        if (!$insumo) {
+            $this->flash('error', 'Insumo no encontrado.');
+            $this->redirect('/m0/insumos');
+        }
+
+        // Stock disponible del insumo
+        $stock = $this->db->fetchAll(
+            "SELECT s.*, p.nombre AS proveedor_nombre
+            FROM stock_mp s
+            LEFT JOIN proveedores p ON p.id = s.proveedor_id
+            WHERE s.insumo_id = ? AND s.estado = 'disponible'
+            ORDER BY s.fecha_vencimiento ASC",
+            [(int)$params['id']]
+        );
+
+        $this->render('m0_configuracion/insumos/ver', [
+            'pageTitle'  => $insumo['descripcion'],
+            'breadcrumb' => [
+                ['label'=>'Configuración','url'=>APP_URL.'/m0/lineas'],
+                ['label'=>'Insumos','url'=>APP_URL.'/m0/insumos'],
+                ['label'=>$insumo['descripcion']],
+            ],
+            'insumo'   => $insumo,
+            'stock'    => $stock,
+            'tipos'    => Insumo::TIPOS,
+            'canWrite' => Auth::canWrite('m0_configuracion'),
+        ]);
+    }
+
     public function nuevo(): void
     {
         Auth::requireWrite('m0_configuracion');
@@ -60,14 +93,18 @@ class InsumoController extends Controller
         $data['creado_por'] = Auth::id();
         $data['activo']     = 1;
         $this->model->create($data);
-        $this->redirectWithSuccess('/m0/insumos', "Insumo '{$data['descripcion']}' creado correctamente.");
+        $this->redirectWithSuccess('/m0/insumos',
+            "Insumo '{$data['descripcion']}' creado correctamente.");
     }
 
     public function editar(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
         $insumo = $this->model->find((int)$params['id']);
-        if (!$insumo) { $this->flash('error','Insumo no encontrado.'); $this->redirect('/m0/insumos'); }
+        if (!$insumo) {
+            $this->flash('error', 'Insumo no encontrado.');
+            $this->redirect('/m0/insumos');
+        }
         $this->render('m0_configuracion/insumos/form', [
             'pageTitle'  => 'Editar: '.$insumo['descripcion'],
             'breadcrumb' => [
@@ -96,6 +133,44 @@ class InsumoController extends Controller
         $this->redirectWithSuccess('/m0/insumos', 'Insumo actualizado correctamente.');
     }
 
+    // POST /m0/insumos/:id/eliminar
+    public function eliminar(array $params): void
+    {
+        Auth::requireWrite('m0_configuracion');
+        $this->verifyCsrf();
+        $id     = (int)$params['id'];
+        $insumo = $this->model->find($id);
+
+        if (!$insumo) {
+            $this->flash('error', 'Insumo no encontrado.');
+            $this->redirect('/m0/insumos');
+        }
+
+        // Verificar que no tenga stock ni recepciones asociadas
+        $tieneStock = (int)$this->db->fetchScalar(
+            "SELECT COUNT(*) FROM stock_mp WHERE insumo_id = ?", [$id]
+        );
+        if ($tieneStock > 0) {
+            $this->flash('error',
+                "No se puede eliminar '{$insumo['descripcion']}' — tiene {$tieneStock} lote(s) en stock. Verifique primero.");
+            $this->redirect('/m0/insumos');
+        }
+
+        $tieneRecepciones = (int)$this->db->fetchScalar(
+            "SELECT COUNT(*) FROM recepciones_mp WHERE insumo_id = ?", [$id]
+        );
+        if ($tieneRecepciones > 0) {
+            $this->flash('error',
+                "No se puede eliminar '{$insumo['descripcion']}' — tiene {$tieneRecepciones} recepción(es) registrada(s).");
+            $this->redirect('/m0/insumos');
+        }
+
+        $descripcion = $insumo['descripcion'];
+        $this->model->delete($id);
+        $this->redirectWithSuccess('/m0/insumos',
+            "Insumo '{$descripcion}' eliminado correctamente.");
+    }
+
     private function buildData(): array
     {
         return [
@@ -120,9 +195,9 @@ class InsumoController extends Controller
     private function validar(array $data, ?int $exceptoId = null): array
     {
         $errores = [];
-        if (empty($data['codigo']))       $errores[] = 'El código es requerido.';
-        if (empty($data['tipo']))         $errores[] = 'Seleccione el tipo.';
-        if (empty($data['descripcion']))  $errores[] = 'La descripción es requerida.';
+        if (empty($data['codigo']))        $errores[] = 'El código es requerido.';
+        if (empty($data['tipo']))          $errores[] = 'Seleccione el tipo.';
+        if (empty($data['descripcion']))   $errores[] = 'La descripción es requerida.';
         if (empty($data['unidad_medida'])) $errores[] = 'La unidad de medida es requerida.';
         if ($this->model->codigoExiste($data['codigo'], $exceptoId)) {
             $errores[] = "El código '{$data['codigo']}' ya existe.";
