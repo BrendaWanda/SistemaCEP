@@ -52,8 +52,8 @@ class ProductoController extends Controller
             $this->redirect('/m0/productos');
         }
 
-        $modelParam  = new ParametroProceso();
-        $parametros  = $modelParam->porProductoAgrupado((int)$params['id']);
+        $modelParam = new ParametroProceso();
+        $parametros = $modelParam->porProductoAgrupado((int)$params['id']);
 
         $this->render('m0_configuracion/productos/ver', [
             'pageTitle'  => $producto['nombre'],
@@ -62,10 +62,10 @@ class ProductoController extends Controller
                 ['label' => 'Productos', 'url' => APP_URL . '/m0/productos'],
                 ['label' => $producto['nombre']],
             ],
-            'producto'  => $producto,
-            'parametros'=> $parametros,
-            'etapas'    => ParametroProceso::ETAPAS,
-            'canWrite'  => Auth::canWrite('m0_configuracion'),
+            'producto'   => $producto,
+            'parametros' => $parametros,
+            'etapas'     => ParametroProceso::ETAPAS,
+            'canWrite'   => Auth::canWrite('m0_configuracion'),
         ]);
     }
 
@@ -92,7 +92,7 @@ class ProductoController extends Controller
         Auth::requireWrite('m0_configuracion');
         $this->verifyCsrf();
 
-        $data = $this->construirData();
+        $data    = $this->construirData();
         $errores = $this->validar($data);
 
         if (!empty($errores)) {
@@ -103,7 +103,6 @@ class ProductoController extends Controller
         $data['creado_por'] = Auth::id();
         $data['activo']     = 1;
 
-        // Calcular LSE/LIE automáticamente
         if ($data['peso_nominal_g'] && $data['tolerancia_pct']) {
             $limites = $this->model->calcularLimites(
                 (float)$data['peso_nominal_g'],
@@ -149,7 +148,7 @@ class ProductoController extends Controller
         $this->verifyCsrf();
         $id = (int)$params['id'];
 
-        $data = $this->construirData();
+        $data    = $this->construirData();
         $errores = $this->validar($data, $id);
 
         if (!empty($errores)) {
@@ -185,10 +184,39 @@ class ProductoController extends Controller
         $this->redirectWithSuccess('/m0/productos', $msg);
     }
 
+    // POST /m0/productos/:id/eliminar  ← NUEVO
+    public function eliminar(array $params): void
+    {
+        Auth::requireWrite('m0_configuracion');
+        $this->verifyCsrf();
+        $id      = (int)$params['id'];
+        $producto = $this->model->find($id);
+
+        if (!$producto) {
+            $this->flash('error', 'Producto no encontrado.');
+            $this->redirect('/m0/productos');
+        }
+
+        // Verificar que no tenga lotes asociados
+        $tieneUso = (int)$this->db->fetchScalar(
+            "SELECT COUNT(*) FROM lotes_produccion WHERE producto_id = ?", [$id]
+        );
+        if ($tieneUso > 0) {
+            $this->flash('error',
+                "No se puede eliminar '{$producto['nombre']}' — tiene {$tieneUso} lote(s) asociado(s). Desactívelo en su lugar.");
+            $this->redirect('/m0/productos');
+        }
+
+        $nombre = $producto['nombre'];
+        $this->model->delete($id);
+        $this->redirectWithSuccess('/m0/productos',
+            "Producto '{$nombre}' eliminado correctamente.");
+    }
+
     // API GET /api/productos-por-linea?linea_id=1
     public function porLinea(): void
     {
-        $lineaId = $this->inputInt('linea_id');
+        $lineaId   = $this->inputInt('linea_id');
         $productos = $this->model->porLinea($lineaId);
         $this->jsonSuccess($productos);
     }
@@ -228,7 +256,7 @@ class ProductoController extends Controller
     private function validar(array $data, ?int $exceptoId = null): array
     {
         $errores = [];
-        if (!$data['linea_id'])  $errores[] = 'Seleccione una línea de producción.';
+        if (!$data['linea_id'])     $errores[] = 'Seleccione una línea de producción.';
         if (empty($data['codigo'])) $errores[] = 'El código es requerido.';
         if (empty($data['nombre'])) $errores[] = 'El nombre es requerido.';
         if ($this->model->codigoExiste($data['codigo'], $exceptoId)) {

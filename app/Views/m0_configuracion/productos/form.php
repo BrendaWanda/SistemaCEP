@@ -7,23 +7,40 @@
 <?php $v = fn($campo, $def='') => htmlspecialchars($producto[$campo] ?? $def); ?>
 
 <div class="page-header">
-    <div class="page-title">
-        <?= $esEditar ? '✏️ Editar Producto' : '➕ Nuevo Producto' ?>
+    <div>
+        <div class="page-title">
+            <?= $esEditar ? 'Editar Producto' : 'Nuevo Producto' ?>
+        </div>
+        <div class="page-sub">
+            El LSE y LIE se calculan automáticamente desde el peso nominal y tolerancia.
+        </div>
     </div>
-    <div class="page-sub">El LSE y LIE se calculan automáticamente desde el peso nominal y tolerancia.</div>
+    <div class="page-actions">
+        <a href="<?= APP_URL ?>/m0/productos" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
 </div>
 
 <form method="POST"
-        action="<?= APP_URL ?>/m0/productos/<?= $esEditar ? $producto['id'].'/editar' : 'nuevo' ?>">
+        action="<?= APP_URL ?>/m0/productos/<?= $esEditar
+        ? $producto['id'].'/editar' : 'nuevo' ?>">
 <input type="hidden" name="_token" value="<?= $csrfToken ?>">
 
 <!-- Identificación -->
 <div class="card" style="margin-bottom:16px">
-    <div class="card-header"><span class="card-title">📋 Identificación</span></div>
+    <div class="card-header">
+        <span class="card-title">
+            <i class="bi bi-card-text" style="color:#4f8ef7;margin-right:6px"></i>
+            Identificación
+        </span>
+    </div>
     <div class="card-body">
         <div class="form-row cols-3">
             <div class="form-group">
-                <label class="form-label">Línea de producción <span class="form-required">*</span></label>
+                <label class="form-label">
+                    Línea de producción <span class="form-required">*</span>
+                </label>
                 <select name="linea_id" class="form-control" required>
                     <option value="">Seleccione...</option>
                     <?php foreach ($lineas as $id => $nombre): ?>
@@ -35,14 +52,19 @@
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label">Código <span class="form-required">*</span></label>
+                <label class="form-label">
+                    Código <span class="form-required">*</span>
+                </label>
                 <input type="text" name="codigo" class="form-control"
                         value="<?= $v('codigo') ?>"
                         placeholder="Ej: PT-PAN-COCO"
-                        style="text-transform:uppercase" required>
+                        style="text-transform:uppercase;font-family:monospace"
+                        required>
             </div>
             <div class="form-group">
-                <label class="form-label">Nombre <span class="form-required">*</span></label>
+                <label class="form-label">
+                    Nombre <span class="form-required">*</span>
+                </label>
                 <input type="text" name="nombre" class="form-control"
                         value="<?= $v('nombre') ?>"
                         placeholder="Ej: Pan con Coco" required>
@@ -64,8 +86,9 @@
         </div>
         <div class="form-group">
             <label class="form-label">Descripción</label>
-            <textarea name="descripcion" class="form-control" rows="2">
-<?= $v('descripcion') ?></textarea>
+            <textarea name="descripcion" class="form-control" rows="2"><?=
+                $v('descripcion')
+            ?></textarea>
         </div>
     </div>
 </div>
@@ -73,7 +96,10 @@
 <!-- Especificaciones DBC -->
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
-        <span class="card-title">📏 Especificaciones contractuales (DBC)</span>
+        <span class="card-title">
+            <i class="bi bi-rulers" style="color:#4f8ef7;margin-right:6px"></i>
+            Especificaciones contractuales (DBC)
+        </span>
     </div>
     <div class="card-body">
         <div class="form-row cols-3">
@@ -90,16 +116,18 @@
                         class="form-control"
                         value="<?= $v('tolerancia_pct','1.00') ?>"
                         step="0.01" min="0">
-                <div class="form-hint">DBC establece ±1%</div>
+                <div class="form-hint">
+                    <i class="bi bi-info-circle"></i> DBC establece ±1%
+                </div>
             </div>
             <div class="form-group">
-                <label class="form-label">LSE / LIE (calculados automáticamente)</label>
+                <label class="form-label">LSE / LIE (calculados)</label>
                 <div style="display:flex;gap:8px">
                     <input type="text" id="lsePreview" class="form-control" readonly
-                            style="background:#f0fdf4;color:#15803d;font-weight:600"
+                            style="background:#f0fdf4;color:#16a34a;font-weight:700"
                             placeholder="LSE">
                     <input type="text" id="liePreview" class="form-control" readonly
-                            style="background:#fef2f2;color:#dc2626;font-weight:600"
+                            style="background:#fef2f2;color:#dc2626;font-weight:700"
                             placeholder="LIE">
                 </div>
             </div>
@@ -146,19 +174,22 @@
     </div>
 </div>
 
-<!-- Organolépticos y Fisicoquímico -->
+<!-- Organolépticos -->
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
-        <span class="card-title">👁️ Características de referencia del producto terminado</span>
+        <span class="card-title">
+            <i class="bi bi-eye-fill" style="color:#4f8ef7;margin-right:6px"></i>
+            Características de referencia del producto terminado
+        </span>
     </div>
     <div class="card-body">
         <div class="form-row cols-2">
             <?php foreach ([
-                'ref_color'     => 'Color',
-                'ref_olor'      => 'Olor',
-                'ref_sabor'     => 'Sabor',
-                'ref_textura'   => 'Textura',
-                'ref_apariencia'=> 'Apariencia',
+                'ref_color'      => 'Color',
+                'ref_olor'       => 'Olor',
+                'ref_sabor'      => 'Sabor',
+                'ref_textura'    => 'Textura',
+                'ref_apariencia' => 'Apariencia',
             ] as $campo => $label): ?>
             <div class="form-group">
                 <label class="form-label"><?= $label ?></label>
@@ -188,9 +219,15 @@
 </div>
 
 <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:24px">
-    <a href="<?= APP_URL ?>/m0/productos" class="btn btn-secondary">Cancelar</a>
+    <a href="<?= APP_URL ?>/m0/productos" class="btn btn-secondary">
+        <i class="bi bi-x-lg"></i> Cancelar
+    </a>
     <button type="submit" class="btn btn-primary">
-        <?= $esEditar ? '💾 Guardar cambios' : '✅ Crear producto' ?>
+        <?php if ($esEditar): ?>
+            <i class="bi bi-floppy"></i> Guardar cambios
+        <?php else: ?>
+            <i class="bi bi-check-lg"></i> Crear producto
+        <?php endif ?>
     </button>
 </div>
 
