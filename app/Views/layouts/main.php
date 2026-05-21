@@ -228,11 +228,6 @@ $rol            = $user['rol_nombre'] ?? '';
                 <i class="bi bi-clock" style="margin-right:3px"></i>
                 <?= date('d/m/Y H:i') ?>
             </span>
-            <a href="<?= APP_URL ?>/auth/logout"
-                class="topbar-salir"
-                onclick="return confirm('¿Desea cerrar sesión?')">
-                <i class="bi bi-box-arrow-right"></i> Salir
-            </a>
         </div>
     </header>
 
