@@ -23,7 +23,7 @@
     </div>
 </div>
 
-<div class="card" style="max-width:600px">
+<div class="card" style="max-width:640px">
     <div class="card-header">
         <span class="card-title">
             <i class="bi bi-diagram-2-fill" style="color:#4f8ef7;margin-right:6px"></i>
@@ -32,7 +32,7 @@
     </div>
     <form method="POST"
             action="<?= APP_URL ?>/m0/lineas/<?= $esEditar
-            ? $linea['id'].'/editar' : 'nueva' ?>">
+                ? $linea['id'].'/editar' : 'nueva' ?>">
         <input type="hidden" name="_token" value="<?= $csrfToken ?>">
         <div class="card-body">
 
@@ -45,7 +45,8 @@
                             value="<?= htmlspecialchars($linea['codigo'] ?? '') ?>"
                             placeholder="Ej: LIN-PAN"
                             maxlength="20" required
-                            style="text-transform:uppercase;font-family:monospace">
+                            style="text-transform:uppercase;font-family:monospace;
+                                font-size:15px;font-weight:600">
                     <div class="form-hint">
                         <i class="bi bi-info-circle"></i>
                         Identificador único. Ej: LIN-PAN, LIN-GAL
@@ -68,7 +69,40 @@
                             placeholder="Descripción de la línea y su propósito..."><?=
                     htmlspecialchars($linea['descripcion'] ?? '')
                 ?></textarea>
+                <div class="form-hint">
+                    <i class="bi bi-info-circle"></i>
+                    Opcional. Describe el propósito y alcance de esta línea.
+                </div>
             </div>
+
+            <?php if ($esEditar): ?>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;
+                        border-radius:8px;padding:14px">
+                <div style="font-size:12px;font-weight:600;color:#64748b;
+                            margin-bottom:8px;text-transform:uppercase;
+                            letter-spacing:.06em">
+                    <i class="bi bi-info-circle" style="margin-right:4px"></i>
+                    Información adicional
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;
+                            font-size:13px;color:#475569">
+                    <div>
+                        <span style="color:#94a3b8">Código actual:</span>
+                        <code style="background:#f1f5f9;padding:1px 6px;
+                                    border-radius:4px;margin-left:4px;font-weight:700">
+                            <?= htmlspecialchars($linea['codigo']) ?>
+                        </code>
+                    </div>
+                    <div>
+                        <span style="color:#94a3b8">Estado:</span>
+                        <span class="badge <?= $linea['activa']
+                            ? 'badge-success' : 'badge-muted' ?>" style="margin-left:4px">
+                            <?= $linea['activa'] ? 'Activa' : 'Inactiva' ?>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <?php endif ?>
 
         </div>
         <div class="card-footer">

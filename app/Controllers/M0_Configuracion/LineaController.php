@@ -1,9 +1,4 @@
 <?php
-// =============================================================================
-//  SIACEP — M0: Controlador de Líneas de Producción
-//  Archivo: app/Controllers/M0_Configuracion/LineaController.php
-// =============================================================================
-
 namespace App\Controllers\M0_Configuracion;
 
 use App\Core\Controller;
@@ -21,7 +16,6 @@ class LineaController extends Controller
         $this->model = new LineaProduccion();
     }
 
-    // GET /m0/lineas
     public function index(): void
     {
         $lineas = $this->model->todasConConteo();
@@ -31,12 +25,11 @@ class LineaController extends Controller
                 ['label' => 'Configuración', 'url' => APP_URL . '/m0/lineas'],
                 ['label' => 'Líneas de Producción'],
             ],
-            'lineas'     => $lineas,
-            'canWrite'   => Auth::canWrite('m0_configuracion'),
+            'lineas'   => $lineas,
+            'canWrite' => Auth::canWrite('m0_configuracion'),
         ]);
     }
 
-    // GET /m0/lineas/nueva
     public function nueva(): void
     {
         Auth::requireWrite('m0_configuracion');
@@ -52,7 +45,6 @@ class LineaController extends Controller
         ]);
     }
 
-    // POST /m0/lineas/nueva
     public function crear(): void
     {
         Auth::requireWrite('m0_configuracion');
@@ -62,7 +54,6 @@ class LineaController extends Controller
         $nombre = $this->input('nombre');
         $desc   = $this->input('descripcion');
 
-        // Validaciones
         $errores = [];
         if (empty($codigo)) $errores[] = 'El código es requerido.';
         if (empty($nombre)) $errores[] = 'El nombre es requerido.';
@@ -83,11 +74,9 @@ class LineaController extends Controller
             'creado_por'  => Auth::id(),
         ]);
 
-        $this->redirectWithSuccess('/m0/lineas',
-            "Línea '{$nombre}' creada correctamente.");
+        $this->redirectWithSuccess('/m0/lineas', "Línea '{$nombre}' creada correctamente.");
     }
 
-    // GET /m0/lineas/:id/editar
     public function editar(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
@@ -109,7 +98,6 @@ class LineaController extends Controller
         ]);
     }
 
-    // POST /m0/lineas/:id/editar
     public function actualizar(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
@@ -141,22 +129,47 @@ class LineaController extends Controller
         $this->redirectWithSuccess('/m0/lineas', 'Línea actualizada correctamente.');
     }
 
-    // POST /m0/lineas/:id/toggle
     public function toggleActivo(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
         $this->verifyCsrf();
         $id    = (int)$params['id'];
         $linea = $this->model->find($id);
-        if (!$linea) {
-            $this->jsonError('No encontrado', 404);
-        }
+        if (!$linea) $this->jsonError('No encontrado', 404);
+
         $nuevoEstado = $linea['activa'] ? 0 : 1;
         $this->model->update($id, ['activa' => $nuevoEstado]);
         $msg = $nuevoEstado ? 'Línea activada.' : 'Línea desactivada.';
-        if ($this->isAjax()) {
-            $this->jsonSuccess(['activa' => $nuevoEstado], $msg);
-        }
+        if ($this->isAjax()) $this->jsonSuccess(['activa' => $nuevoEstado], $msg);
         $this->redirectWithSuccess('/m0/lineas', $msg);
+    }
+
+    // POST /m0/lineas/:id/eliminar ← NUEVO
+    public function eliminar(array $params): void
+    {
+        Auth::requireWrite('m0_configuracion');
+        $this->verifyCsrf();
+        $id    = (int)$params['id'];
+        $linea = $this->model->find($id);
+
+        if (!$linea) {
+            $this->flash('error', 'Línea no encontrada.');
+            $this->redirect('/m0/lineas');
+        }
+
+        // Verificar que no tenga productos asociados
+        $tieneProductos = (int)$this->db->fetchScalar(
+            "SELECT COUNT(*) FROM productos WHERE linea_id = ?", [$id]
+        );
+        if ($tieneProductos > 0) {
+            $this->flash('error',
+                "No se puede eliminar '{$linea['nombre']}' — tiene {$tieneProductos} producto(s) asociado(s). Desactívela en su lugar.");
+            $this->redirect('/m0/lineas');
+        }
+
+        $nombre = $linea['nombre'];
+        $this->model->delete($id);
+        $this->redirectWithSuccess('/m0/lineas',
+            "Línea '{$nombre}' eliminada correctamente.");
     }
 }
