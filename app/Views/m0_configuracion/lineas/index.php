@@ -5,7 +5,7 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">🏗️ Líneas de Producción</div>
+        <div class="page-title">Líneas de Producción</div>
         <div class="page-sub">Gestiona las líneas productivas de la planta. Actualmente: Línea de Panificación.</div>
     </div>
     <?php if ($canWrite): ?>

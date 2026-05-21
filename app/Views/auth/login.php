@@ -378,8 +378,8 @@ body {
                         '<i class=\'bi bi-buildings-fill\' style=\'font-size:18px;color:#4f8ef7\'></i>'">
             </div>
             <div class="login-brand-text">
-                <div class="login-brand-name">SIACEP</div>
-                <div class="login-brand-sub">Gustossi SRL</div>
+                <div class="login-brand-name">SISTEMA</div>
+                <div class="login-brand-sub">Industrias Alimenticias Gustossi SRL</div>
             </div>
         </div>
 
@@ -403,7 +403,7 @@ body {
 
         <!-- Encabezado -->
         <div class="login-welcome">Bienvenido a</div>
-        <div class="login-title">Sistema SIACEP</div>
+        <div class="login-title">SISTEMA DE CONTROL DEL PROCESO PRODUCTIVO</div>
         <div class="login-desc">
             Ingrese sus credenciales para acceder al sistema de control de producción.
         </div>
@@ -489,7 +489,7 @@ body {
                     </div>
                     <div>
                         <div class="chip-title">Trazabilidad completa</div>
-                        <div class="chip-desc">MP → Proceso → Producto terminado</div>
+                        <div class="chip-desc">MP, Proceso, Producto terminado</div>
                     </div>
                 </div>
                 <div class="login-chip">
@@ -497,15 +497,12 @@ body {
                         <i class="bi bi-bullseye"></i>
                     </div>
                     <div>
-                        <div class="chip-title">KPIs y OEE</div>
-                        <div class="chip-desc">Disponibilidad · Rendimiento · Calidad</div>
+                        <div class="chip-title">KPIs</div>
                     </div>
                 </div>
             </div>
 
         </div>
-
-        <div class="login-version">SIACEP v1.0 · 2026</div>
 
     </div>
 

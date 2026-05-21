@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= $pageTitle ?? 'SIACEP' ?> — Gustossi SRL</title>
+<title><?= $pageTitle ?? 'SIACEP' ?> — Industrias Alimenticias Gustossi SRL</title>
 <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/app.css?v=<?= time() ?>">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
@@ -44,7 +44,7 @@ $rol            = $user['rol_nombre'] ?? '';
                         '<i class=\'bi bi-buildings-fill\' style=\'font-size:22px;color:#4f8ef7\'></i>'">
             </div>
             <div class="sb-logo-text">
-                <div class="sb-logo-name">SIACEP</div>
+                <div class="sb-logo-name">SISTEMA</div>
                 <div class="sb-logo-sub">Gustossi SRL</div>
             </div>
         </a>
@@ -77,7 +77,7 @@ $rol            = $user['rol_nombre'] ?? '';
             class="sb-item <?= $active('/m0') ?>"
             <?= $tip('Config. maestra') ?>>
             <span class="sb-icon"><i class="bi bi-gear-fill"></i></span>
-            <span class="sb-label">Config. maestra</span>
+            <span class="sb-label">Config. general</span>
         </a>
         <?php endif ?>
 
@@ -160,7 +160,7 @@ $rol            = $user['rol_nombre'] ?? '';
             class="sb-item <?= $active('/m7') ?>"
             <?= $tip('KPIs y OEE') ?>>
             <span class="sb-icon"><i class="bi bi-bullseye"></i></span>
-            <span class="sb-label">KPIs y OEE</span>
+            <span class="sb-label">KPIs</span>
         </a>
         <?php endif ?>
 
