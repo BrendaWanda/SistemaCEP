@@ -2,6 +2,7 @@
 /** @var array $equipos @var array $alertas @var array $tipos @var bool $canWrite */
 ?>
 <?php require __DIR__ . '/../_nav.php'; ?>
+<?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
 
 <div class="page-header">
     <div>
@@ -21,9 +22,8 @@
 
 <!-- Alertas de calibración -->
 <?php if (!empty($alertas)): ?>
-<div style="background:#fffbeb;border:1px solid #c9af49;border-radius:8px;
-            padding:12px 16px;margin-bottom:16px;
-            border-left:4px solid #c79d07">
+<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;
+            padding:12px 16px;margin-bottom:16px;border-left:4px solid #f59e0b">
     <div style="font-weight:700;color:#92400e;margin-bottom:8px;
                 display:flex;align-items:center;gap:8px">
         <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b"></i>
@@ -63,14 +63,14 @@
             <thead>
                 <tr>
                     <th style="width:110px">Código</th>
-                    <th>Equipo</th>
+                    <th style="text-align:left">Equipo</th>
                     <th style="text-align:center;width:110px">Tipo</th>
-                    <th style="width:130px">Línea</th>
+                    <th style="text-align:left;width:130px">Línea</th>
                     <th style="text-align:center;width:130px">Calibración</th>
                     <th style="text-align:center;width:130px">Mantenimiento</th>
                     <th style="text-align:center;width:90px">Estado</th>
                     <?php if ($canWrite): ?>
-                    <th style="text-align:center;width:90px">Acciones</th>
+                    <th style="text-align:center;width:160px">Acciones</th>
                     <?php endif ?>
                 </tr>
             </thead>
@@ -79,11 +79,13 @@
             <tr>
                 <td colspan="<?= $canWrite ? 8 : 7 ?>"
                     style="text-align:center;padding:48px;color:#94a3b8">
-                    <i class="bi bi-cpu" style="font-size:32px;display:block;margin-bottom:10px;color:#e2e8f0"></i>
+                    <i class="bi bi-cpu" style="font-size:32px;display:block;
+                                margin-bottom:10px;color:#e2e8f0"></i>
                     No hay equipos registrados.
                     <?php if ($canWrite): ?>
                     <div style="margin-top:10px">
-                        <a href="<?= APP_URL ?>/m0/equipos/nuevo" class="btn btn-primary btn-sm">
+                        <a href="<?= APP_URL ?>/m0/equipos/nuevo"
+                            class="btn btn-primary btn-sm">
                             <i class="bi bi-plus-lg"></i> Agregar el primero
                         </a>
                     </div>
@@ -106,10 +108,10 @@
                     default   => 'bi-dash-circle',
                 };
                 $mantBadge = match($e['estado_mantenimiento']) {
-                    'vencido'      => ['badge-danger',  'Vencido'],
-                    'proximo'      => ['badge-warning', 'Próximo'],
-                    'vigente'      => ['badge-success', 'Vigente'],
-                    default        => ['badge-muted',   'Sin registro'],
+                    'vencido' => ['badge-danger',  'Vencido'],
+                    'proximo' => ['badge-warning', 'Próximo'],
+                    'vigente' => ['badge-success', 'Vigente'],
+                    default   => ['badge-muted',   'Sin registro'],
                 };
                 $mantIcon = match($e['estado_mantenimiento']) {
                     'vencido' => 'bi-x-circle-fill',
@@ -120,13 +122,12 @@
             ?>
             <tr>
                 <td>
-                    <code style="background:#f1f5f9;padding:3px 8px;
-                                border-radius:5px;font-size:12px;
-                                color:#1a2035;font-weight:700">
+                    <code style="background:#f1f5f9;padding:3px 8px;border-radius:5px;
+                                font-size:12px;color:#090e22;font-weight:700">
                         <?= htmlspecialchars($e['codigo']) ?>
                     </code>
                 </td>
-                <td>
+                <td style="text-align:left">
                     <div style="font-weight:600;color:#0f172a">
                         <?= htmlspecialchars($e['nombre']) ?>
                     </div>
@@ -143,7 +144,7 @@
                         <?= $tipos[$e['tipo']] ?? $e['tipo'] ?>
                     </span>
                 </td>
-                <td style="font-size:13px;color:#475569">
+                <td style="text-align:left;font-size:13px;color:#475569">
                     <?= htmlspecialchars($e['linea_nombre']) ?>
                 </td>
                 <td style="text-align:center">
@@ -177,10 +178,24 @@
                 </td>
                 <?php if ($canWrite): ?>
                 <td style="text-align:center">
-                    <a href="<?= APP_URL ?>/m0/equipos/<?= $e['id'] ?>/editar"
-                        class="btn btn-sm btn-secondary">
-                        <i class="bi bi-pencil"></i> Editar
-                    </a>
+                    <div style="display:flex;gap:4px;justify-content:center">
+                        <!-- Editar -->
+                        <a href="<?= APP_URL ?>/m0/equipos/<?= $e['id'] ?>/editar"
+                            class="btn btn-sm btn-secondary" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <!-- Eliminar -->
+                        <form method="POST"
+                                action="<?= APP_URL ?>/m0/equipos/<?= $e['id'] ?>/eliminar"
+                                style="display:inline">
+                            <input type="hidden" name="_token" value="<?= $csrfToken ?>">
+                            <button type="submit"
+                                    class="btn btn-sm btn-danger" title="Eliminar"
+                                    data-confirm="¿Eliminar '<?= htmlspecialchars($e['nombre']) ?>'? Esta acción no se puede deshacer.">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
                 </td>
                 <?php endif ?>
             </tr>

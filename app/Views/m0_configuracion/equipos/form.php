@@ -32,8 +32,8 @@
         </span>
     </div>
     <form method="POST"
-        action="<?= APP_URL ?>/m0/equipos/<?= $esEditar
-            ? $equipo['id'].'/editar' : 'nuevo' ?>">
+            action="<?= APP_URL ?>/m0/equipos/<?= $esEditar
+                ? $equipo['id'].'/editar' : 'nuevo' ?>">
         <input type="hidden" name="_token" value="<?= $csrfToken ?>">
         <div class="card-body">
 
@@ -76,10 +76,10 @@
                         Código <span class="form-required">*</span>
                     </label>
                     <input type="text" name="codigo" class="form-control"
-                        value="<?= $v('codigo') ?>"
-                        placeholder="Ej: EQ-BAL-01"
-                        style="text-transform:uppercase;font-family:monospace"
-                        required>
+                            value="<?= $v('codigo') ?>"
+                            placeholder="Ej: EQ-BAL-01"
+                            style="text-transform:uppercase;font-family:monospace"
+                            required>
                     <div class="form-hint">
                         <i class="bi bi-info-circle"></i>
                         Ej: EQ-HOR-01, EQ-BAL-02, EQ-TER-01
@@ -90,9 +90,9 @@
                         Nombre <span class="form-required">*</span>
                     </label>
                     <input type="text" name="nombre" class="form-control"
-                        value="<?= $v('nombre') ?>"
-                        placeholder="Ej: Balanza de proceso N°1"
-                        required>
+                            value="<?= $v('nombre') ?>"
+                            placeholder="Ej: Balanza de proceso N°1"
+                            required>
                 </div>
             </div>
 
@@ -101,20 +101,20 @@
                 <div class="form-group">
                     <label class="form-label">Marca</label>
                     <input type="text" name="marca" class="form-control"
-                        value="<?= $v('marca') ?>"
-                        placeholder="Ej: OHAUS">
+                            value="<?= $v('marca') ?>"
+                            placeholder="Ej: OHAUS">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Modelo</label>
                     <input type="text" name="modelo" class="form-control"
-                        value="<?= $v('modelo') ?>"
-                        placeholder="Ej: Scout SKX52">
+                            value="<?= $v('modelo') ?>"
+                            placeholder="Ej: Scout SKX52">
                 </div>
                 <div class="form-group">
                     <label class="form-label">N° de serie</label>
                     <input type="text" name="serie" class="form-control"
-                        value="<?= $v('serie') ?>"
-                        placeholder="Número de serie">
+                            value="<?= $v('serie') ?>"
+                            placeholder="Número de serie">
                 </div>
             </div>
 
@@ -123,13 +123,13 @@
                         padding:16px;margin-bottom:16px;background:#fafbfc">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
                     <input type="checkbox" name="requiere_calibracion"
-                        id="reqCalibr"
-                        <?= ($equipo['requiere_calibracion'] ?? false) ? 'checked' : '' ?>
-                        style="width:16px;height:16px;accent-color:#4f8ef7;cursor:pointer">
+                            id="reqCalibr"
+                            <?= ($equipo['requiere_calibracion'] ?? false) ? 'checked' : '' ?>
+                            style="width:16px;height:16px;accent-color:#4f8ef7;cursor:pointer">
                     <label for="reqCalibr"
-                        style="font-weight:600;cursor:pointer;
-                                display:flex;align-items:center;gap:7px;
-                                color:#0f172a;font-size:14px">
+                            style="font-weight:600;cursor:pointer;
+                                    display:flex;align-items:center;gap:7px;
+                                    color:#0f172a;font-size:14px">
                         <i class="bi bi-search" style="color:#4f8ef7"></i>
                         Este equipo requiere calibración periódica
                         <span style="font-size:11px;font-weight:400;color:#64748b">
@@ -138,7 +138,7 @@
                     </label>
                 </div>
                 <div id="calibrSection"
-                    style="<?= ($equipo['requiere_calibracion'] ?? false)
+                        style="<?= ($equipo['requiere_calibracion'] ?? false)
                                 ? '' : 'display:none' ?>">
                     <div class="form-row cols-2">
                         <div class="form-group" style="margin-bottom:0">
@@ -147,9 +147,9 @@
                                 Frecuencia de calibración (días)
                             </label>
                             <input type="number" name="frecuencia_calibr_dias"
-                                class="form-control"
-                                value="<?= $v('frecuencia_calibr_dias') ?>"
-                                min="1" placeholder="Ej: 365">
+                                    class="form-control"
+                                    value="<?= $v('frecuencia_calibr_dias') ?>"
+                                    min="1" placeholder="Ej: 365">
                             <div class="form-hint">365 = anual · 180 = semestral</div>
                         </div>
                         <div class="form-group" style="margin-bottom:0">
@@ -158,9 +158,9 @@
                                 Frecuencia de mantenimiento (días)
                             </label>
                             <input type="number" name="frecuencia_mant_dias"
-                                class="form-control"
-                                value="<?= $v('frecuencia_mant_dias') ?>"
-                                min="1" placeholder="Ej: 90">
+                                    class="form-control"
+                                    value="<?= $v('frecuencia_mant_dias') ?>"
+                                    min="1" placeholder="Ej: 90">
                         </div>
                     </div>
                 </div>

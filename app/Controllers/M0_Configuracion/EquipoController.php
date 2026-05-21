@@ -65,14 +65,18 @@ class EquipoController extends Controller
         }
         $data['creado_por'] = Auth::id();
         $this->model->create($data);
-        $this->redirectWithSuccess('/m0/equipos', "Equipo '{$data['nombre']}' creado correctamente.");
+        $this->redirectWithSuccess('/m0/equipos',
+            "Equipo '{$data['nombre']}' creado correctamente.");
     }
 
     public function editar(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
         $equipo = $this->model->find((int)$params['id']);
-        if (!$equipo) { $this->flash('error','Equipo no encontrado.'); $this->redirect('/m0/equipos'); }
+        if (!$equipo) {
+            $this->flash('error', 'Equipo no encontrado.');
+            $this->redirect('/m0/equipos');
+        }
         $this->render('m0_configuracion/equipos/form', [
             'pageTitle'  => 'Editar: '.$equipo['nombre'],
             'breadcrumb' => [
@@ -100,6 +104,35 @@ class EquipoController extends Controller
         }
         $this->model->update($id, $data);
         $this->redirectWithSuccess('/m0/equipos', 'Equipo actualizado correctamente.');
+    }
+
+    // POST /m0/equipos/:id/eliminar ← NUEVO
+    public function eliminar(array $params): void
+    {
+        Auth::requireWrite('m0_configuracion');
+        $this->verifyCsrf();
+        $id     = (int)$params['id'];
+        $equipo = $this->model->find($id);
+
+        if (!$equipo) {
+            $this->flash('error', 'Equipo no encontrado.');
+            $this->redirect('/m0/equipos');
+        }
+
+        // Verificar que no tenga mantenimientos asociados
+        $tieneUso = (int)$this->db->fetchScalar(
+            "SELECT COUNT(*) FROM mantenimientos WHERE equipo_id = ?", [$id]
+        );
+        if ($tieneUso > 0) {
+            $this->flash('error',
+                "No se puede eliminar '{$equipo['nombre']}' — tiene {$tieneUso} registro(s) de mantenimiento. Desactívelo en su lugar.");
+            $this->redirect('/m0/equipos');
+        }
+
+        $nombre = $equipo['nombre'];
+        $this->model->delete($id);
+        $this->redirectWithSuccess('/m0/equipos',
+            "Equipo '{$nombre}' eliminado correctamente.");
     }
 
     private function buildData(): array
