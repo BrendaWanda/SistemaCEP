@@ -7,20 +7,34 @@
 <?php $v = fn($campo, $def='') => htmlspecialchars($parametro[$campo] ?? $def); ?>
 
 <div class="page-header">
-    <div class="page-title">
-        <?= $esEditar ? '✏️ Editar Parámetro' : '➕ Nuevo Parámetro' ?>
+    <div>
+        <div class="page-title">
+            <?= $esEditar ? 'Editar Parámetro' : 'Nuevo Parámetro' ?>
+        </div>
+        <div class="page-sub">
+            Producto:
+            <strong><?= htmlspecialchars($producto['nombre']) ?></strong>
+        </div>
     </div>
-    <div class="page-sub">
-        Producto: <strong><?= htmlspecialchars($producto['nombre']) ?></strong>
+    <div class="page-actions">
+        <a href="<?= APP_URL ?>/m0/productos/<?= $producto['id'] ?>/parametros"
+            class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a parámetros
+        </a>
     </div>
 </div>
 
 <div class="card" style="max-width:700px">
-    <div class="card-header"><span class="card-title">Datos del parámetro</span></div>
+    <div class="card-header">
+        <span class="card-title">
+            <i class="bi bi-sliders" style="color:#4f8ef7;margin-right:6px"></i>
+            Datos del parámetro
+        </span>
+    </div>
     <form method="POST"
             action="<?= APP_URL ?>/m0/<?= $esEditar
-                ? 'parametros/'.$parametro['id'].'/editar'
-                : 'productos/'.$producto['id'].'/parametros/nuevo' ?>">
+            ? 'parametros/'.$parametro['id'].'/editar'
+            : 'productos/'.$producto['id'].'/parametros/nuevo' ?>">
         <input type="hidden" name="_token" value="<?= $csrfToken ?>">
         <div class="card-body">
 
@@ -43,7 +57,8 @@
                     <label class="form-label">
                         Tipo de dato <span class="form-required">*</span>
                     </label>
-                    <select name="tipo_dato" class="form-control" id="tipoDato" required>
+                    <select name="tipo_dato" class="form-control"
+                            id="tipoDato" required>
                         <?php foreach ($tipos as $key => $label): ?>
                         <option value="<?= $key ?>"
                                 <?= $v('tipo_dato','numerico') === $key ? 'selected' : '' ?>>
@@ -75,38 +90,47 @@
 
             <!-- Valores numéricos -->
             <div id="seccionNumerica"
-                    style="<?= $v('tipo_dato','numerico') !== 'numerico' ? 'display:none' : '' ?>">
+                style="<?= $v('tipo_dato','numerico') !== 'numerico'
+                    ? 'display:none' : '' ?>">
                 <div class="form-row cols-3">
                     <div class="form-group">
                         <label class="form-label">Valor nominal</label>
                         <input type="number" name="valor_nominal" class="form-control"
                                 value="<?= $v('valor_nominal') ?>" step="0.0001">
-                        <div class="form-hint">Valor esperado del proceso</div>
+                        <div class="form-hint">
+                            <i class="bi bi-info-circle"></i> Valor esperado del proceso
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Valor mínimo operativo</label>
                         <input type="number" name="valor_min" class="form-control"
                                 value="<?= $v('valor_min') ?>" step="0.0001">
-                        <div class="form-hint">Límite inferior de operación</div>
+                        <div class="form-hint">
+                            <i class="bi bi-info-circle"></i> Límite inferior
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Valor máximo operativo</label>
                         <input type="number" name="valor_max" class="form-control"
                                 value="<?= $v('valor_max') ?>" step="0.0001">
-                        <div class="form-hint">Límite superior de operación</div>
+                        <div class="form-hint">
+                            <i class="bi bi-info-circle"></i> Límite superior
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Opciones para tipo selección -->
+            <!-- Opciones selección -->
             <div id="seccionOpciones"
-                    style="<?= $v('tipo_dato') !== 'seleccion' ? 'display:none' : '' ?>">
+                style="<?= $v('tipo_dato') !== 'seleccion'
+                    ? 'display:none' : '' ?>">
                 <div class="form-group">
                     <label class="form-label">Opciones (JSON)</label>
                     <input type="text" name="opciones_json" class="form-control"
                             value="<?= $v('opciones_json') ?>"
                             placeholder='["conforme","no_conforme","na"]'>
                     <div class="form-hint">
+                        <i class="bi bi-info-circle"></i>
                         Lista en formato JSON. Ej: ["conforme","no_conforme","na"]
                     </div>
                 </div>
@@ -114,36 +138,41 @@
 
             <!-- Configuración SPC -->
             <div id="seccionSPC"
-                    style="border:1px solid #e2e8f0;border-radius:8px;padding:14px;
-                        margin-bottom:16px;
-                        <?= $v('tipo_dato','numerico') !== 'numerico' ? 'display:none' : '' ?>">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                    style="border:1px solid #e2e8f0;border-radius:8px;
+                        padding:16px;margin-bottom:16px;background:#fafbfc;
+                        <?= $v('tipo_dato','numerico') !== 'numerico'
+                            ? 'display:none' : '' ?>">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
                     <input type="checkbox" name="es_variable_spc" id="esSPC"
                             <?= ($parametro['es_variable_spc'] ?? false) ? 'checked' : '' ?>
-                            style="width:16px;height:16px">
-                    <label for="esSPC" style="font-weight:600;font-size:13px;cursor:pointer">
-                        📊 Esta variable se grafica en el SPC (gráfico X̄-R)
+                            style="width:16px;height:16px;accent-color:#4f8ef7;cursor:pointer">
+                    <label for="esSPC"
+                            style="font-weight:600;font-size:14px;cursor:pointer;
+                                display:flex;align-items:center;gap:7px;color:#0f172a">
+                        <i class="bi bi-graph-up-arrow" style="color:#4f8ef7"></i>
+                        Esta variable se grafica en el SPC (gráfico X̄-R)
                     </label>
                 </div>
                 <div id="subgrupoSection"
-                        style="<?= ($parametro['es_variable_spc'] ?? false) ? '' : 'display:none' ?>">
+                        style="<?= ($parametro['es_variable_spc'] ?? false)
+                                ? '' : 'display:none' ?>">
                     <div class="form-group" style="max-width:220px;margin-bottom:0">
                         <label class="form-label">Tamaño de subgrupo (n)</label>
                         <input type="number" name="tamanio_subgrupo" class="form-control"
-                                value="<?= $v('tamanio_subgrupo','10') ?>" min="2" max="25">
-                        <div class="form-hint">
-                            El formulario físico usa n=10
-                        </div>
+                                value="<?= $v('tamanio_subgrupo','10') ?>"
+                                min="2" max="25">
+                        <div class="form-hint">El formulario físico usa n=10</div>
                     </div>
                 </div>
             </div>
 
+            <!-- Obligatorio -->
             <div class="form-group">
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
                     <input type="checkbox" name="obligatorio"
                             <?= ($parametro['obligatorio'] ?? 1) ? 'checked' : '' ?>
-                            style="width:16px;height:16px">
-                    <span style="font-weight:500">
+                            style="width:16px;height:16px;accent-color:#4f8ef7">
+                    <span style="font-weight:500;font-size:14px">
                         Campo obligatorio en el formulario de registro de proceso
                     </span>
                 </label>
@@ -152,9 +181,15 @@
         </div>
         <div class="card-footer">
             <a href="<?= APP_URL ?>/m0/productos/<?= $producto['id'] ?>/parametros"
-                class="btn btn-secondary">Cancelar</a>
+                class="btn btn-secondary">
+                <i class="bi bi-x-lg"></i> Cancelar
+            </a>
             <button type="submit" class="btn btn-primary">
-                <?= $esEditar ? '💾 Guardar cambios' : '✅ Crear parámetro' ?>
+                <?php if ($esEditar): ?>
+                    <i class="bi bi-floppy"></i> Guardar cambios
+                <?php else: ?>
+                    <i class="bi bi-check-lg"></i> Crear parámetro
+                <?php endif ?>
             </button>
         </div>
     </form>
