@@ -14,6 +14,14 @@ $v = fn($campo, $def='') => htmlspecialchars(
     html_entity_decode((string)($parametro[$campo] ?? $def), ENT_QUOTES, 'UTF-8'),
     ENT_QUOTES, 'UTF-8'
 );
+
+// URL de envío y URL de destino tras guardar — se calculan aquí para
+// reutilizarlas tanto en el atributo action="" del <form> como en el
+// script de envío vía fetch().
+$actionUrl  = APP_URL . '/m0/' . ($esEditar
+    ? 'parametros/' . $parametro['id'] . '/editar'
+    : 'productos/' . $producto['id'] . '/parametros/nuevo');
+$successUrl = APP_URL . '/m0/productos/' . $producto['id'] . '/parametros';
 ?>
 
 <div class="page-header">
@@ -40,12 +48,9 @@ $v = fn($campo, $def='') => htmlspecialchars(
             Datos del parámetro
         </span>
     </div>
-    <form method="POST"
-            action="<?= APP_URL ?>/m0/<?= $esEditar
-            ? 'parametros/'.$parametro['id'].'/editar'
-            : 'productos/'.$producto['id'].'/parametros/nuevo' ?>">
-        <input type="hidden" name="_token" value="<?= $csrfToken ?>">
-        <div class="card-body">
+    <form method="POST" action="<?= htmlspecialchars($actionUrl) ?>" id="formParametro">
+        <div class="card-body" id="camposParametro">
+            <input type="hidden" name="_token" value="<?= $csrfToken ?>">
 
             <div class="form-row cols-2">
                 <div class="form-group">
@@ -226,7 +231,7 @@ $v = fn($campo, $def='') => htmlspecialchars(
                 class="btn btn-secondary">
                 <i class="bi bi-x-lg"></i> Cancelar
             </a>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary" id="btnGuardarParametro">
                 <?php if ($esEditar): ?>
                     <i class="bi bi-floppy"></i> Guardar cambios
                 <?php else: ?>
@@ -264,5 +269,60 @@ document.getElementById('tipoDato').addEventListener('change', function () {
 document.getElementById('esSPC').addEventListener('change', function () {
     document.getElementById('subgrupoSection').style.display =
         this.checked ? '' : 'none';
+});
+
+// ═══════════════════════════════════════════════════════════
+// Envío del formulario vía fetch() — independiente del <form>
+// ═══════════════════════════════════════════════════════════
+// Se usa el evento 'click' del botón (siempre se dispara, sin
+// importar si el navegador asoció correctamente el <button
+// type="submit"> con el <form>). Se recolectan manualmente
+// todos los campos con [name] dentro de #camposParametro y se
+// envían por POST vía fetch a la URL calculada en PHP.
+//
+// redirect:'manual' evita que fetch siga el 302 de éxito —
+// así el mensaje flash (guardado en sesión por PHP) sigue
+// disponible cuando el navegador navega de verdad a successUrl.
+// ═══════════════════════════════════════════════════════════
+const ACTION_URL  = <?= json_encode($actionUrl, JSON_UNESCAPED_SLASHES) ?>;
+const SUCCESS_URL = <?= json_encode($successUrl, JSON_UNESCAPED_SLASHES) ?>;
+
+document.getElementById('btnGuardarParametro').addEventListener('click', function (e) {
+    e.preventDefault();
+
+    const btn = this;
+
+    // Validación básica de campos requeridos (etapa, nombre, unidad)
+    const campos = document.querySelectorAll('#camposParametro [required]');
+    for (const campo of campos) {
+        if (!campo.value || !campo.value.trim()) {
+            campo.focus();
+            campo.reportValidity?.();
+            return;
+        }
+    }
+
+    const textoOriginal = btn.innerHTML;
+    btn.disabled  = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Guardando...';
+
+    const formData = new FormData();
+    document.querySelectorAll('#camposParametro [name]').forEach(function (el) {
+        if (el.type === 'checkbox') {
+            if (el.checked) formData.append(el.name, '1');
+        } else {
+            formData.append(el.name, el.value);
+        }
+    });
+
+    fetch(ACTION_URL, { method: 'POST', body: formData, redirect: 'manual' })
+        .then(function () {
+            window.location.href = SUCCESS_URL;
+        })
+        .catch(function (err) {
+            btn.disabled  = false;
+            btn.innerHTML = textoOriginal;
+            alert('Error al guardar: ' + err.message);
+        });
 });
 </script>

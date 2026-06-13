@@ -29,10 +29,15 @@ class ParametroProceso extends Model
         'producto_terminado' => 'Producto Terminado',
     ];
 
+    // NOTA: la clave 'si_no' (antes 'booleano') debe coincidir EXACTAMENTE
+    // con los valores que comparan form.php y ParametroController
+    // (in_array($tipoDato, ['seleccion','si_no'])). Con 'booleano' ese
+    // chequeo nunca era verdadero, y el parámetro Sí/No se trataba como
+    // numérico (carta X̄-R en vez de carta p, n=5 en vez de n=50).
     public const TIPOS = [
         'numerico'   => 'Numérico',
         'texto'      => 'Texto libre',
-        'booleano'   => 'Sí / No',
+        'si_no'      => 'Sí / No',
         'seleccion'  => 'Lista de opciones',
     ];
 

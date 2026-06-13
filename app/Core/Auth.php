@@ -139,7 +139,11 @@ class Auth
         self::require();
         if (!self::canAccess($modulo)) {
             http_response_code(403);
-            require VIEWS_PATH . '/layouts/error_403.php';
+            if (file_exists(VIEWS_PATH . '/layouts/error_403.php')) {
+                require VIEWS_PATH . '/layouts/error_403.php';
+            } else {
+                echo '<h1>403 - Acceso denegado</h1><p>No tiene acceso a este módulo.</p>';
+            }
             exit;
         }
     }
@@ -149,7 +153,11 @@ class Auth
         self::require();
         if (!self::canWrite($modulo)) {
             http_response_code(403);
-            require VIEWS_PATH . '/layouts/error_403.php';
+            if (file_exists(VIEWS_PATH . '/layouts/error_403.php')) {
+                require VIEWS_PATH . '/layouts/error_403.php';
+            } else {
+                echo '<h1>403 - Acceso denegado</h1><p>No tiene permisos de escritura para este módulo.</p>';
+            }
             exit;
         }
     }
