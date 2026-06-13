@@ -74,11 +74,11 @@ class ParametroController extends Controller
             'nombre'           => $this->input('nombre'),
             'unidad'           => $this->input('unidad'),
             'tipo_dato'        => $this->input('tipo_dato'),
-            'valor_nominal'    => $this->inputFloat('valor_nominal') ?: null,
-            'valor_min'        => $this->inputFloat('valor_min') ?: null,
-            'valor_max'        => $this->inputFloat('valor_max') ?: null,
+            'valor_nominal'    => $this->floatOrNull('valor_nominal'),
+            'valor_min'        => $this->floatOrNull('valor_min'),
+            'valor_max'        => $this->floatOrNull('valor_max'),
             'es_variable_spc'  => isset($_POST['es_variable_spc']) ? 1 : 0,
-            'tamanio_subgrupo' => $this->inputInt('tamanio_subgrupo') ?: null,
+            'tamanio_subgrupo' => $this->resolverTamanioSubgrupo(),
             'opciones_json'    => $this->input('opciones_json') ?: null,
             'obligatorio'      => isset($_POST['obligatorio']) ? 1 : 0,
             'orden_display'    => $this->model->siguienteOrden($productoId, $etapa),
@@ -136,11 +136,11 @@ class ParametroController extends Controller
             'nombre'           => $this->input('nombre'),
             'unidad'           => $this->input('unidad'),
             'tipo_dato'        => $this->input('tipo_dato'),
-            'valor_nominal'    => $this->inputFloat('valor_nominal') ?: null,
-            'valor_min'        => $this->inputFloat('valor_min') ?: null,
-            'valor_max'        => $this->inputFloat('valor_max') ?: null,
+            'valor_nominal'    => $this->floatOrNull('valor_nominal'),
+            'valor_min'        => $this->floatOrNull('valor_min'),
+            'valor_max'        => $this->floatOrNull('valor_max'),
             'es_variable_spc'  => isset($_POST['es_variable_spc']) ? 1 : 0,
-            'tamanio_subgrupo' => $this->inputInt('tamanio_subgrupo') ?: null,
+            'tamanio_subgrupo' => $this->resolverTamanioSubgrupo(),
             'opciones_json'    => $this->input('opciones_json') ?: null,
             'obligatorio'      => isset($_POST['obligatorio']) ? 1 : 0,
         ]);
@@ -169,5 +169,49 @@ class ParametroController extends Controller
     {
         $productoId = $this->inputInt('producto_id');
         $this->jsonSuccess($this->model->paraFormulario($productoId));
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Convierte un campo numérico del formulario a float, o null si
+    // el campo viene vacío. A diferencia de `inputFloat() ?: null`,
+    // esto SÍ preserva el valor 0 (que con ?: se perdía, porque 0.0
+    // es "falsy" en PHP y ?: lo convertía siempre en null).
+    // ═══════════════════════════════════════════════════════════
+    private function floatOrNull(string $key): ?float
+    {
+        $raw = $_POST[$key] ?? null;
+        if ($raw === null || trim((string)$raw) === '') {
+            return null;
+        }
+        return (float) str_replace(',', '.', (string) $raw);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Resuelve el tamaño de subgrupo/muestra correcto según tipo_dato.
+    //
+    // El formulario tiene DOS inputs separados (tamanio_subgrupo_num y
+    // tamanio_subgrupo_atrib) porque antes ambos compartían el mismo
+    // name="tamanio_subgrupo": al estar ambos presentes en el DOM
+    // (uno oculto via CSS, que SÍ se sigue enviando en el POST), el
+    // último campo en el HTML sobrescribía siempre al primero en
+    // $_POST, guardando 50 sin importar lo que el usuario escribiera
+    // en el campo numérico (n=5, n=1, etc.) — y lo mismo ocurría al
+    // editar, donde el campo oculto pisaba la edición del visible.
+    //
+    // Con nombres distintos, aquí elegimos el valor correcto según
+    // el tipo de dato seleccionado:
+    //   - numerico            → tamanio_subgrupo_num   (default 5)
+    //   - seleccion / si_no   → tamanio_subgrupo_atrib (default 50)
+    // ═══════════════════════════════════════════════════════════
+    private function resolverTamanioSubgrupo(): ?int
+    {
+        $tipoDato   = $this->input('tipo_dato');
+        $esAtributo = in_array($tipoDato, ['seleccion', 'si_no'], true);
+
+        if ($esAtributo) {
+            return $this->inputInt('tamanio_subgrupo_atrib') ?: 50;
+        }
+
+        return $this->inputInt('tamanio_subgrupo_num') ?: 5;
     }
 }

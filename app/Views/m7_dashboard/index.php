@@ -5,7 +5,7 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">👋 Bienvenido, <?= htmlspecialchars(explode(' ', $user['nombre'] ?? 'Usuario')[0]) ?></div>
+        <div class="page-title">Bienvenido, <?= htmlspecialchars(explode(' ', $user['nombre'] ?? 'Usuario')[0]) ?></div>
         <div class="page-sub">
             <?= date('l, d \d\e F \d\e Y') ?> · Resumen operativo del día
         </div>

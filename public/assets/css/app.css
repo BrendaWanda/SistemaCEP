@@ -603,3 +603,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     .stats-grid { grid-template-columns:1fr 1fr; }
     .page-content { padding:16px; }
 }
+.d-none { display: none !important; }
+.mb-4   { margin-bottom: 24px; }
+.me-2   { margin-right: 8px; }
+.me-1   { margin-right: 4px; }

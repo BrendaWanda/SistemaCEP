@@ -108,6 +108,7 @@ $router->get( '/m2/sesion/:id/pesos/datos', 'M2_RegistroProceso\PesosController@
 $router->post('/m2/sesion/:id/horneado',    'M2_RegistroProceso\HorneadoController@guardar');
 $router->post('/m2/sesion/:id/envasado',    'M2_RegistroProceso\EnvasadoController@guardar');
 $router->post('/m2/sesion/:id/liberacion',  'M2_RegistroProceso\LiberacionController@guardar');
+$router->post('/m2/sesion/:id/inspeccion-atributos', 'M2_RegistroProceso\InspeccionAtributosController@guardar');
 
 // ── M3 — MANTENIMIENTO ────────────────────────────────────────────────────────
 // Fijas antes que :id
@@ -142,9 +143,9 @@ $router->get('/m5/lote/:codigo/pdf', 'M5_Trazabilidad\TrazabilidadController@exp
 $router->get('/m5/lote/:codigo',     'M5_Trazabilidad\TrazabilidadController@lote');
 $router->get('/m5/insumo/:codigo',   'M5_Trazabilidad\TrazabilidadController@insumo');
 
-// ── M6 — SPC ─────────────────────────────────────────────────────────────────
-$router->get('/m6',                'M6_SPC\SPCController@index');
-$router->get('/m6/sesion/:sesion', 'M6_SPC\SPCController@tiempoReal');
+// ── M6: Control Estadístico de Proceso (SPC) ──
+$router->get('/m6',         'M6_SPC\SpcController@index');
+$router->get('/m6/analizar','M6_SPC\SpcController@analizar');
 
 // ── MENÚ TRIMESTRAL ───────────────────────────────────────────────────────────
 // Fijas antes que :id

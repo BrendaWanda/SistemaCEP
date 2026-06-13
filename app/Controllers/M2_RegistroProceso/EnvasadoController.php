@@ -44,14 +44,14 @@ class EnvasadoController extends Controller
         // Verificar si está fuera de especificación
         $lseG = (float)$this->db->fetchScalar(
             "SELECT p.lse_g FROM lotes_produccion l
-             JOIN productos p ON p.id = l.producto_id
-             WHERE l.id = ?",
+            JOIN productos p ON p.id = l.producto_id
+            WHERE l.id = ?",
             [$sesion['lote_id']]
         );
         $lieG = (float)$this->db->fetchScalar(
             "SELECT p.lie_g FROM lotes_produccion l
-             JOIN productos p ON p.id = l.producto_id
-             WHERE l.id = ?",
+            JOIN productos p ON p.id = l.producto_id
+            WHERE l.id = ?",
             [$sesion['lote_id']]
         );
 
