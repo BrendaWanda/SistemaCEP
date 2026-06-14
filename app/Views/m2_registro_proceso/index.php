@@ -3,10 +3,14 @@
  *  @var array $estados @var bool $canWrite */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
+<?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
 
 <div class="page-header">
     <div>
-        <div class="page-title">📋 Registro de Proceso</div>
+        <div class="page-title">
+            <i class="bi bi-clipboard2-data" style="color:#4f8ef7;margin-right:8px"></i>
+            Registro de Proceso
+        </div>
         <div class="page-sub">
             Control estadístico en tiempo real · Formularios SIREMU digitalizados
         </div>
@@ -14,7 +18,7 @@
     <?php if ($canWrite): ?>
     <div class="page-actions">
         <a href="<?= APP_URL ?>/m2/nueva-sesion" class="btn btn-primary">
-            + Nueva sesión
+            <i class="bi bi-plus-lg"></i> Nueva sesión
         </a>
     </div>
     <?php endif ?>
@@ -23,14 +27,18 @@
 <!-- Estadísticas -->
 <div class="stats-grid" style="margin-bottom:16px">
     <div class="stat-card">
-        <div class="stat-icon" style="background:#dbeafe">📋</div>
+        <div class="stat-icon" style="background:#dbeafe">
+            <i class="bi bi-calendar2-check" style="color:#2563eb"></i>
+        </div>
         <div>
             <div class="stat-value"><?= $stats['total_hoy'] ?></div>
             <div class="stat-label">Sesiones hoy</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#dcfce7">✅</div>
+        <div class="stat-icon" style="background:#dcfce7">
+            <i class="bi bi-check-circle" style="color:#15803d"></i>
+        </div>
         <div>
             <div class="stat-value" style="color:#15803d">
                 <?= $stats['liberados_hoy'] ?>
@@ -39,7 +47,10 @@
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fee2e2">⚠️</div>
+        <div class="stat-icon" style="background:#fee2e2">
+            <i class="bi bi-exclamation-triangle"
+                style="color:<?= $stats['con_senales'] > 0 ? '#dc2626' : '#94a3b8' ?>"></i>
+        </div>
         <div>
             <div class="stat-value"
                     style="color:<?= $stats['con_senales'] > 0 ? '#dc2626' : '#15803d' ?>">
@@ -49,7 +60,9 @@
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fef9c3">🔒</div>
+        <div class="stat-icon" style="background:#fef9c3">
+            <i class="bi bi-lock" style="color:#d97706"></i>
+        </div>
         <div>
             <div class="stat-value"
                     style="color:<?= $stats['cuarentena'] > 0 ? '#d97706' : '#94a3b8' ?>">
@@ -62,7 +75,9 @@
 
 <!-- Filtros -->
 <div class="card" style="margin-bottom:14px">
-    <div class="card-header"><span class="card-title">🔍 Filtros</span></div>
+    <div class="card-header">
+        <span class="card-title"><i class="bi bi-funnel"></i> Filtros</span>
+    </div>
     <form method="GET" action="<?= APP_URL ?>/m2">
     <div class="card-body">
         <div class="form-row cols-3">
@@ -92,7 +107,9 @@
     </div>
     <div class="card-footer">
         <a href="<?= APP_URL ?>/m2" class="btn btn-secondary">Limpiar</a>
-        <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-search"></i> Filtrar
+        </button>
     </div>
     </form>
 </div>
@@ -108,7 +125,6 @@
                         <th>Producto</th>
                         <th style="text-align:center">Fecha</th>
                         <th style="text-align:center">Turno</th>
-                        <th style="text-align:center">Pesos</th>
                         <th style="text-align:center">Señales SPC</th>
                         <th style="text-align:center">Liberación</th>
                         <th style="text-align:center">Estado</th>
@@ -118,7 +134,7 @@
                 <tbody>
                 <?php if (empty($sesiones)): ?>
                 <tr>
-                    <td colspan="9" class="text-center text-muted"
+                    <td colspan="8" class="text-center text-muted"
                         style="padding:40px">
                         No hay sesiones de registro.
                         <?php if ($canWrite): ?>
@@ -155,22 +171,22 @@
                         </span>
                     </td>
                     <td style="text-align:center">
-                        <span class="badge badge-info">
-                            <?= (int)$s['total_pesos'] ?> subgrupos
-                        </span>
-                    </td>
-                    <td style="text-align:center">
                         <?php if ($s['senales_spc'] > 0): ?>
                         <span class="badge badge-danger">
-                            ⚠️ <?= $s['senales_spc'] ?> señal(es)
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <?= $s['senales_spc'] ?> señal(es)
                         </span>
                         <?php else: ?>
-                        <span class="badge badge-success">✓ OK</span>
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i> OK
+                        </span>
                         <?php endif ?>
                     </td>
                     <td style="text-align:center">
                         <?php if ($s['tiene_liberacion']): ?>
-                        <span class="badge badge-success">✓ Liberado</span>
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i> Liberado
+                        </span>
                         <?php else: ?>
                         <span class="badge badge-muted">Pendiente</span>
                         <?php endif ?>
@@ -180,12 +196,26 @@
                             <?= $est['label'] ?>
                         </span>
                     </td>
-                    <td>
+                    <td style="white-space:nowrap">
                         <a href="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>"
                             class="btn btn-sm btn-secondary">Ver</a>
                         <a href="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>/imprimir"
                             class="btn btn-sm btn-secondary"
                             target="_blank">Imprimir</a>
+                        <?php if ($canWrite): ?>
+                        <a href="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>/editar"
+                            class="btn btn-sm btn-secondary">Editar</a>
+                        <form method="POST"
+                              action="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>/eliminar"
+                              style="display:inline">
+                            <input type="hidden" name="_token" value="<?= $csrfToken ?>">
+                            <button type="submit" class="btn btn-sm"
+                                style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca"
+                                data-confirm="¿Eliminar la sesión <?= htmlspecialchars($s['codigo_lote']) ?> del <?= date('d/m/Y', strtotime($s['fecha'])) ?> y todos sus registros? Esta acción no se puede deshacer.">
+                                Eliminar
+                            </button>
+                        </form>
+                        <?php endif ?>
                     </td>
                 </tr>
                 <?php endforeach ?>

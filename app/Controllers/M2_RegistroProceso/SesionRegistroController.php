@@ -143,23 +143,175 @@ class SesionRegistroController extends Controller
             $this->redirect('/m2');
         }
 
-        // Obtener producto_id del lote
         $productoId = (int)$this->db->fetchScalar(
             "SELECT producto_id FROM lotes_produccion WHERE id = ?",
             [$sesion['lote_id']]
         );
 
-        // ── Parámetros configurados (M0), agrupados por etapa ────────────────
+        // Límites generales del producto (encabezado informativo de la página)
+        $limites = $this->db->fetchOne(
+            "SELECT ucl_xbar, lcl_xbar, cl_xbar, ucl_r, lcl_r, cl_r
+             FROM spc_limites_control
+             WHERE producto_id = ? AND parametro_id IS NULL AND vigente = 1
+             ORDER BY calculado_en DESC LIMIT 1",
+            [$productoId]
+        );
+
+        if (!$limites) {
+            $limites = [
+                'ucl_xbar' => $sesion['lse_g'],
+                'lcl_xbar' => $sesion['lie_g'],
+                'cl_xbar'  => $sesion['peso_nominal_g'],
+                'ucl_r'    => null,
+                'lcl_r'    => null,
+                'cl_r'     => null,
+            ];
+        }
+
+        $this->render('m2_registro_proceso/sesion', array_merge([
+            'pageTitle'  => 'Sesión '.$sesion['codigo_lote'],
+            'breadcrumb' => [
+                ['label' => 'Registro Proceso', 'url' => APP_URL.'/m2'],
+                ['label' => 'Sesión '.$sesion['codigo_lote']],
+            ],
+            'sesion'   => $sesion,
+            'limites'  => $limites,
+            'estados'  => SesionRegistro::ESTADOS,
+            'canWrite' => Auth::canWrite('m2_registro_proceso')
+                            && $sesion['estado'] === 'en_proceso',
+        ], $this->datosDinamicos($sesionId, $productoId)));
+    }
+
+    // GET /m2/sesion/:id/imprimir
+    public function imprimir(array $params): void
+    {
+        $sesionId = (int)$params['id'];
+        $sesion   = $this->model->conSubregistros($sesionId);
+        if (!$sesion) {
+            $this->flash('error', 'Sesión no encontrada.');
+            $this->redirect('/m2');
+        }
+
+        $productoId = (int)$this->db->fetchScalar(
+            "SELECT producto_id FROM lotes_produccion WHERE id = ?",
+            [$sesion['lote_id']]
+        );
+
+        $this->renderPlain('m2_registro_proceso/imprimir', array_merge([
+            'sesion' => $sesion,
+        ], $this->datosDinamicos($sesionId, $productoId)));
+    }
+
+    // GET /m2/sesion/:id/editar
+    public function editar(array $params): void
+    {
+        Auth::requireWrite('m2_registro_proceso');
+
+        $sesionId = (int)$params['id'];
+        $sesion   = $this->model->conSubregistros($sesionId);
+        if (!$sesion) {
+            $this->flash('error', 'Sesión no encontrada.');
+            $this->redirect('/m2');
+        }
+
+        $modelUsuario = new Usuario();
+
+        $this->render('m2_registro_proceso/editar_sesion', [
+            'pageTitle'  => 'Editar sesión '.$sesion['codigo_lote'],
+            'breadcrumb' => [
+                ['label' => 'Registro Proceso', 'url' => APP_URL.'/m2'],
+                ['label' => 'Sesión '.$sesion['codigo_lote'], 'url' => APP_URL.'/m2/sesion/'.$sesionId],
+                ['label' => 'Editar'],
+            ],
+            'sesion'      => $sesion,
+            'supervisores'=> $modelUsuario->toSelectList('id','nombre'),
+            'turnos'      => \App\Models\LoteProduccion::TURNOS,
+        ]);
+    }
+
+    // POST /m2/sesion/:id/editar
+    public function actualizar(array $params): void
+    {
+        Auth::requireWrite('m2_registro_proceso');
+        $this->verifyCsrf();
+
+        $sesionId = (int)$params['id'];
+        $sesion   = $this->model->find($sesionId);
+        if (!$sesion) {
+            $this->flash('error', 'Sesión no encontrada.');
+            $this->redirect('/m2');
+        }
+
+        $turno = $this->input('turno') ?: $sesion['turno'];
+        $fecha = $this->input('fecha') ?: $sesion['fecha'];
+
+        $this->model->update($sesionId, [
+            'fecha'         => $fecha,
+            'turno'         => $turno,
+            'supervisor_id' => $this->inputInt('supervisor_id') ?: $sesion['supervisor_id'],
+            'nivel'         => $this->input('nivel'),
+        ]);
+
+        $this->redirectWithSuccess(
+            "/m2/sesion/{$sesionId}",
+            'Sesión actualizada correctamente.'
+        );
+    }
+
+    // POST /m2/sesion/:id/eliminar
+    public function eliminar(array $params): void
+    {
+        Auth::requireWrite('m2_registro_proceso');
+        $this->verifyCsrf();
+
+        $sesionId = (int)$params['id'];
+        $sesion   = $this->model->find($sesionId);
+        if (!$sesion) {
+            $this->flash('error', 'Sesión no encontrada.');
+            $this->redirect('/m2');
+        }
+
+        // Limpieza best-effort de tablas conocidas (dinamicas y legacy).
+        // Si alguna tabla/columna no existe en este proyecto, se ignora.
+        // (No usamos information_schema aqui: en este MariaDB/XAMPP las
+        //  consultas preparadas contra information_schema producen
+        //  "MySQL server has gone away" con EMULATE_PREPARES=false.)
+        $tablasConocidas = [
+            'reg_valores_simples', 'reg_subgrupos_spc', 'reg_inspeccion_atributos',
+            'spc_senales_detectadas', 'reg_liberacion_pt',
+            'reg_proceso_amasado', 'reg_pesos_masa_cruda',
+            'reg_proceso_horneado', 'reg_control_envasado', 'reg_analisis_pt',
+            'spc_subgrupos_envasado', 'spc_subgrupos_amasado',
+            'spc_subgrupos_horneado', 'spc_subgrupos_pesos',
+        ];
+        foreach ($tablasConocidas as $tabla) {
+            try {
+                $this->db->execute(
+                    "DELETE FROM `{$tabla}` WHERE sesion_id = ?",
+                    [$sesionId]
+                );
+            } catch (\Throwable $e) {
+                // tabla/columna inexistente en este proyecto: se ignora
+            }
+        }
+
+        $this->db->execute("DELETE FROM sesiones_registro WHERE id = ?", [$sesionId]);
+
+        $this->redirectWithSuccess('/m2', 'Sesión eliminada correctamente.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Datos dinámicos (M0) compartidos entre ver() e imprimir()
+    // ─────────────────────────────────────────────────────────────────────
+    private function datosDinamicos(int $sesionId, int $productoId): array
+    {
         $modelParametro   = new ParametroProceso();
         $modelValorSimple = new RegistroValorSimple();
         $modelSubgrupo    = new RegistroSubgrupoSpc();
 
         $parametrosPorEtapa = $modelParametro->porProductoAgrupado($productoId);
+        $valoresPorEtapa    = $modelValorSimple->porSesionAgrupadoPorEtapa($sesionId);
 
-        // ── Valores ya registrados (no-SPC), agrupados por etapa ─────────────
-        $valoresPorEtapa = $modelValorSimple->porSesionAgrupadoPorEtapa($sesionId);
-
-        // ── Para cada parámetro numérico SPC: límites + subgrupos registrados ─
         $subgruposPorParametro = [];
         $limitesPorParametro   = [];
         foreach ($parametrosPorEtapa as $etapaParams) {
@@ -186,27 +338,6 @@ class SesionRegistroController extends Controller
             }
         }
 
-        // Límites generales del producto (encabezado informativo de la página)
-        $limites = $this->db->fetchOne(
-            "SELECT ucl_xbar, lcl_xbar, cl_xbar, ucl_r, lcl_r, cl_r
-             FROM spc_limites_control
-             WHERE producto_id = ? AND parametro_id IS NULL AND vigente = 1
-             ORDER BY calculado_en DESC LIMIT 1",
-            [$productoId]
-        );
-
-        if (!$limites) {
-            $limites = [
-                'ucl_xbar' => $sesion['lse_g'],
-                'lcl_xbar' => $sesion['lie_g'],
-                'cl_xbar'  => $sesion['peso_nominal_g'],
-                'ucl_r'    => null,
-                'lcl_r'    => null,
-                'cl_r'     => null,
-            ];
-        }
-
-        // ── Atributos SPC (carta p) — ya genérico, se mantiene ───────────────
         $parametrosAtributo = $this->db->fetchAll(
             "SELECT id, nombre, etapa, tamanio_subgrupo
              FROM parametros_proceso
@@ -227,17 +358,7 @@ class SesionRegistroController extends Controller
             [$sesionId]
         );
 
-        $this->render('m2_registro_proceso/sesion', [
-            'pageTitle'  => 'Sesión '.$sesion['codigo_lote'],
-            'breadcrumb' => [
-                ['label' => 'Registro Proceso', 'url' => APP_URL.'/m2'],
-                ['label' => 'Sesión '.$sesion['codigo_lote']],
-            ],
-            'sesion'                  => $sesion,
-            'limites'                 => $limites,
-            'estados'                 => SesionRegistro::ESTADOS,
-            'canWrite'                => Auth::canWrite('m2_registro_proceso')
-                                            && $sesion['estado'] === 'en_proceso',
+        return [
             'etapas'                  => ParametroProceso::ETAPAS,
             'parametros_por_etapa'    => $parametrosPorEtapa,
             'valores_por_etapa'       => $valoresPorEtapa,
@@ -245,20 +366,6 @@ class SesionRegistroController extends Controller
             'limites_por_parametro'   => $limitesPorParametro,
             'parametros_atributo'     => $parametrosAtributo,
             'inspecciones_atributos'  => $inspeccionesAtributos,
-        ]);
-    }
-
-    // GET /m2/sesion/:id/imprimir
-    public function imprimir(array $params): void
-    {
-        $sesion = $this->model->conSubregistros((int)$params['id']);
-        if (!$sesion) {
-            $this->flash('error', 'Sesión no encontrada.');
-            $this->redirect('/m2');
-        }
-        $this->renderPlain('m2_registro_proceso/imprimir', [
-            'sesion'  => $sesion,
-            'confOpc' => \App\Models\LiberacionPT::OPCIONES_CONF,
-        ]);
+        ];
     }
 }

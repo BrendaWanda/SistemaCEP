@@ -90,6 +90,9 @@ $router->get( '/m1/proveedores/nuevo',         'M1_RecepcionMP\ProveedorControll
 $router->post('/m1/proveedores/nuevo',         'M1_RecepcionMP\ProveedorController@crear');
 $router->get( '/m1/proveedores/:id/editar',    'M1_RecepcionMP\ProveedorController@editar');
 $router->post('/m1/proveedores/:id/editar',    'M1_RecepcionMP\ProveedorController@actualizar');
+$router->get( '/m2/sesion/:id/editar',   'M2_RegistroProceso\SesionRegistroController@editar');
+$router->post('/m2/sesion/:id/editar',   'M2_RegistroProceso\SesionRegistroController@actualizar');
+$router->post('/m2/sesion/:id/eliminar', 'M2_RegistroProceso\SesionRegistroController@eliminar');
 // :id al final
 $router->get( '/m1/:id',         'M1_RecepcionMP\RecepcionController@ver');
 $router->get( '/m1/:id/imprimir','M1_RecepcionMP\RecepcionController@imprimir');

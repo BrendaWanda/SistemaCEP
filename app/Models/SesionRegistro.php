@@ -51,16 +51,10 @@ class SesionRegistro extends Model
                     u.nombre AS supervisor_nombre,
                     u.apellidos AS supervisor_apellidos,
                     -- Conteos de sub-registros
-                    (SELECT COUNT(*) FROM reg_pesos_masa_cruda
-                    WHERE sesion_id = s.id) AS total_pesos,
-                    (SELECT COUNT(*) FROM reg_proceso_horneado
-                    WHERE sesion_id = s.id) AS total_horneado,
-                    (SELECT COUNT(*) FROM reg_control_envasado
-                    WHERE sesion_id = s.id) AS total_envasado,
                     (SELECT COUNT(*) FROM reg_liberacion_pt
                     WHERE sesion_id = s.id) AS tiene_liberacion,
-                    -- Señales SPC detectadas
-                    (SELECT COUNT(*) FROM reg_pesos_masa_cruda
+                    -- Señales SPC detectadas (cualquier parámetro numérico SPC)
+                    (SELECT COUNT(*) FROM reg_subgrupos_spc
                     WHERE sesion_id = s.id
                     AND fuera_de_control = 1) AS senales_spc
             FROM sesiones_registro s

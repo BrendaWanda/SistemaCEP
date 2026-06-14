@@ -30,6 +30,19 @@ foreach ($inspecciones_atributos as $ia) {
 $chartsAInicializar = [];
 ?>
 
+<style>
+    /* Evita que los inputs/selects de los formularios de registro se estiren
+       para llenar columnas de grid anchas (p.ej. n=1 en cartas X-MR) */
+    input.form-control[type="number"],
+    input.form-control[type="text"],
+    select.form-control {
+        max-width: 200px;
+    }
+    input.form-control[type="time"] {
+        max-width: 130px;
+    }
+</style>
+
 <div class="page-header">
     <div>
         <div class="page-title">
@@ -212,15 +225,19 @@ foreach ($etapas as $etapaKey => $etapaLabel):
     <?php endif ?>
 
     <!-- ═══════════ Parámetros numéricos SPC (X̄-R/S o X-MR) ═══════════ -->
-    <?php foreach ($spcNum as $p):
+    <?php if (!empty($spcNum)): ?>
+    <div style="display:grid;grid-template-columns:1fr 1fr">
+    <?php $idxSpc = 0; foreach ($spcNum as $p):
         $pid       = (int)$p['id'];
         $n         = max(1, (int)$p['tamanio_subgrupo']);
         $subgrupos = $subgrupos_por_parametro[$pid] ?? [];
         $lim       = $limites_por_parametro[$pid] ?? ['ucl_xbar'=>null,'lcl_xbar'=>null,'cl_xbar'=>null];
         $senales   = count(array_filter($subgrupos, fn($s) => $s['fuera_de_control']));
         $chartsAInicializar[$pid] = $lim;
+        $bordes = 'border-top:1px solid #f1f5f9;' . ($idxSpc % 2 === 1 ? 'border-left:1px solid #f1f5f9;' : '');
+        $idxSpc++;
     ?>
-    <div style="border-top:1px solid #f1f5f9;padding:16px">
+    <div style="<?= $bordes ?>padding:16px;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
             <div style="font-size:13px;font-weight:700;color:#374151">
                 <i class="bi bi-bar-chart-line" style="color:<?= $cfg['color'] ?>"></i>
@@ -322,6 +339,8 @@ foreach ($etapas as $etapaKey => $etapaLabel):
         <?php endif ?>
     </div>
     <?php endforeach ?>
+    </div>
+    <?php endif ?>
 
     <!-- ═══════════ Parámetros de atributo SPC (Carta p) ═══════════ -->
     <?php foreach ($spcAttr as $p):
