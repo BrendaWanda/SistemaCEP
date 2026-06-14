@@ -6,6 +6,9 @@ use App\Core\Auth;
 use App\Models\SesionRegistro;
 use App\Models\LoteProduccion;
 use App\Models\Usuario;
+use App\Models\ParametroProceso;
+use App\Models\RegistroValorSimple;
+use App\Models\RegistroSubgrupoSpc;
 
 class SesionRegistroController extends Controller
 {
@@ -37,7 +40,7 @@ class SesionRegistroController extends Controller
             ),
             'con_senales'  => (int)$this->db->fetchScalar(
                 "SELECT COUNT(DISTINCT sesion_id)
-                FROM reg_pesos_masa_cruda
+                FROM reg_subgrupos_spc
                 WHERE fuera_de_control = 1
                 AND sesion_id IN (
                     SELECT id FROM sesiones_registro
@@ -133,7 +136,8 @@ class SesionRegistroController extends Controller
     // GET /m2/sesion/:id
     public function ver(array $params): void
     {
-        $sesion = $this->model->conSubregistros((int)$params['id']);
+        $sesionId = (int)$params['id'];
+        $sesion   = $this->model->conSubregistros($sesionId);
         if (!$sesion) {
             $this->flash('error', 'Sesión no encontrada.');
             $this->redirect('/m2');
@@ -145,11 +149,48 @@ class SesionRegistroController extends Controller
             [$sesion['lote_id']]
         );
 
-        // Límites de control SPC
+        // ── Parámetros configurados (M0), agrupados por etapa ────────────────
+        $modelParametro   = new ParametroProceso();
+        $modelValorSimple = new RegistroValorSimple();
+        $modelSubgrupo    = new RegistroSubgrupoSpc();
+
+        $parametrosPorEtapa = $modelParametro->porProductoAgrupado($productoId);
+
+        // ── Valores ya registrados (no-SPC), agrupados por etapa ─────────────
+        $valoresPorEtapa = $modelValorSimple->porSesionAgrupadoPorEtapa($sesionId);
+
+        // ── Para cada parámetro numérico SPC: límites + subgrupos registrados ─
+        $subgruposPorParametro = [];
+        $limitesPorParametro   = [];
+        foreach ($parametrosPorEtapa as $etapaParams) {
+            foreach ($etapaParams as $p) {
+                if ((int)$p['es_variable_spc'] === 1 && $p['tipo_dato'] === 'numerico') {
+                    $pid = (int)$p['id'];
+                    $subgruposPorParametro[$pid] = $modelSubgrupo->porSesionYParametro($sesionId, $pid);
+
+                    $lim = $this->db->fetchOne(
+                        "SELECT ucl_xbar, lcl_xbar, cl_xbar FROM spc_limites_control
+                         WHERE parametro_id = ? AND vigente = 1
+                         ORDER BY calculado_en DESC LIMIT 1",
+                        [$pid]
+                    );
+                    if (!$lim) {
+                        $lim = [
+                            'ucl_xbar' => $p['valor_max'],
+                            'lcl_xbar' => $p['valor_min'],
+                            'cl_xbar'  => $p['valor_nominal'],
+                        ];
+                    }
+                    $limitesPorParametro[$pid] = $lim;
+                }
+            }
+        }
+
+        // Límites generales del producto (encabezado informativo de la página)
         $limites = $this->db->fetchOne(
             "SELECT ucl_xbar, lcl_xbar, cl_xbar, ucl_r, lcl_r, cl_r
              FROM spc_limites_control
-             WHERE producto_id = ? AND vigente = 1
+             WHERE producto_id = ? AND parametro_id IS NULL AND vigente = 1
              ORDER BY calculado_en DESC LIMIT 1",
             [$productoId]
         );
@@ -165,7 +206,7 @@ class SesionRegistroController extends Controller
             ];
         }
 
-        // Parámetros de atributo SPC del producto (para carta p — dinámico)
+        // ── Atributos SPC (carta p) — ya genérico, se mantiene ───────────────
         $parametrosAtributo = $this->db->fetchAll(
             "SELECT id, nombre, etapa, tamanio_subgrupo
              FROM parametros_proceso
@@ -177,14 +218,13 @@ class SesionRegistroController extends Controller
             [$productoId]
         );
 
-        // Inspecciones de atributos ya registradas en esta sesión
         $inspeccionesAtributos = $this->db->fetchAll(
             "SELECT ia.*, pp.nombre AS parametro_nombre
              FROM reg_inspeccion_atributos ia
              JOIN parametros_proceso pp ON pp.id = ia.parametro_id
              WHERE ia.sesion_id = ?
              ORDER BY ia.creado_en ASC",
-            [(int)$params['id']]
+            [$sesionId]
         );
 
         $this->render('m2_registro_proceso/sesion', [
@@ -193,14 +233,18 @@ class SesionRegistroController extends Controller
                 ['label' => 'Registro Proceso', 'url' => APP_URL.'/m2'],
                 ['label' => 'Sesión '.$sesion['codigo_lote']],
             ],
-            'sesion'                 => $sesion,
-            'limites'                => $limites,
-            'estados'                => SesionRegistro::ESTADOS,
-            'confOpc'                => \App\Models\LiberacionPT::OPCIONES_CONF,
-            'canWrite'               => Auth::canWrite('m2_registro_proceso')
+            'sesion'                  => $sesion,
+            'limites'                 => $limites,
+            'estados'                 => SesionRegistro::ESTADOS,
+            'canWrite'                => Auth::canWrite('m2_registro_proceso')
                                             && $sesion['estado'] === 'en_proceso',
-            'parametros_atributo'    => $parametrosAtributo,
-            'inspecciones_atributos' => $inspeccionesAtributos,
+            'etapas'                  => ParametroProceso::ETAPAS,
+            'parametros_por_etapa'    => $parametrosPorEtapa,
+            'valores_por_etapa'       => $valoresPorEtapa,
+            'subgrupos_por_parametro' => $subgruposPorParametro,
+            'limites_por_parametro'   => $limitesPorParametro,
+            'parametros_atributo'     => $parametrosAtributo,
+            'inspecciones_atributos'  => $inspeccionesAtributos,
         ]);
     }
 

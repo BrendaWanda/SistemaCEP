@@ -102,13 +102,11 @@ $router->post('/m2/nueva-sesion', 'M2_RegistroProceso\SesionRegistroController@c
 // :id al final
 $router->get( '/m2/sesion/:id',             'M2_RegistroProceso\SesionRegistroController@ver');
 $router->get( '/m2/sesion/:id/imprimir',    'M2_RegistroProceso\SesionRegistroController@imprimir');
-$router->post('/m2/sesion/:id/amasado',     'M2_RegistroProceso\AmasadoController@guardar');
-$router->post('/m2/sesion/:id/pesos',       'M2_RegistroProceso\PesosController@guardar');
-$router->get( '/m2/sesion/:id/pesos/datos', 'M2_RegistroProceso\PesosController@datos');
-$router->post('/m2/sesion/:id/horneado',    'M2_RegistroProceso\HorneadoController@guardar');
-$router->post('/m2/sesion/:id/envasado',    'M2_RegistroProceso\EnvasadoController@guardar');
 $router->post('/m2/sesion/:id/liberacion',  'M2_RegistroProceso\LiberacionController@guardar');
 $router->post('/m2/sesion/:id/inspeccion-atributos', 'M2_RegistroProceso\InspeccionAtributosController@guardar');
+$router->post('/m2/sesion/:id/valores',                    'M2_RegistroProceso\RegistroDinamicoController@guardarValores');
+$router->post('/m2/sesion/:id/subgrupo',                   'M2_RegistroProceso\RegistroDinamicoController@guardarSubgrupo');
+$router->get( '/m2/sesion/:id/subgrupo/:parametro_id/datos','M2_RegistroProceso\RegistroDinamicoController@datosGrafico');
 
 // ── M3 — MANTENIMIENTO ────────────────────────────────────────────────────────
 // Fijas antes que :id

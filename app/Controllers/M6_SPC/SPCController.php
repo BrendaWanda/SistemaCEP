@@ -1168,33 +1168,44 @@ class SpcController extends Controller
     }
 
     // ═══════════════════════════════════════════════════════════
-    // CONSULTAS BD — X̄-R/S
+    // CONSULTAS BD — Subgrupos SPC (X̄-R/S y X-MR), genérico por parámetro
+    //
+    // Fuente única: reg_subgrupos_spc (tabla genérica creada por
+    // RegistroDinamicoController en M2 — ver migración M2 dinámico).
+    // Cada fila ya trae las n lecturas del subgrupo en `valores` (JSON)
+    // y sus estadísticos precalculados (promedio_xbar, rango_r).
+    // Para X-MR (parámetros con tamanio_subgrupo=1) se usa el primer
+    // (único) valor de cada fila.
     // ═══════════════════════════════════════════════════════════
-    private function getSubgruposXR(int $prodId, int $paramId,
-                                     ?string $desde, ?string $hasta): array
+    private function getSubgruposGenerico(int $prodId, int $paramId,
+                                           ?string $desde, ?string $hasta): array
     {
-        $sql="SELECT * FROM v_spc_subgrupos_completo WHERE producto_id=? AND parametro_id=?";
+        $sql="SELECT rs.*, sr.fecha, sr.turno, lp.codigo_lote AS lote_ref,
+                     CONCAT(sr.fecha,' (',sr.turno,')') AS fecha_label
+              FROM reg_subgrupos_spc rs
+              JOIN sesiones_registro sr ON sr.id=rs.sesion_id
+              JOIN lotes_produccion lp ON lp.id=sr.lote_id
+              WHERE lp.producto_id=? AND rs.parametro_id=?";
         $params=[$prodId,$paramId];
-        if ($desde){$sql.=" AND fecha>=?";$params[]=$desde;}
-        if ($hasta){$sql.=" AND fecha<=?";$params[]=$hasta;}
-        $sql.=" ORDER BY fecha ASC, turno ASC";
+        if ($desde){$sql.=" AND sr.fecha>=?";$params[]=$desde;}
+        if ($hasta){$sql.=" AND sr.fecha<=?";$params[]=$hasta;}
+        $sql.=" ORDER BY sr.fecha ASC, rs.hora ASC";
+
         $rows=$this->db->fetchAll($sql,$params);
         foreach ($rows as &$row) {
-            $row['valores_raw']=$this->getValoresRaw($row['origen'],(int)$row['registro_origen_id']);
+            $valores            = json_decode($row['valores'], true) ?: [];
+            $row['valores_raw'] = array_map('floatval', $valores);
+            $row['n']           = count($row['valores_raw']);
+            $row['xbar']        = (float)$row['promedio_xbar'];
+            $row['valor']       = $row['valores_raw'][0] ?? null; // para X-MR (n=1)
         }
         return $rows;
     }
-    private function getValoresRaw(string $origen, int $registroId): array
+
+    private function getSubgruposXR(int $prodId, int $paramId,
+                                     ?string $desde, ?string $hasta): array
     {
-        if ($origen==='masa_cruda') {
-            $row=$this->db->fetchOne("SELECT peso_01,peso_02,peso_03,peso_04,peso_05,
-                peso_06,peso_07,peso_08,peso_09,peso_10 FROM reg_pesos_masa_cruda WHERE id=?",[$registroId]);
-        } else {
-            $row=$this->db->fetchOne("SELECT peso_unidad_1,peso_unidad_2,peso_unidad_3,peso_unidad_4
-                FROM reg_control_envasado WHERE id=?",[$registroId]);
-        }
-        if (!$row) return [];
-        return array_values(array_filter($row,fn($v)=>$v!==null&&(float)$v>0));
+        return $this->getSubgruposGenerico($prodId, $paramId, $desde, $hasta);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1203,57 +1214,8 @@ class SpcController extends Controller
     private function getValoresXMR(int $prodId, int $paramId,
                                     ?string $desde, ?string $hasta): array
     {
-        $param=$this->getEspecificaciones($paramId);
-        if (!$param) return [];
-        [$sql,$params]=$this->buildXMRQuery(strtolower($param['nombre']),strtolower($param['etapa']),$prodId,$desde,$hasta);
-        if (!$sql) return [];
-        return $this->db->fetchAll($sql,$params);
-    }
-    private function buildXMRQuery(string $nombre, string $etapa,
-                                    int $prodId, ?string $desde, ?string $hasta): array
-    {
-        $fw=''; $params=[$prodId];
-        if ($desde){$fw.=" AND sr.fecha>=?";$params[]=$desde;}
-        if ($hasta){$fw.=" AND sr.fecha<=?";$params[]=$hasta;}
-        if ($etapa==='amasado') {
-            $col=str_contains($nombre,'temperatura')?'temperatura_masa_c':'ph_masa';
-            $sql="SELECT a.{$col} AS valor,sr.fecha,CONCAT(sr.fecha,' (',sr.turno,')') AS fecha_label,
-                         sr.turno,lp.codigo_lote AS lote_ref,'amasado' AS origen
-                  FROM reg_proceso_amasado a JOIN sesiones_registro sr ON sr.id=a.sesion_id
-                  JOIN lotes_produccion lp ON lp.id=sr.lote_id
-                  WHERE lp.producto_id=? AND a.{$col} IS NOT NULL {$fw} ORDER BY sr.fecha ASC,a.hora ASC";
-            return [$sql,$params];
-        }
-        if ($etapa==='fermentacion'||$etapa==='horneado') {
-            if (str_contains($nombre,'fermentaci')) $col='tiempo_fermentacion_min';
-            elseif (str_contains($nombre,'temperatura')) $col='temperatura_horno_c';
-            else $col='tiempo_horneado_min';
-            $sql="SELECT h.{$col} AS valor,sr.fecha,CONCAT(sr.fecha,' (',sr.turno,')') AS fecha_label,
-                         sr.turno,lp.codigo_lote AS lote_ref,'horneado' AS origen
-                  FROM reg_proceso_horneado h JOIN sesiones_registro sr ON sr.id=h.sesion_id
-                  JOIN lotes_produccion lp ON lp.id=sr.lote_id
-                  WHERE lp.producto_id=? AND h.{$col} IS NOT NULL {$fw} ORDER BY sr.fecha ASC,h.hora ASC";
-            return [$sql,$params];
-        }
-        if ($etapa==='envasado'&&str_contains($nombre,'temperatura')) {
-            $col=str_contains($nombre,'producto')?'temperatura_producto_c':'temperatura_ambiente_c';
-            $sql="SELECT e.{$col} AS valor,sr.fecha,CONCAT(sr.fecha,' (',sr.turno,')') AS fecha_label,
-                         sr.turno,lp.codigo_lote AS lote_ref,'envasado' AS origen
-                  FROM reg_control_envasado e JOIN sesiones_registro sr ON sr.id=e.sesion_id
-                  JOIN lotes_produccion lp ON lp.id=sr.lote_id
-                  WHERE lp.producto_id=? AND e.{$col} IS NOT NULL {$fw} ORDER BY sr.fecha ASC,e.hora ASC";
-            return [$sql,$params];
-        }
-        if ($etapa==='producto_terminado') {
-            $col=str_contains($nombre,'humedad')?'resultado_humedad_pct':'resultado_ph';
-            $sql="SELECT lib.{$col} AS valor,sr.fecha,CONCAT(sr.fecha,' (',sr.turno,')') AS fecha_label,
-                         sr.turno,lp.codigo_lote AS lote_ref,'liberacion' AS origen
-                  FROM reg_liberacion_pt lib JOIN sesiones_registro sr ON sr.id=lib.sesion_id
-                  JOIN lotes_produccion lp ON lp.id=sr.lote_id
-                  WHERE lp.producto_id=? AND lib.{$col} IS NOT NULL {$fw} ORDER BY sr.fecha ASC";
-            return [$sql,$params];
-        }
-        return [null,[]];
+        $rows = $this->getSubgruposGenerico($prodId, $paramId, $desde, $hasta);
+        return array_values(array_filter($rows, fn($r) => $r['valor'] !== null));
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1265,7 +1227,7 @@ class SpcController extends Controller
             "SELECT id,nombre,etapa,unidad,tipo_dato,
                     valor_min AS lie,valor_max AS lse,
                     valor_nominal AS nominal,tamanio_subgrupo
-            FROM parametros_proceso WHERE id=?",[$paramId]);
+             FROM parametros_proceso WHERE id=?",[$paramId]);
     }
     private function getProductos(): array
     {
@@ -1278,9 +1240,9 @@ class SpcController extends Controller
                     p.nombre AS parametro_nombre,p.etapa,p.unidad,
                     p.valor_min AS lie,p.valor_max AS lse,
                     p.valor_nominal AS nominal,p.tamanio_subgrupo,p.tipo_dato
-            FROM parametros_proceso p JOIN productos pr ON pr.id=p.producto_id
-            WHERE p.es_variable_spc=1 AND p.activo=1
-                AND p.tipo_dato IN ('numerico','seleccion','si_no')
-            ORDER BY pr.nombre,p.etapa,p.nombre");
+             FROM parametros_proceso p JOIN productos pr ON pr.id=p.producto_id
+             WHERE p.es_variable_spc=1 AND p.activo=1
+               AND p.tipo_dato IN ('numerico','seleccion','si_no')
+             ORDER BY pr.nombre,p.etapa,p.nombre");
     }
 }

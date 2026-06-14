@@ -185,7 +185,7 @@
                             class="btn btn-sm btn-secondary">Ver</a>
                         <a href="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>/imprimir"
                             class="btn btn-sm btn-secondary"
-                            target="_blank">🖨️</a>
+                            target="_blank">Imprimir</a>
                     </td>
                 </tr>
                 <?php endforeach ?>

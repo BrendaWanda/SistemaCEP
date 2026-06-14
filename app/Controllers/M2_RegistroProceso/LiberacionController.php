@@ -48,23 +48,27 @@ class LiberacionController extends Controller
             $this->redirect('/m2');
         }
 
-        $confCampos = [
+        // La verificación de codificado/envase, los organolépticos y los
+        // resultados fisicoquímicos (humedad/pH) ahora se registran de
+        // forma dinámica como parámetros de M0 en sus etapas
+        // correspondientes (Envasado, Horneado y Producto Terminado) y ya
+        // no se capturan en este formulario. Se dejan en NULL aquí
+        // únicamente para mantener compatibilidad con las columnas de
+        // reg_liberacion_pt.
+        $camposNulos = [
             'codif_lote_legible','codif_lote_correcto',
             'codif_fvenc_legible','codif_fvenc_correcto',
             'envase_primario','envase_secundario','envase_terciario','inocuo',
             'conf_color','conf_olor','conf_sabor','conf_apariencia',
             'conf_textura','conf_particulas_extranas',
+            'resultado_humedad_pct','resultado_ph',
         ];
 
         $data = ['sesion_id' => $sesionId, 'hora' => date('H:i:s')];
-        foreach ($confCampos as $campo) {
-            $val = $this->input($campo);
-            $data[$campo] = in_array($val, ['conforme','no_conforme','na'])
-                ? $val : null;
+        foreach ($camposNulos as $campo) {
+            $data[$campo] = null;
         }
 
-        $data['resultado_humedad_pct']  = $this->inputFloat('resultado_humedad_pct') ?: null;
-        $data['resultado_ph']           = $this->inputFloat('resultado_ph') ?: null;
         $data['decision_final']         = $decision;
         $data['observaciones']          = $this->input('observaciones');
         $data['supervisor_calidad_id']  = $this->inputInt('supervisor_calidad_id')
