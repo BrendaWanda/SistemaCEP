@@ -66,9 +66,10 @@ class SesionRegistro extends Model
             $params
         );
     }
+
     // Detalle de una sesión (cabecera + liberación PT).
-    // Los registros dinámicos (valores, subgrupos SPC, inspección de
-    // atributos) los provee SesionRegistroController::datosDinamicos().
+    // Los registros dinámicos (valores simples, subgrupos SPC, inspección
+    // de atributos) los provee SesionRegistroController::datosDinamicos().
     public function conSubregistros(int $id): array|false
     {
         $sesion = $this->db->fetchOne(
@@ -105,5 +106,15 @@ class SesionRegistro extends Model
         );
 
         return $sesion;
+    }
+
+    // Sesión activa para un lote (si existe)
+    public function porLote(int $loteId): array|false
+    {
+        return $this->db->fetchOne(
+            "SELECT * FROM sesiones_registro
+                WHERE lote_id = ? ORDER BY creado_en DESC LIMIT 1",
+            [$loteId]
+        );
     }
 }

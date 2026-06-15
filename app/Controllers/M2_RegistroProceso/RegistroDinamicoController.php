@@ -161,6 +161,9 @@ class RegistroDinamicoController extends Controller
     //                  <input name="lecturas[]" value="40.2">
     //                  <input name="lecturas[]" value="39.8">
     //                  ... (n = parametro.tamanio_subgrupo)
+    //
+    // Responde JSON si la petición es AJAX (X-Requested-With), y si no
+    // hace flash + redirect a la sesión (evita mostrar el JSON crudo).
     // -------------------------------------------------------------------
     public function guardarSubgrupo(array $params): void
     {
@@ -171,7 +174,12 @@ class RegistroDinamicoController extends Controller
         $sesion   = $this->modelSesion->find($sesionId);
 
         if (!$sesion || $sesion['estado'] !== 'en_proceso') {
-            $this->jsonError('Sesión no disponible.', 400);
+            if ($this->isAjax()) {
+                $this->jsonError('Sesión no disponible.', 400);
+                return;
+            }
+            $this->flash('error', 'Sesión no disponible.');
+            $this->redirect('/m2');
             return;
         }
 
@@ -188,13 +196,18 @@ class RegistroDinamicoController extends Controller
         // (es_variable_spc=1) y estar activo.
         $parametro = $this->db->fetchOne(
             "SELECT * FROM parametros_proceso
-             WHERE id = ? AND producto_id = ?
-               AND es_variable_spc = 1 AND tipo_dato = 'numerico'
-               AND activo = 1",
+            WHERE id = ? AND producto_id = ?
+                AND es_variable_spc = 1 AND tipo_dato = 'numerico'
+                AND activo = 1",
             [$parametroId, $productoId]
         );
         if (!$parametro) {
-            $this->jsonError('Parámetro SPC no válido para este producto.', 400);
+            if ($this->isAjax()) {
+                $this->jsonError('Parámetro SPC no válido para este producto.', 400);
+                return;
+            }
+            $this->flash('error', 'Parámetro SPC no válido para este producto.');
+            $this->redirect("/m2/sesion/{$sesionId}");
             return;
         }
 
@@ -204,7 +217,12 @@ class RegistroDinamicoController extends Controller
         ));
 
         if (empty($lecturas)) {
-            $this->jsonError('Ingrese al menos una lectura.', 400);
+            if ($this->isAjax()) {
+                $this->jsonError('Ingrese al menos una lectura.', 400);
+                return;
+            }
+            $this->flash('error', 'Ingrese al menos una lectura.');
+            $this->redirect("/m2/sesion/{$sesionId}");
             return;
         }
 
@@ -213,8 +231,8 @@ class RegistroDinamicoController extends Controller
         // en M0 como límites provisionales.
         $limites = $this->db->fetchOne(
             "SELECT ucl_xbar, lcl_xbar, cl_xbar FROM spc_limites_control
-             WHERE parametro_id = ? AND vigente = 1
-             ORDER BY calculado_en DESC LIMIT 1",
+            WHERE parametro_id = ? AND vigente = 1
+            ORDER BY calculado_en DESC LIMIT 1",
             [$parametroId]
         );
         if (!$limites) {
@@ -237,9 +255,9 @@ class RegistroDinamicoController extends Controller
             $this->db->execute(
                 "INSERT INTO spc_senales_detectadas
                     (lote_id, sesion_id, registro_peso_id, producto_id,
-                     tipo_grafico, regla_western_electric, descripcion_regla,
-                     valor_detectado, estado)
-                 VALUES (?,?,?,?,'xbar',1,?,?, 'nueva')",
+                    tipo_grafico, regla_western_electric, descripcion_regla,
+                    valor_detectado, estado)
+                VALUES (?,?,?,?,'xbar',1,?,?, 'nueva')",
                 [
                     $sesion['lote_id'],
                     $sesionId,
@@ -251,20 +269,28 @@ class RegistroDinamicoController extends Controller
             );
         }
 
-        $this->jsonSuccess([
-            'id'               => $id,
-            'parametro_id'     => $parametroId,
-            'parametro_nombre' => $parametro['nombre'],
-            'promedio_xbar'    => $registro['promedio_xbar'],
-            'rango_r'          => $registro['rango_r'],
-            'fuera_de_control' => (bool)$registro['fuera_de_control'],
-            'regla_violada'    => $registro['regla_violada'],
-            'ucl_xbar'         => (float)$limites['ucl_xbar'],
-            'lcl_xbar'         => (float)$limites['lcl_xbar'],
-            'cl_xbar'          => (float)$limites['cl_xbar'],
-        ], $registro['fuera_de_control']
+        $mensaje = $registro['fuera_de_control']
             ? '⚠️ SEÑAL DETECTADA: ' . $registro['regla_violada']
-            : 'Subgrupo registrado correctamente.');
+            : 'Subgrupo registrado correctamente.';
+
+        if ($this->isAjax()) {
+            $this->jsonSuccess([
+                'id'               => $id,
+                'parametro_id'     => $parametroId,
+                'parametro_nombre' => $parametro['nombre'],
+                'promedio_xbar'    => $registro['promedio_xbar'],
+                'rango_r'          => $registro['rango_r'],
+                'fuera_de_control' => (bool)$registro['fuera_de_control'],
+                'regla_violada'    => $registro['regla_violada'],
+                'ucl_xbar'         => (float)$limites['ucl_xbar'],
+                'lcl_xbar'         => (float)$limites['lcl_xbar'],
+                'cl_xbar'          => (float)$limites['cl_xbar'],
+            ], $mensaje);
+            return;
+        }
+
+        $this->flash('success', $mensaje);
+        $this->redirect("/m2/sesion/{$sesionId}");
     }
 
     // -------------------------------------------------------------------
@@ -284,14 +310,14 @@ class RegistroDinamicoController extends Controller
 
         $parametro = $this->db->fetchOne(
             "SELECT valor_min, valor_max, valor_nominal
-             FROM parametros_proceso WHERE id = ?",
+            FROM parametros_proceso WHERE id = ?",
             [$parametroId]
         );
 
         $limites = $this->db->fetchOne(
             "SELECT ucl_xbar, lcl_xbar, cl_xbar FROM spc_limites_control
-             WHERE parametro_id = ? AND vigente = 1
-             ORDER BY calculado_en DESC LIMIT 1",
+            WHERE parametro_id = ? AND vigente = 1
+            ORDER BY calculado_en DESC LIMIT 1",
             [$parametroId]
         );
         if (!$limites) {

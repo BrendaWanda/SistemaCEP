@@ -130,15 +130,19 @@ class OeeService
         ];
     }
 
-    // KPIs por producto para el período
-    public function kpisPorProducto(string $fechaDesde, string $fechaHasta): array
-    {
+    // KPIs por producto para el período.
+    // merma_total_kg suma las 7 categorías reales de merma de
+    // lotes_produccion (envase + las 5 categorías de panes + aspecto).
+    public function kpisPorProducto(
+        string $fechaDesde,
+        string $fechaHasta
+    ): array {
         return $this->db->fetchAll(
             "SELECT
                 p.nombre AS producto_nombre,
                 p.codigo AS producto_codigo,
                 COUNT(l.id) AS total_lotes,
-                SUM(l.rendimiento_real_total)    AS und_reales,
+                SUM(l.rendimiento_real_total)   AS und_reales,
                 SUM(l.rendimiento_teorico_total) AS und_teoricas,
                 AVG(l.porcentaje_rendimiento)    AS rend_promedio,
                 SUM(l.merma_envase_kg + l.merma_panes_mordidos_kg +
@@ -157,9 +161,31 @@ class OeeService
         );
     }
 
-    // Mermas acumuladas por tipo
-    public function mermasPorTipo(string $fechaDesde, string $fechaHasta): array
-    {
+    // Tendencia diaria de producción
+    public function tendenciaDiaria(
+        string $fechaDesde,
+        string $fechaHasta
+    ): array {
+        return $this->db->fetchAll(
+            "SELECT
+                fecha_produccion AS fecha,
+                COUNT(id) AS lotes,
+                SUM(rendimiento_real_total) AS unidades,
+                AVG(porcentaje_rendimiento) AS rend_pct
+                FROM lotes_produccion
+                WHERE fecha_produccion BETWEEN ? AND ?
+                GROUP BY fecha_produccion
+                ORDER BY fecha_produccion ASC",
+            [$fechaDesde, $fechaHasta]
+        );
+    }
+
+    // Mermas acumuladas por tipo — las 7 categorías reales de
+    // lotes_produccion (defectos específicos de pan + envase).
+    public function mermasPorTipo(
+        string $fechaDesde,
+        string $fechaHasta
+    ): array {
         $result = $this->db->fetchOne(
             "SELECT
                 COALESCE(SUM(merma_envase_kg),             0) AS envase,

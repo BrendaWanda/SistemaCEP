@@ -56,7 +56,11 @@ class Trazabilidad extends Model
             [$lote['id']]
         );
 
-       // 3. Sesiones de registro de proceso
+        // 3. Sesiones de registro de proceso
+        //    Conteos generalizados a las tablas dinámicas (M0):
+        //    - total_subgrupos_spc / senales_spc  -> reg_subgrupos_spc
+        //    - total_valores_simples               -> reg_valores_simples
+        //    - total_inspecciones_atributos        -> reg_inspeccion_atributos
         $lote['sesiones'] = $this->db->fetchAll(
             "SELECT s.*,
                     u.nombre AS supervisor_nombre,

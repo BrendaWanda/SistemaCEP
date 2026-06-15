@@ -100,6 +100,9 @@ class RegistroSubgrupoSpc extends Model
     // Datos para el gráfico X̄ en tiempo real de un parámetro dentro de
     // una sesión: un punto por subgrupo registrado, en orden, más la
     // amplitud móvil (útil para cartas X-MR cuando n=1).
+    //
+    // Devuelve 'puntos' (no 'subgrupos') y cada punto usa 'promedio_xbar'
+    // (no 'xbar') para calzar con el JS de la vista de sesión.
     // -------------------------------------------------------------------
     public function datosGrafico(
         int $sesionId,
@@ -117,19 +120,19 @@ class RegistroSubgrupoSpc extends Model
             [$sesionId, $parametroId]
         );
 
-        $subgrupos = [];
+        $puntos = [];
         $totalFueraControl = 0;
         $anterior = null;
 
         foreach ($filas as $i => $fila) {
             $xbar = (float)$fila['promedio_xbar'];
 
-            $subgrupos[] = [
+            $puntos[] = [
                 'numero'           => $i + 1,
                 'id'               => (int)$fila['id'],
                 'hora'             => $fila['hora'],
                 'n'                => (int)$fila['n'],
-                'xbar'             => $xbar,
+                'promedio_xbar'    => $xbar,
                 'rango_r'          => (float)$fila['rango_r'],
                 'desv_est'         => $fila['desv_estandar_s'] !== null
                                         ? (float)$fila['desv_estandar_s'] : null,
@@ -143,11 +146,12 @@ class RegistroSubgrupoSpc extends Model
         }
 
         return [
-            'subgrupos'           => $subgrupos,
-            'total_subgrupos'     => count($subgrupos),
+            'puntos'              => $puntos,
+            'total_subgrupos'     => count($puntos),
             'total_fuera_control' => $totalFueraControl,
         ];
     }
+
     // -------------------------------------------------------------------
     // Todos los subgrupos de un parámetro dentro de una sesión, con las
     // n lecturas individuales ya decodificadas — para mostrar en la vista

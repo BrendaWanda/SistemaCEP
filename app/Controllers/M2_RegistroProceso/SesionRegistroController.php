@@ -271,11 +271,8 @@ class SesionRegistroController extends Controller
             $this->redirect('/m2');
         }
 
-        // Limpieza best-effort de tablas conocidas (dinamicas y legacy).
-        // Si alguna tabla/columna no existe en este proyecto, se ignora.
-        // (No usamos information_schema aqui: en este MariaDB/XAMPP las
-        //  consultas preparadas contra information_schema producen
-        //  "MySQL server has gone away" con EMULATE_PREPARES=false.)
+        // Limpieza best-effort de las tablas dinámicas (M0) que dependen
+        // de sesion_id. El try/catch protege si alguna no aplica.
         $tablasConocidas = [
             'reg_valores_simples', 'reg_subgrupos_spc', 'reg_inspeccion_atributos',
             'spc_senales_detectadas', 'reg_liberacion_pt',
@@ -345,8 +342,11 @@ class SesionRegistroController extends Controller
             [$productoId]
         );
 
+        // proporcion_p calculada al vuelo (no se almacena en
+        // reg_inspeccion_atributos, se deriva de n_no_conformes/n_inspeccionado)
         $inspeccionesAtributos = $this->db->fetchAll(
-            "SELECT ia.*, pp.nombre AS parametro_nombre
+            "SELECT ia.*, pp.nombre AS parametro_nombre,
+                    (ia.n_no_conformes / ia.n_inspeccionado) AS proporcion_p
             FROM reg_inspeccion_atributos ia
             JOIN parametros_proceso pp ON pp.id = ia.parametro_id
             WHERE ia.sesion_id = ?

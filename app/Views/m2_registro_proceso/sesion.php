@@ -318,7 +318,7 @@ foreach ($etapas as $etapaKey => $etapaLabel):
                 <div>
                     <label class="form-label" style="font-size:11px">L<?= $i ?></label>
                     <input type="number" name="lecturas[]" step="any" class="form-control lectura-input"
-                           data-pid="<?= $pid ?>" style="font-size:11px;padding:4px;text-align:center">
+                            data-pid="<?= $pid ?>" style="font-size:11px;padding:4px;text-align:center">
                 </div>
                 <?php endfor ?>
             </div>
@@ -368,29 +368,29 @@ foreach ($etapas as $etapaKey => $etapaLabel):
 
         <?php if ($canWrite): ?>
         <form method="POST" action="<?= APP_URL ?>/m2/sesion/<?= $sesion['id'] ?>/inspeccion-atributos"
-              style="margin-top:<?= $insp ? '10px' : '0' ?>">
+                style="margin-top:<?= $insp ? '10px' : '0' ?>">
         <input type="hidden" name="_token" value="<?= $csrfToken ?>">
         <input type="hidden" name="parametro_id" value="<?= $pid ?>">
         <div class="form-row cols-3">
             <div class="form-group" style="margin-bottom:8px">
                 <label class="form-label">N inspeccionado</label>
                 <input type="number" name="n_inspeccionado" class="form-control"
-                       value="<?= $insp['n_inspeccionado'] ?? $n ?>" min="1" max="500">
+                        value="<?= $insp['n_inspeccionado'] ?? $n ?>" min="1" max="500">
             </div>
             <div class="form-group" style="margin-bottom:8px">
                 <label class="form-label">N° no conformes <span class="form-required">*</span></label>
                 <input type="number" name="n_no_conformes" id="inp-no-conf-<?= $pid ?>"
-                       class="form-control" value="<?= $insp['n_no_conformes'] ?? 0 ?>" min="0" required
-                       oninput="calcularP(<?= $pid ?>)">
+                        class="form-control" value="<?= $insp['n_no_conformes'] ?? 0 ?>" min="0" required
+                        oninput="calcularP(<?= $pid ?>)">
             </div>
             <div class="form-group" style="margin-bottom:8px">
                 <label class="form-label">Observaciones</label>
                 <input type="text" name="observaciones" class="form-control"
-                       value="<?= htmlspecialchars($insp['observaciones'] ?? '') ?>">
+                        value="<?= htmlspecialchars($insp['observaciones'] ?? '') ?>">
             </div>
         </div>
         <div id="preview-p-<?= $pid ?>" style="background:#f5f3ff;border:1px solid #ddd6fe;
-             border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:13px;display:none">
+            border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:13px;display:none">
             Proporción p = <strong id="val-p-<?= $pid ?>" style="color:#7c3aed">0.0000</strong>
             (<span id="val-p-pct-<?= $pid ?>">0.00</span>%)
         </div>
@@ -408,7 +408,7 @@ foreach ($etapas as $etapaKey => $etapaLabel):
 <?php endforeach ?>
 
 <!-- ═══════════════════════════════════════════════════════════
-     ANÁLISIS Y LIBERACIÓN DE PRODUCTO TERMINADO
+    ANÁLISIS Y LIBERACIÓN DE PRODUCTO TERMINADO
 ════════════════════════════════════════════════════════════ -->
 <div class="card" style="margin-bottom:14px">
     <div class="card-header" style="background:#ede9fe;border-bottom:2px solid #7c3aed">
@@ -456,19 +456,19 @@ foreach ($etapas as $etapaKey => $etapaLabel):
             <div style="display:flex;gap:16px;margin-bottom:10px">
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500">
                     <input type="radio" name="decision_final" value="liberado" required
-                           style="width:16px;height:16px;accent-color:#15803d">
+                            style="width:16px;height:16px;accent-color:#15803d">
                     <span style="color:#15803d">LIBERAR producto</span>
                 </label>
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500">
                     <input type="radio" name="decision_final" value="cuarentena"
-                           style="width:16px;height:16px;accent-color:#d97706">
+                            style="width:16px;height:16px;accent-color:#d97706">
                     <span style="color:#d97706">Enviar a CUARENTENA</span>
                 </label>
             </div>
             <div class="form-group" style="margin-bottom:0">
                 <label class="form-label">Observaciones</label>
                 <textarea name="observaciones" class="form-control" rows="2"
-                          placeholder="Observaciones de la liberación..."></textarea>
+                            placeholder="Observaciones de la liberación..."></textarea>
             </div>
         </div>
 
@@ -514,16 +514,16 @@ function renderGrafico(pid, datos, lim) {
         type: 'line',
         data: { labels, datasets: [
             { label:'X̄', data:vals, borderColor:'#2563eb', backgroundColor:'transparent',
-              pointBackgroundColor:colors, pointRadius:5, tension:0.3 },
+                pointBackgroundColor:colors, pointRadius:5, tension:0.3 },
             { label:'UCL', data:Array(vals.length).fill(ucl),
-              borderColor:'#dc2626', borderDash:[5,3], pointRadius:0, fill:false },
+                borderColor:'#dc2626', borderDash:[5,3], pointRadius:0, fill:false },
             { label:'CL',  data:Array(vals.length).fill(cl),
-              borderColor:'#15803d', borderDash:[3,3], pointRadius:0, fill:false },
+                borderColor:'#15803d', borderDash:[3,3], pointRadius:0, fill:false },
             { label:'LCL', data:Array(vals.length).fill(lcl),
-              borderColor:'#dc2626', borderDash:[5,3], pointRadius:0, fill:false },
+                borderColor:'#dc2626', borderDash:[5,3], pointRadius:0, fill:false },
         ]},
         options: { responsive:true, plugins:{ legend:{ position:'top' } },
-                   scales:{ y:{ title:{ display:true, text:'X̄' } } } }
+                    scales:{ y:{ title:{ display:true, text:'X̄' } } } }
     });
 }
 
@@ -573,4 +573,32 @@ function calcularP(pid) {
     document.getElementById('val-p-' + pid).textContent     = p.toFixed(4);
     document.getElementById('val-p-pct-' + pid).textContent = (p*100).toFixed(2);
 }
+
+// ── Envío AJAX del formulario de subgrupo SPC ─────────────────
+// Evita el envío normal (que navega a la URL del controller y muestra
+// el JSON crudo / "pantalla negra"). Al éxito, recarga la página para
+// que tabla, badges y gráfico queden consistentes con los datos nuevos.
+document.querySelectorAll('.form-subgrupo').forEach(form => {
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        fetch(this.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(this)
+        })
+        .then(r => r.json())
+        .then(resp => {
+            if (resp.success) {
+                if (resp.data && resp.data.fuera_de_control) {
+                    alert(resp.message);
+                }
+                location.reload();
+            } else {
+                alert(resp.message || 'No se pudo registrar el subgrupo.');
+            }
+        })
+        .catch(() => alert('Error de conexión al registrar el subgrupo.'));
+    });
+});
 </script>
