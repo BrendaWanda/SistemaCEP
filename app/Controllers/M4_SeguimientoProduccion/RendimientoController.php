@@ -58,12 +58,10 @@ class RendimientoController extends Controller
         $datos = [
             'rendimiento_teorico_total' => $this->inputInt('rendimiento_teorico_total'),
             'rendimiento_real_total'    => $this->inputInt('rendimiento_real_total'),
-            'merma_producto_kg'         => $this->inputFloat('merma_producto_kg'),
-            'merma_envase_kg'           => $this->inputFloat('merma_envase_kg'),
-            'merma_reproceso_kg'        => $this->inputFloat('merma_reproceso_kg'),
-            'merma_no_conforme_kg'      => $this->inputFloat('merma_no_conforme_kg'),
-            'merma_quemado_kg'          => $this->inputFloat('merma_quemado_kg'),
         ];
+        foreach (array_keys(LoteProduccion::MERMAS) as $campo) {
+            $datos[$campo] = $this->inputFloat($campo);
+        }
 
         // Validar que el rendimiento real no sea mayor al doble del teórico
         if ($datos['rendimiento_real_total'] > $datos['rendimiento_teorico_total'] * 2) {
@@ -80,6 +78,11 @@ class RendimientoController extends Controller
                      / $datos['rendimiento_teorico_total']) * 100, 2)
             : 0;
 
+        $totalMerma = 0;
+        foreach (array_keys(LoteProduccion::MERMAS) as $campo) {
+            $totalMerma += $datos[$campo];
+        }
+
         $this->db->execute(
             "INSERT INTO trazabilidad_eventos
             (codigo_lote, tipo_evento, descripcion, tabla_origen, registro_id, usuario_id)
@@ -88,9 +91,7 @@ class RendimientoController extends Controller
                 $lote['codigo_lote'], 'registro_proceso',
                 "Rendimiento registrado: {$datos['rendimiento_real_total']} und reales "
                 . "({$pct}% del teórico). Merma total: "
-                . ($datos['merma_producto_kg'] + $datos['merma_envase_kg']
-                    + $datos['merma_reproceso_kg'] + $datos['merma_no_conforme_kg']
-                    + $datos['merma_quemado_kg']) . " kg.",
+                . number_format($totalMerma, 3) . " kg.",
                 'lotes_produccion', $lote['id'], Auth::id()
             ]
         );

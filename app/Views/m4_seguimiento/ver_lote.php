@@ -144,23 +144,26 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
                         text-transform:uppercase;letter-spacing:.05em;
                         margin-bottom:8px">Desglose de mermas (kg)</div>
             <?php
-            $mermas = [
-                ['Producto',     'merma_producto_kg',    '#dc2626'],
-                ['Envase/bobina','merma_envase_kg',      '#d97706'],
-                ['Reproceso',    'merma_reproceso_kg',   '#7c3aed'],
-                ['No conforme',  'merma_no_conforme_kg', '#dc2626'],
-                ['Quemado',      'merma_quemado_kg',     '#92400e'],
+            $coloresMerma = [
+                'merma_panes_mordidos_kg'     => '#dc2626',
+                'merma_panes_besados_kg'      => '#dc2626',
+                'merma_panes_quemados_kg'     => '#92400e',
+                'merma_panes_blancos_kg'      => '#dc2626',
+                'merma_panes_sobrados_kg'     => '#7c3aed',
+                'merma_aspecto_no_deseado_kg' => '#dc2626',
+                'merma_envase_kg'             => '#d97706',
             ];
             $totalMerma = 0;
-            foreach ($mermas as [$label, $campo, $color]):
+            foreach (\App\Models\LoteProduccion::MERMAS as $campo => $info):
                 $val = (float)($lote[$campo] ?? 0);
                 $totalMerma += $val;
                 if ($val <= 0) continue;
+                $color = $coloresMerma[$campo] ?? '#dc2626';
             ?>
             <div style="display:flex;justify-content:space-between;
                         align-items:center;margin-bottom:4px;
                         padding:4px 8px;background:#f8fafc;border-radius:4px">
-                <span style="font-size:12px;color:#374151"><?= $label ?></span>
+                <span style="font-size:12px;color:#374151"><?= htmlspecialchars($info['label']) ?></span>
                 <span style="font-size:12px;font-weight:700;color:<?= $color ?>">
                     <?= number_format($val,3) ?> kg
                 </span>

@@ -66,8 +66,9 @@ class SesionRegistro extends Model
             $params
         );
     }
-
-    // Detalle completo de una sesión con todos los sub-registros
+    // Detalle de una sesión (cabecera + liberación PT).
+    // Los registros dinámicos (valores, subgrupos SPC, inspección de
+    // atributos) los provee SesionRegistroController::datosDinamicos().
     public function conSubregistros(int $id): array|false
     {
         $sesion = $this->db->fetchOne(
@@ -89,49 +90,6 @@ class SesionRegistro extends Model
 
         if (!$sesion) return false;
 
-        // Cargar todos los sub-registros
-        $sesion['amasados'] = $this->db->fetchAll(
-            "SELECT a.*, u.nombre AS registrado_nombre
-            FROM reg_proceso_amasado a
-            JOIN usuarios u ON u.id = a.registrado_por_id
-            WHERE a.sesion_id = ? ORDER BY a.hora",
-            [$id]
-        );
-
-        $sesion['pesos'] = $this->db->fetchAll(
-            "SELECT p.*, u.nombre AS registrado_nombre,
-                    op.nombre AS operario_nombre
-            FROM reg_pesos_masa_cruda p
-            JOIN usuarios u ON u.id = p.registrado_por_id
-            LEFT JOIN usuarios op ON op.id = p.operario_id
-            WHERE p.sesion_id = ? ORDER BY p.hora",
-            [$id]
-        );
-
-        $sesion['horneados'] = $this->db->fetchAll(
-            "SELECT h.*, u.nombre AS registrado_nombre
-            FROM reg_proceso_horneado h
-            JOIN usuarios u ON u.id = h.registrado_por_id
-            WHERE h.sesion_id = ? ORDER BY h.hora",
-            [$id]
-        );
-
-        $sesion['envasados'] = $this->db->fetchAll(
-            "SELECT e.*, u.nombre AS registrado_nombre
-            FROM reg_control_envasado e
-            JOIN usuarios u ON u.id = e.registrado_por_id
-            WHERE e.sesion_id = ? ORDER BY e.hora",
-            [$id]
-        );
-
-        $sesion['analisis_pt'] = $this->db->fetchAll(
-            "SELECT a.*, u.nombre AS registrado_nombre
-            FROM reg_analisis_pt a
-            JOIN usuarios u ON u.id = a.registrado_por_id
-            WHERE a.sesion_id = ? ORDER BY a.hora",
-            [$id]
-        );
-
         $sesion['liberacion'] = $this->db->fetchOne(
             "SELECT lib.*,
                     u1.nombre AS supervisor_cal_nombre,
@@ -147,15 +105,5 @@ class SesionRegistro extends Model
         );
 
         return $sesion;
-    }
-
-    // Sesión activa para un lote (si existe)
-    public function porLote(int $loteId): array|false
-    {
-        return $this->db->fetchOne(
-            "SELECT * FROM sesiones_registro
-                WHERE lote_id = ? ORDER BY creado_en DESC LIMIT 1",
-            [$loteId]
-        );
     }
 }

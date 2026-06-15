@@ -174,11 +174,11 @@ foreach ($etapas as $etapaKey => $etapaLabel):
 
                     <?php if ($p['tipo_dato'] === 'numerico'): ?>
                         <input type="number" step="any" class="form-control"
-                               name="valores[<?= $p['id'] ?>]"
-                               <?= $p['obligatorio'] ? 'required' : '' ?>
-                               <?php if ($p['valor_nominal'] !== null): ?>
-                               placeholder="Ej: <?= rtrim(rtrim(number_format((float)$p['valor_nominal'],4,'.',''),'0'),'.') ?>"
-                               <?php endif ?>>
+                                name="valores[<?= $p['id'] ?>]"
+                                <?= $p['obligatorio'] ? 'required' : '' ?>
+                                <?php if ($p['valor_nominal'] !== null): ?>
+                                placeholder="Ej: <?= rtrim(rtrim(number_format((float)$p['valor_nominal'],4,'.',''),'0'),'.') ?>"
+                                <?php endif ?>>
                         <?php if ($p['valor_min'] !== null || $p['valor_max'] !== null): ?>
                         <div class="form-hint">
                             Rango: <?= $p['valor_min'] ?? '—' ?> – <?= $p['valor_max'] ?? '—' ?>
@@ -190,7 +190,7 @@ foreach ($etapas as $etapaKey => $etapaLabel):
                             <input type="hidden" name="valores[<?= $p['id'] ?>]" value="0">
                             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
                                 <input type="checkbox" name="valores[<?= $p['id'] ?>]" value="1"
-                                       style="width:16px;height:16px;accent-color:#4f8ef7">
+                                        style="width:16px;height:16px;accent-color:#4f8ef7">
                                 Sí
                             </label>
                         </div>
@@ -208,8 +208,8 @@ foreach ($etapas as $etapaKey => $etapaLabel):
 
                     <?php else: // texto ?>
                         <input type="text" class="form-control"
-                               name="valores[<?= $p['id'] ?>]"
-                               <?= $p['obligatorio'] ? 'required' : '' ?>>
+                                name="valores[<?= $p['id'] ?>]"
+                                <?= $p['obligatorio'] ? 'required' : '' ?>>
                     <?php endif ?>
                 </div>
                 <?php endforeach ?>
@@ -306,7 +306,7 @@ foreach ($etapas as $etapaKey => $etapaLabel):
                 Registrar nuevo <?= $n > 1 ? "subgrupo (n={$n})" : 'dato' ?>
             </div>
             <form method="POST" action="<?= APP_URL ?>/m2/sesion/<?= $sesion['id'] ?>/subgrupo"
-                  class="form-subgrupo" data-parametro-id="<?= $pid ?>">
+                    class="form-subgrupo" data-parametro-id="<?= $pid ?>">
             <input type="hidden" name="_token" value="<?= $csrfToken ?>">
             <input type="hidden" name="parametro_id" value="<?= $pid ?>">
             <div style="display:grid;grid-template-columns:120px repeat(<?= $n ?>,1fr);gap:6px;margin-bottom:8px;align-items:end">

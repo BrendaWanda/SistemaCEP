@@ -3,19 +3,16 @@ namespace App\Controllers\Reportes;
 
 use App\Core\Controller;
 use App\Core\Auth;
-use App\Services\SpcService;
 use App\Services\OeeService;
 
 class ReporteController extends Controller
 {
-    private SpcService $spc;
     private OeeService $oee;
 
     public function __construct()
     {
         parent::__construct();
         Auth::requireAccess('m7_dashboard');
-        $this->spc = new SpcService();
         $this->oee = new OeeService();
     }
 
@@ -162,46 +159,13 @@ class ReporteController extends Controller
     // POST /reportes/spc-xbar
     public function spcXbar(): void
     {
-        $this->verifyCsrf();
-        $fechaDesde = $this->input('fecha_desde') ?: date('Y-m-01');
-        $fechaHasta = $this->input('fecha_hasta') ?: date('Y-m-d');
-        $productoId = $this->inputInt('producto_id');
-
-        $subgrupos = $this->db->fetchAll(
-            "SELECT p.*, s.fecha, l.codigo_lote, l.producto_id,
-                    prod.nombre AS producto_nombre,
-                    prod.lse_g, prod.lie_g, prod.peso_nominal_g
-            FROM reg_pesos_masa_cruda p
-            JOIN sesiones_registro s ON s.id = p.sesion_id
-            JOIN lotes_produccion l  ON l.id = s.lote_id
-            JOIN productos prod      ON prod.id = l.producto_id
-            WHERE s.fecha BETWEEN ? AND ?
-                AND p.promedio_xbar IS NOT NULL
-                ".($productoId ? 'AND l.producto_id = ?' : '')."
-            ORDER BY s.fecha ASC, p.hora ASC",
-            $productoId ? [$fechaDesde, $fechaHasta, $productoId]
-                        : [$fechaDesde, $fechaHasta]
-        );
-
-        $limites   = $this->spc->calcularLimitesXbarR($subgrupos);
-        $producto  = $productoId ? $this->db->fetchOne(
-            "SELECT * FROM productos WHERE id = ?", [$productoId]
-        ) : null;
-        $capacidad = ($producto && $limites['sigma_est'])
-            ? $this->spc->calcularCapacidad(
-                $subgrupos,
-                (float)$producto['lse_g'],
-                (float)$producto['lie_g']
-            ) : [];
-
-        $this->renderPlain('reportes/spc_xbar', [
-            'subgrupos'  => $subgrupos,
-            'limites'    => $limites,
-            'capacidad'  => $capacidad,
-            'producto'   => $producto,
-            'fechaDesde' => $fechaDesde,
-            'fechaHasta' => $fechaHasta,
-        ]);
+        // El cálculo de gráficos X̄-R / capacidad de proceso (Cp, Cpk)
+        // ya vive en M6 (SPC), no en este controlador de Reportes.
+        // TODO: cuando tengamos la ruta exacta del reporte SPC en M6,
+        // cambiar esto por: $this->redirect('/m6/...'); — mismo patrón
+        // que trazabilidadLote() usa para redirigir a M5.
+        $this->flash('info', 'El reporte SPC X̄-R / capacidad de proceso está en el módulo M6.');
+        $this->redirect('/reportes');
     }
 
     // POST /reportes/mantenimiento

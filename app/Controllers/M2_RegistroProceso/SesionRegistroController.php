@@ -151,9 +151,9 @@ class SesionRegistroController extends Controller
         // Límites generales del producto (encabezado informativo de la página)
         $limites = $this->db->fetchOne(
             "SELECT ucl_xbar, lcl_xbar, cl_xbar, ucl_r, lcl_r, cl_r
-             FROM spc_limites_control
-             WHERE producto_id = ? AND parametro_id IS NULL AND vigente = 1
-             ORDER BY calculado_en DESC LIMIT 1",
+            FROM spc_limites_control
+            WHERE producto_id = ? AND parametro_id IS NULL AND vigente = 1
+            ORDER BY calculado_en DESC LIMIT 1",
             [$productoId]
         );
 
@@ -279,10 +279,6 @@ class SesionRegistroController extends Controller
         $tablasConocidas = [
             'reg_valores_simples', 'reg_subgrupos_spc', 'reg_inspeccion_atributos',
             'spc_senales_detectadas', 'reg_liberacion_pt',
-            'reg_proceso_amasado', 'reg_pesos_masa_cruda',
-            'reg_proceso_horneado', 'reg_control_envasado', 'reg_analisis_pt',
-            'spc_subgrupos_envasado', 'spc_subgrupos_amasado',
-            'spc_subgrupos_horneado', 'spc_subgrupos_pesos',
         ];
         foreach ($tablasConocidas as $tabla) {
             try {
@@ -322,8 +318,8 @@ class SesionRegistroController extends Controller
 
                     $lim = $this->db->fetchOne(
                         "SELECT ucl_xbar, lcl_xbar, cl_xbar FROM spc_limites_control
-                         WHERE parametro_id = ? AND vigente = 1
-                         ORDER BY calculado_en DESC LIMIT 1",
+                        WHERE parametro_id = ? AND vigente = 1
+                        ORDER BY calculado_en DESC LIMIT 1",
                         [$pid]
                     );
                     if (!$lim) {
@@ -340,21 +336,21 @@ class SesionRegistroController extends Controller
 
         $parametrosAtributo = $this->db->fetchAll(
             "SELECT id, nombre, etapa, tamanio_subgrupo
-             FROM parametros_proceso
-             WHERE producto_id = ?
-               AND es_variable_spc = 1
-               AND tipo_dato IN ('seleccion','si_no')
-               AND activo = 1
-             ORDER BY etapa, nombre",
+            FROM parametros_proceso
+            WHERE producto_id = ?
+                AND es_variable_spc = 1
+                AND tipo_dato IN ('seleccion','si_no')
+                AND activo = 1
+            ORDER BY etapa, nombre",
             [$productoId]
         );
 
         $inspeccionesAtributos = $this->db->fetchAll(
             "SELECT ia.*, pp.nombre AS parametro_nombre
-             FROM reg_inspeccion_atributos ia
-             JOIN parametros_proceso pp ON pp.id = ia.parametro_id
-             WHERE ia.sesion_id = ?
-             ORDER BY ia.creado_en ASC",
+            FROM reg_inspeccion_atributos ia
+            JOIN parametros_proceso pp ON pp.id = ia.parametro_id
+            WHERE ia.sesion_id = ?
+            ORDER BY ia.creado_en ASC",
             [$sesionId]
         );
 

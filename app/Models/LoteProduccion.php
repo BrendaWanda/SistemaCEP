@@ -12,8 +12,10 @@ class LoteProduccion extends Model
         'fecha_produccion','turno','supervisor_id','nivel',
         'rendimiento_teorico_total','rendimiento_real_total',
         'diferencia_unidades','porcentaje_rendimiento',
-        'merma_producto_kg','merma_envase_kg','merma_reproceso_kg',
-        'merma_no_conforme_kg','merma_quemado_kg',
+        'merma_envase_kg',
+        'merma_panes_mordidos_kg','merma_panes_besados_kg',
+        'merma_panes_quemados_kg','merma_panes_blancos_kg',
+        'merma_panes_sobrados_kg','merma_aspecto_no_deseado_kg',
         'fecha_elaboracion','fecha_vencimiento',
         'estado','observaciones','cronograma_produccion_id','creado_por'
     ];
@@ -27,6 +29,17 @@ class LoteProduccion extends Model
     ];
 
     public const TURNOS = ['mañana'=>'Mañana','tarde'=>'Tarde','noche'=>'Noche'];
+
+    // Categorías de merma (kg) — usadas en rendimiento.php, ver_lote.php e imprimir.php
+    public const MERMAS = [
+        'merma_panes_mordidos_kg'     => ['label' => 'Panes mordidos',            'hint' => 'Dañados por mordidas durante la manipulación'],
+        'merma_panes_besados_kg'      => ['label' => 'Panes besados',             'hint' => 'Pegados entre sí durante el horneado'],
+        'merma_panes_quemados_kg'     => ['label' => 'Panes quemados',            'hint' => 'Quemados en el horno'],
+        'merma_panes_blancos_kg'      => ['label' => 'Panes blancos',             'hint' => 'Mal cocidos / subhorneados'],
+        'merma_panes_sobrados_kg'     => ['label' => 'Panes sobrados',            'hint' => 'Excedente de producción'],
+        'merma_aspecto_no_deseado_kg' => ['label' => 'Panes con aspecto no deseado', 'hint' => 'Defectos de forma o apariencia'],
+        'merma_envase_kg'             => ['label' => 'Merma de bobina',           'hint' => 'Material de empaque desperdiciado'],
+    ];
 
     // Todos los lotes con producto y estado
     public function todosConDetalle(array $filtros = []): array
@@ -143,17 +156,18 @@ class LoteProduccion extends Model
         $real    = (int)$datos['rendimiento_real_total'];
         $pct     = $teorico > 0 ? round(($real / $teorico) * 100, 2) : 0;
 
-        $this->update($id, [
+        $update = [
             'rendimiento_teorico_total' => $teorico,
             'rendimiento_real_total'    => $real,
             'diferencia_unidades'       => $real - $teorico,
             'porcentaje_rendimiento'    => $pct,
-            'merma_producto_kg'         => $datos['merma_producto_kg'] ?? 0,
-            'merma_envase_kg'           => $datos['merma_envase_kg'] ?? 0,
-            'merma_reproceso_kg'        => $datos['merma_reproceso_kg'] ?? 0,
-            'merma_no_conforme_kg'      => $datos['merma_no_conforme_kg'] ?? 0,
-            'merma_quemado_kg'          => $datos['merma_quemado_kg'] ?? 0,
-        ]);
+        ];
+
+        foreach (array_keys(self::MERMAS) as $campo) {
+            $update[$campo] = $datos[$campo] ?? 0;
+        }
+
+        $this->update($id, $update);
     }
 
     // Consumo de MP del lote

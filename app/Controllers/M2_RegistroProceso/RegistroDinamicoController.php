@@ -99,9 +99,9 @@ class RegistroDinamicoController extends Controller
             // (es_variable_spc = 0) y estar activo.
             $parametro = $this->db->fetchOne(
                 "SELECT id, nombre, tipo_dato, obligatorio
-                 FROM parametros_proceso
-                 WHERE id = ? AND producto_id = ?
-                   AND es_variable_spc = 0 AND activo = 1",
+                FROM parametros_proceso
+                WHERE id = ? AND producto_id = ?
+                    AND es_variable_spc = 0 AND activo = 1",
                 [$parametroId, $productoId]
             );
             if (!$parametro) continue;

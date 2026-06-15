@@ -131,21 +131,20 @@ class OeeService
     }
 
     // KPIs por producto para el período
-    public function kpisPorProducto(
-        string $fechaDesde,
-        string $fechaHasta
-    ): array {
+    public function kpisPorProducto(string $fechaDesde, string $fechaHasta): array
+    {
         return $this->db->fetchAll(
             "SELECT
                 p.nombre AS producto_nombre,
                 p.codigo AS producto_codigo,
                 COUNT(l.id) AS total_lotes,
-                SUM(l.rendimiento_real_total)   AS und_reales,
+                SUM(l.rendimiento_real_total)    AS und_reales,
                 SUM(l.rendimiento_teorico_total) AS und_teoricas,
                 AVG(l.porcentaje_rendimiento)    AS rend_promedio,
-                SUM(l.merma_producto_kg + l.merma_envase_kg +
-                    l.merma_reproceso_kg + l.merma_no_conforme_kg +
-                    l.merma_quemado_kg) AS merma_total_kg,
+                SUM(l.merma_envase_kg + l.merma_panes_mordidos_kg +
+                    l.merma_panes_besados_kg + l.merma_panes_quemados_kg +
+                    l.merma_panes_blancos_kg + l.merma_panes_sobrados_kg +
+                    l.merma_aspecto_no_deseado_kg) AS merma_total_kg,
                 COUNT(CASE WHEN l.estado='liberado' THEN 1 END) AS liberados,
                 COUNT(CASE WHEN l.estado='cuarentena' THEN 1 END) AS cuarentena,
                 COUNT(CASE WHEN l.estado='rechazado' THEN 1 END) AS rechazados
@@ -158,48 +157,31 @@ class OeeService
         );
     }
 
-    // Tendencia diaria de producción
-    public function tendenciaDiaria(
-        string $fechaDesde,
-        string $fechaHasta
-    ): array {
-        return $this->db->fetchAll(
-            "SELECT
-                fecha_produccion AS fecha,
-                COUNT(id) AS lotes,
-                SUM(rendimiento_real_total) AS unidades,
-                AVG(porcentaje_rendimiento) AS rend_pct
-                FROM lotes_produccion
-                WHERE fecha_produccion BETWEEN ? AND ?
-                GROUP BY fecha_produccion
-                ORDER BY fecha_produccion ASC",
-            [$fechaDesde, $fechaHasta]
-        );
-    }
-
     // Mermas acumuladas por tipo
-    public function mermasPorTipo(
-        string $fechaDesde,
-        string $fechaHasta
-    ): array {
+    public function mermasPorTipo(string $fechaDesde, string $fechaHasta): array
+    {
         $result = $this->db->fetchOne(
             "SELECT
-                COALESCE(SUM(merma_producto_kg),    0) AS producto,
-                COALESCE(SUM(merma_envase_kg),      0) AS envase,
-                COALESCE(SUM(merma_reproceso_kg),   0) AS reproceso,
-                COALESCE(SUM(merma_no_conforme_kg), 0) AS no_conforme,
-                COALESCE(SUM(merma_quemado_kg),     0) AS quemado
+                COALESCE(SUM(merma_envase_kg),             0) AS envase,
+                COALESCE(SUM(merma_panes_mordidos_kg),     0) AS mordidos,
+                COALESCE(SUM(merma_panes_besados_kg),      0) AS besados,
+                COALESCE(SUM(merma_panes_quemados_kg),     0) AS quemados,
+                COALESCE(SUM(merma_panes_blancos_kg),      0) AS blancos,
+                COALESCE(SUM(merma_panes_sobrados_kg),     0) AS sobrados,
+                COALESCE(SUM(merma_aspecto_no_deseado_kg), 0) AS aspecto_no_deseado
                 FROM lotes_produccion
                 WHERE fecha_produccion BETWEEN ? AND ?",
             [$fechaDesde, $fechaHasta]
         );
 
         return [
-            'Producto'    => round((float)($result['producto']    ?? 0), 3),
-            'Envase'      => round((float)($result['envase']      ?? 0), 3),
-            'Reproceso'   => round((float)($result['reproceso']   ?? 0), 3),
-            'No conforme' => round((float)($result['no_conforme'] ?? 0), 3),
-            'Quemado'     => round((float)($result['quemado']     ?? 0), 3),
+            'Envase'             => round((float)($result['envase']             ?? 0), 3),
+            'Panes mordidos'     => round((float)($result['mordidos']           ?? 0), 3),
+            'Panes besados'      => round((float)($result['besados']            ?? 0), 3),
+            'Panes quemados'     => round((float)($result['quemados']           ?? 0), 3),
+            'Panes blancos'      => round((float)($result['blancos']            ?? 0), 3),
+            'Panes sobrados'     => round((float)($result['sobrados']           ?? 0), 3),
+            'Aspecto no deseado' => round((float)($result['aspecto_no_deseado'] ?? 0), 3),
         ];
     }
 

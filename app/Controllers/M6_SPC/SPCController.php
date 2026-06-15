@@ -110,7 +110,6 @@ class SpcController extends Controller
 
     // ═══════════════════════════════════════════════════════════
     // CÁLCULO CARTA p
-    // Ref: Montgomery (2013), Cap.7
     // ═══════════════════════════════════════════════════════════
     private function calcularCartaP(array $datos, array $specs): array
     {
@@ -257,10 +256,10 @@ class SpcController extends Controller
                 'arl0'    => 370,
             ],
             'capacidad'       => ['cp'=>'—','cpk'=>'—','cpu'=>'—','cpl'=>'—','pp'=>'—','ppk'=>'—',
-                                  'ppu'=>'—','ppl'=>'—','ppm_cp'=>round($pbar*1_000_000),
-                                  'ppm_lp'=>round($pbar*1_000_000),'sigma_nivel'=>'—',
-                                  'lse'=>'—','lie'=>'—','tolerancia'=>'—',
-                                  'ic_cp'=>null,'ic_cpk'=>null],
+                                    'ppu'=>'—','ppl'=>'—','ppm_cp'=>round($pbar*1_000_000),
+                                    'ppm_lp'=>round($pbar*1_000_000),'sigma_nivel'=>'—',
+                                    'lse'=>'—','lie'=>'—','tolerancia'=>'—',
+                                    'ic_cp'=>null,'ic_cpk'=>null],
             'violaciones'     => $violaciones,
             'advertencias'    => $advertencias,
             'histograma'      => $histograma,
@@ -706,7 +705,7 @@ class SpcController extends Controller
     // Ref: Nelson (1984); Montgomery (2013), Cap.5, p.196-200
     // ═══════════════════════════════════════════════════════════
     private function reglasNelson(array $vals, float $media, float $sigma,
-                                   float $lcs, float $lci): array
+                                    float $lcs, float $lci): array
     {
         $v = []; $n = count($vals);
         for ($i = 0; $i < $n; $i++) {
@@ -817,20 +816,20 @@ class SpcController extends Controller
             $beta = max(0,min(1,$this->phi($L-$d*$sqrtN)-$this->phi(-$L-$d*$sqrtN)));
             $arl  = $beta<1 ? round(1/(1-$beta),1) : 9999;
             $puntos[]=['delta'=>$d,'beta'=>round($beta,4),'beta_pct'=>round($beta*100,2),
-                       'arl'=>$arl,'poder'=>round((1-$beta)*100,2)];
+                        'arl'=>$arl,'poder'=>round((1-$beta)*100,2)];
             $delta=round($delta+0.1,1);
         }
         $refs=[['delta'=>0.0,'desc'=>'Sin cambio (ARL₀≈370)'],
-               ['delta'=>0.5,'desc'=>'0.5σ — Cambio muy pequeño'],
-               ['delta'=>1.0,'desc'=>'1σ — Cambio pequeño'],
-               ['delta'=>1.5,'desc'=>'1.5σ — Cambio moderado'],
-               ['delta'=>2.0,'desc'=>'2σ — Cambio medio'],
-               ['delta'=>3.0,'desc'=>'3σ — Cambio grande']];
+                ['delta'=>0.5,'desc'=>'0.5σ — Cambio muy pequeño'],
+                ['delta'=>1.0,'desc'=>'1σ — Cambio pequeño'],
+                ['delta'=>1.5,'desc'=>'1.5σ — Cambio moderado'],
+                ['delta'=>2.0,'desc'=>'2σ — Cambio medio'],
+                ['delta'=>3.0,'desc'=>'3σ — Cambio grande']];
         $refsCalc=array_map(function($r) use ($n,$L,$sqrtN) {
             $beta=max(0,min(1,$this->phi($L-$r['delta']*$sqrtN)-$this->phi(-$L-$r['delta']*$sqrtN)));
             $arl=$beta<1?round(1/(1-$beta),1):9999;
             return array_merge($r,['beta'=>round($beta,4),'beta_pct'=>round($beta*100,2),
-                                   'arl'=>$arl,'poder'=>round((1-$beta)*100,2)]);
+                                    'arl'=>$arl,'poder'=>round((1-$beta)*100,2)]);
         },$refs);
         return ['puntos'=>$puntos,'referencias'=>$refsCalc,'n'=>$n,'L'=>$L,
                 'ref_biblio'=>'Montgomery (2013), Cap.5, p.220-225, Ec.5.23'];
@@ -853,7 +852,7 @@ class SpcController extends Controller
             } elseif ($p1<=$lcs&&$p1>=$lci) { $beta=1.0; }
             $arl=$beta<1?round(1/(1-$beta),1):9999;
             $puntos[]=['p1'=>$p1,'beta'=>round($beta,4),'beta_pct'=>round($beta*100,2),
-                       'arl'=>$arl,'poder'=>round((1-$beta)*100,2)];
+                        'arl'=>$arl,'poder'=>round((1-$beta)*100,2)];
         }
         $refs=[];
         foreach ([0,$pbar,round($pbar+0.05,3),round($pbar+0.10,3),round($pbar+0.15,3),round($lcs,4)] as $p1) {
@@ -862,8 +861,8 @@ class SpcController extends Controller
             $beta=$sigma1>0?max(0,min(1,$this->phi(($lcs-$p1)/$sigma1)-$this->phi(($lci-$p1)/$sigma1))):($p1<=$lcs?1:0);
             $arl=$beta<1?round(1/(1-$beta),1):9999;
             $refs[]=['p1'=>$p1,'beta'=>round($beta,4),'beta_pct'=>round($beta*100,2),
-                     'arl'=>$arl,'poder'=>round((1-$beta)*100,2),
-                     'desc'=>$p1==$pbar?'p̄ (referencia)':($p1>=$lcs?'≥ LCS':'p₁='.round($p1,3))];
+                    'arl'=>$arl,'poder'=>round((1-$beta)*100,2),
+                    'desc'=>$p1==$pbar?'p̄ (referencia)':($p1>=$lcs?'≥ LCS':'p₁='.round($p1,3))];
         }
         return ['puntos'=>$puntos,'referencias'=>$refs,'pbar'=>$pbar,'n'=>$n,
                 'lcs'=>$lcs,'lci'=>$lci,'tipo'=>'p',
@@ -878,12 +877,12 @@ class SpcController extends Controller
     {
         $n=count($vals);
         if ($n<7) return ['ad'=>null,'adc'=>null,'p_value'=>null,'normal'=>null,
-                          'mensaje'=>'Se requieren al menos 7 observaciones'];
+                            'mensaje'=>'Se requieren al menos 7 observaciones'];
         sort($vals);
         $media=array_sum($vals)/$n;
         $sigma=$this->desviacionMuestral($vals);
         if ($sigma<=0) return ['ad'=>null,'adc'=>null,'p_value'=>null,'normal'=>null,
-                               'mensaje'=>'Desviación estándar = 0'];
+                                'mensaje'=>'Desviación estándar = 0'];
         $S=0.0;
         for ($i=0;$i<$n;$i++) {
             $zi=($vals[$i]-$media)/$sigma;
@@ -929,8 +928,8 @@ class SpcController extends Controller
         for ($i=0;$i<$n;$i++) {
             $pi=($i+1-0.375)/($n+0.25);
             $puntos[]=['x_muestral'=>round($vals[$i],4),
-                       'x_teorico'=>round($media+$sigma*$this->invNormal($pi),4),
-                       'z_teorico'=>round($this->invNormal($pi),4)];
+                        'x_teorico'=>round($media+$sigma*$this->invNormal($pi),4),
+                        'z_teorico'=>round($this->invNormal($pi),4)];
         }
         $q1idx=(int)floor(0.25*$n); $q3idx=(int)floor(0.75*$n);
         $z1=$this->invNormal(0.25); $z3=$this->invNormal(0.75);
@@ -959,11 +958,11 @@ class SpcController extends Controller
         if ($p<$pLow) {
             $q=sqrt(-2*log($p));
             return ((((($c[0]*$q+$c[1])*$q+$c[2])*$q+$c[3])*$q+$c[4])*$q+$c[5])/
-                   ((((($d[0]*$q+$d[1])*$q+$d[2])*$q+$d[3])*$q+1));
+                    ((((($d[0]*$q+$d[1])*$q+$d[2])*$q+$d[3])*$q+1));
         } elseif ($p<=$pHigh) {
             $q=$p-0.5; $r=$q*$q;
             return (((((($a[0]*$r+$a[1])*$r+$a[2])*$r+$a[3])*$r+$a[4])*$r+$a[5])*$q)/
-                   ((((($b[0]*$r+$b[1])*$r+$b[2])*$r+$b[3])*$r+$b[4])*$r+1);
+                    ((((($b[0]*$r+$b[1])*$r+$b[2])*$r+$b[3])*$r+$b[4])*$r+1);
         } else {
             $q=sqrt(-2*log(1-$p));
             return -((((($c[0]*$q+$c[1])*$q+$c[2])*$q+$c[3])*$q+$c[4])*$q+$c[5])/
@@ -973,7 +972,7 @@ class SpcController extends Controller
 
     // Curva normal PDF — Montgomery (2013), Cap.6
     private function curvaNomal(float $media, float $sigma,
-                                  float $min, float $max, int $puntos=50): array
+                                    float $min, float $max, int $puntos=50): array
     {
         if ($sigma<=0) return [];
         $paso=($max-$min)/$puntos; $x=[]; $y=[];
@@ -1052,8 +1051,8 @@ class SpcController extends Controller
     // Ref: Montgomery (2013), Cap.6, p.357-371
     // ═══════════════════════════════════════════════════════════
     private function calcularIndicesAdicionales(float $media, float $sigmaCP,
-                                                  float $sigmaLP, array $specs,
-                                                  ?float $St=null): array
+                                                    float $sigmaLP, array $specs,
+                                                    ?float $St=null): array
     {
         $lse=(float)($specs['lse']??0); $lie=(float)($specs['lie']??0);
         $nominal=(float)($specs['nominal']??($lse+$lie)/2);
@@ -1152,14 +1151,14 @@ class SpcController extends Controller
     // CONSULTAS BD — Carta p
     // ═══════════════════════════════════════════════════════════
     private function getDatosCartaP(int $prodId, int $paramId,
-                                     ?string $desde, ?string $hasta): array
+                                    ?string $desde, ?string $hasta): array
     {
         $sql="SELECT ia.fecha, CONCAT(ia.fecha,' (',ia.turno,')') AS fecha_label,
-                     ia.turno, lp.codigo_lote AS lote_ref, 'inspeccion' AS origen,
-                     ia.n_inspeccionado, ia.n_no_conformes AS no_conformes
-              FROM reg_inspeccion_atributos ia
-              JOIN lotes_produccion lp ON lp.id=ia.lote_id
-              WHERE ia.producto_id=? AND ia.parametro_id=?";
+                        ia.turno, lp.codigo_lote AS lote_ref, 'inspeccion' AS origen,
+                        ia.n_inspeccionado, ia.n_no_conformes AS no_conformes
+                FROM reg_inspeccion_atributos ia
+                JOIN lotes_produccion lp ON lp.id=ia.lote_id
+                WHERE ia.producto_id=? AND ia.parametro_id=?";
         $params=[$prodId,$paramId];
         if ($desde){$sql.=" AND ia.fecha>=?";$params[]=$desde;}
         if ($hasta){$sql.=" AND ia.fecha<=?";$params[]=$hasta;}
@@ -1178,14 +1177,14 @@ class SpcController extends Controller
     // (único) valor de cada fila.
     // ═══════════════════════════════════════════════════════════
     private function getSubgruposGenerico(int $prodId, int $paramId,
-                                           ?string $desde, ?string $hasta): array
+                                            ?string $desde, ?string $hasta): array
     {
         $sql="SELECT rs.*, sr.fecha, sr.turno, lp.codigo_lote AS lote_ref,
-                     CONCAT(sr.fecha,' (',sr.turno,')') AS fecha_label
-              FROM reg_subgrupos_spc rs
-              JOIN sesiones_registro sr ON sr.id=rs.sesion_id
-              JOIN lotes_produccion lp ON lp.id=sr.lote_id
-              WHERE lp.producto_id=? AND rs.parametro_id=?";
+                    CONCAT(sr.fecha,' (',sr.turno,')') AS fecha_label
+                FROM reg_subgrupos_spc rs
+                JOIN sesiones_registro sr ON sr.id=rs.sesion_id
+                JOIN lotes_produccion lp ON lp.id=sr.lote_id
+                WHERE lp.producto_id=? AND rs.parametro_id=?";
         $params=[$prodId,$paramId];
         if ($desde){$sql.=" AND sr.fecha>=?";$params[]=$desde;}
         if ($hasta){$sql.=" AND sr.fecha<=?";$params[]=$hasta;}
@@ -1203,7 +1202,7 @@ class SpcController extends Controller
     }
 
     private function getSubgruposXR(int $prodId, int $paramId,
-                                     ?string $desde, ?string $hasta): array
+                                    ?string $desde, ?string $hasta): array
     {
         return $this->getSubgruposGenerico($prodId, $paramId, $desde, $hasta);
     }
@@ -1227,7 +1226,7 @@ class SpcController extends Controller
             "SELECT id,nombre,etapa,unidad,tipo_dato,
                     valor_min AS lie,valor_max AS lse,
                     valor_nominal AS nominal,tamanio_subgrupo
-             FROM parametros_proceso WHERE id=?",[$paramId]);
+            FROM parametros_proceso WHERE id=?",[$paramId]);
     }
     private function getProductos(): array
     {
@@ -1240,9 +1239,9 @@ class SpcController extends Controller
                     p.nombre AS parametro_nombre,p.etapa,p.unidad,
                     p.valor_min AS lie,p.valor_max AS lse,
                     p.valor_nominal AS nominal,p.tamanio_subgrupo,p.tipo_dato
-             FROM parametros_proceso p JOIN productos pr ON pr.id=p.producto_id
-             WHERE p.es_variable_spc=1 AND p.activo=1
-               AND p.tipo_dato IN ('numerico','seleccion','si_no')
-             ORDER BY pr.nombre,p.etapa,p.nombre");
+            FROM parametros_proceso p JOIN productos pr ON pr.id=p.producto_id
+            WHERE p.es_variable_spc=1 AND p.activo=1
+                AND p.tipo_dato IN ('numerico','seleccion','si_no')
+            ORDER BY pr.nombre,p.etapa,p.nombre");
     }
 }

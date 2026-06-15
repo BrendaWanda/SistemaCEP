@@ -70,46 +70,16 @@
                 ⚠️ Desglose de mermas (kg)
             </div>
             <div class="form-row cols-2">
+                <?php foreach (\App\Models\LoteProduccion::MERMAS as $campo => $info): ?>
                 <div class="form-group">
-                    <label class="form-label">Merma de producto (kg)</label>
-                    <input type="number" name="merma_producto_kg"
+                    <label class="form-label"><?= htmlspecialchars($info['label']) ?> (kg)</label>
+                    <input type="number" name="<?= $campo ?>"
                         class="form-control merma-input"
-                        value="<?= $lote['merma_producto_kg'] ?? 0 ?>"
+                        value="<?= $lote[$campo] ?? 0 ?>"
                         step="0.001" min="0">
-                    <div class="form-hint">Producto defectuoso descartado</div>
+                    <div class="form-hint"><?= htmlspecialchars($info['hint']) ?></div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Merma de envase/bobina (kg)</label>
-                    <input type="number" name="merma_envase_kg"
-                        class="form-control merma-input"
-                        value="<?= $lote['merma_envase_kg'] ?? 0 ?>"
-                        step="0.001" min="0">
-                    <div class="form-hint">Material de empaque desperdiciado</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Merma por reproceso (kg)</label>
-                    <input type="number" name="merma_reproceso_kg"
-                        class="form-control merma-input"
-                        value="<?= $lote['merma_reproceso_kg'] ?? 0 ?>"
-                        step="0.001" min="0">
-                    <div class="form-hint">Enviado a reproceso</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Merma no conforme (kg)</label>
-                    <input type="number" name="merma_no_conforme_kg"
-                        class="form-control merma-input"
-                        value="<?= $lote['merma_no_conforme_kg'] ?? 0 ?>"
-                        step="0.001" min="0">
-                    <div class="form-hint">Producto fuera de especificación</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Merma por quemado (kg)</label>
-                    <input type="number" name="merma_quemado_kg"
-                        class="form-control merma-input"
-                        value="<?= $lote['merma_quemado_kg'] ?? 0 ?>"
-                        step="0.001" min="0">
-                    <div class="form-hint">Producto quemado en horno</div>
-                </div>
+                <?php endforeach ?>
                 <div class="form-group">
                     <label class="form-label">Total merma (calculado)</label>
                     <div class="form-control"

@@ -294,13 +294,10 @@ table.det td.center { text-align: center; }
 
         <!-- Mermas -->
         <?php
-        $mermas = [
-            'Producto'     => (float)($lote['merma_producto_kg'] ?? 0),
-            'Envase'       => (float)($lote['merma_envase_kg'] ?? 0),
-            'Reproceso'    => (float)($lote['merma_reproceso_kg'] ?? 0),
-            'No conforme'  => (float)($lote['merma_no_conforme_kg'] ?? 0),
-            'Quemado'      => (float)($lote['merma_quemado_kg'] ?? 0),
-        ];
+        $mermas = [];
+        foreach (\App\Models\LoteProduccion::MERMAS as $campo => $info) {
+            $mermas[$info['label']] = (float)($lote[$campo] ?? 0);
+        }
         $totalMerma = array_sum($mermas);
         if ($totalMerma > 0):
         ?>
@@ -312,20 +309,21 @@ table.det td.center { text-align: center; }
             <table class="det">
                 <thead>
                     <tr>
-                        <?php foreach ($mermas as $label => $val): ?>
-                        <?php if ($val <= 0) continue; ?>
-                        <th><?= $label ?></th>
-                        <?php endforeach ?>
-                        <th>TOTAL</th>
+                        <th>Categoría</th>
+                        <th class="right">Cantidad</th>
                     </tr>
                 </thead>
                 <tbody>
+                    <?php foreach ($mermas as $label => $val): ?>
+                    <?php if ($val <= 0) continue; ?>
                     <tr>
-                        <?php foreach ($mermas as $label => $val): ?>
-                        <?php if ($val <= 0) continue; ?>
+                        <td><?= $label ?></td>
                         <td class="right"><?= number_format($val,3) ?> kg</td>
-                        <?php endforeach ?>
-                        <td class="right" style="color:#dc2626">
+                    </tr>
+                    <?php endforeach ?>
+                    <tr>
+                        <td style="font-weight:700">TOTAL</td>
+                        <td class="right" style="color:#dc2626;font-weight:700">
                             <?= number_format($totalMerma,3) ?> kg
                         </td>
                     </tr>

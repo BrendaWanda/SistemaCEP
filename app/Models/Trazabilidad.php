@@ -56,20 +56,19 @@ class Trazabilidad extends Model
             [$lote['id']]
         );
 
-        // 3. Sesiones de registro de proceso
+       // 3. Sesiones de registro de proceso
         $lote['sesiones'] = $this->db->fetchAll(
             "SELECT s.*,
                     u.nombre AS supervisor_nombre,
-                    -- Conteos
-                    (SELECT COUNT(*) FROM reg_pesos_masa_cruda
-                    WHERE sesion_id = s.id) AS total_pesos,
-                    (SELECT COUNT(*) FROM reg_pesos_masa_cruda
+                    (SELECT COUNT(*) FROM reg_subgrupos_spc
+                    WHERE sesion_id = s.id) AS total_subgrupos_spc,
+                    (SELECT COUNT(*) FROM reg_subgrupos_spc
                     WHERE sesion_id = s.id
                     AND fuera_de_control = 1) AS senales_spc,
-                    (SELECT COUNT(*) FROM reg_proceso_horneado
-                    WHERE sesion_id = s.id) AS total_horneado,
-                    (SELECT COUNT(*) FROM reg_control_envasado
-                    WHERE sesion_id = s.id) AS total_envasado
+                    (SELECT COUNT(*) FROM reg_valores_simples
+                    WHERE sesion_id = s.id) AS total_valores_simples,
+                    (SELECT COUNT(*) FROM reg_inspeccion_atributos
+                    WHERE sesion_id = s.id) AS total_inspecciones_atributos
                 FROM sesiones_registro s
                 JOIN usuarios u ON u.id = s.supervisor_id
                 WHERE s.lote_id = ?
