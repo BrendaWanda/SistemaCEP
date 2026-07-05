@@ -43,6 +43,34 @@
     --font-sans: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
     --font-mono: 'Cascadia Code','Consolas','Courier New',monospace;
     --font-size: 17px;
+
+    /* ── Escala tipográfica para componentes densos (tablas SPC, subgrupos) ──
+        Antes estos tamaños se ponían a mano (11px, 12px, 13px, 20px...) en
+        cada style="" suelto, lo que hacía que el texto saltara de tamaño sin
+        lógica al mezclar varios componentes en una misma vista. Todo
+        componente denso ahora usa una de estas 4 variables, nunca un
+       número suelto. */
+    --fs-dense-xs: 12px;  /* etiquetas de columna: "Hora", "L1", unidades */
+    --fs-dense-sm: 13px;  /* datos de celda: lecturas, valores registrados */
+    --fs-dense-md: 14px;  /* énfasis: X̄, R, nombre del parámetro */
+    --fs-dense-lg: 16px;  /* título de sub-sección dentro de una tarjeta */
+
+    /* ── Color único para acentos por etapa — uniformidad total ──
+        Antes había una escala de 6 tonos de azul (uno por etapa). Por
+        pedido explícito, ahora las 6 variables apuntan al MISMO color:
+        el azul estándar que ya usa btn-primary en todo el sistema. Así
+        cualquier botón o acento de M2 (o de cualquier otro módulo que
+        use estas variables) se ve idéntico entre sí y coherente con el
+        resto de la interfaz — un solo azul, sin variaciones por sección.
+        Los badges de estado (señal SPC / OK) siguen usando rojo/verde
+        semántico — ese color comunica una condición de calidad, no es
+       decorativo, así que se mantiene aparte de esta variable. */
+    --etapa-1: #1a407d;
+    --etapa-2: #1a407d;
+    --etapa-3: #1a407d;
+    --etapa-4: #1a407d;
+    --etapa-5: #1a407d;
+    --etapa-6: #1a407d;
 }
 
 html, body { height: 100%; }
@@ -347,34 +375,22 @@ body {
 .stat-label { font-size: 17px; color: var(--text-muted); margin-top: 2px; }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-    TABLA ESTÁNDAR
+    TABLA ESTÁNDAR DEL SISTEMA — mismo estilo en TODOS los módulos.
+    .data-table y .data-table-bordered son intencionalmente el mismo
+    estilo (header azul marino, bordes, filas alternadas): así, cualquier
+    vista existente que ya use cualquiera de las dos clases se ve
+    automáticamente igual sin tener que editar cada archivo uno por uno.
+    Para tablas nuevas, usa .data-table-bordered — el nombre .data-table
+    se mantiene solo por compatibilidad con vistas ya existentes.
 ══════════════════════════════════════════════════════════════════════════════ */
 .table-wrap { overflow-x: auto; }
-table.data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.data-table th {
-    background: #f8fafc;
-    padding: 11px 16px; text-align: left;
-    font-size: 17px; font-weight: 700;
-    color: var(--text-secondary);
-    text-transform: uppercase; letter-spacing: .06em;
-    border-bottom: 1px solid var(--border); white-space: nowrap;
-}
-.data-table td {
-    padding: 11px 16px;
-    border-bottom: 1px solid #f8fafc;
-    color: var(--text-primary); vertical-align: middle;
-}
-.data-table tr:last-child td { border-bottom: none; }
-.data-table tr:hover td { background: #f8fafc; }
-
-/* ══════════════════════════════════════════════════════════════════════════════
-    TABLA CON BORDES — para módulos de configuración
-══════════════════════════════════════════════════════════════════════════════ */
+table.data-table,
 table.data-table-bordered {
     width: 100%;
     border-collapse: collapse;
-    font-size: 17px;
+    font-size: 14px;
 }
+.data-table th,
 .data-table-bordered th {
     background: #090e22;
     color: #ffffff;
@@ -387,6 +403,7 @@ table.data-table-bordered {
     border: 1px solid #1a2550;
     white-space: nowrap;
 }
+.data-table td,
 .data-table-bordered td {
     padding: 11px 16px;
     border: 1px solid #e2e8f0;
@@ -395,16 +412,20 @@ table.data-table-bordered {
     background: #ffffff;
     text-align: center;
 }
+.data-table tbody tr:nth-child(even) td,
 .data-table-bordered tbody tr:nth-child(even) td {
     background: #f8fafc;
 }
+.data-table tbody tr:hover td,
 .data-table-bordered tbody tr:hover td {
     background: #eff6ff;
     transition: background .1s;
 }
-/* Primera columna siempre a la izquierda */
-.data-table-bordered td:first-child,
-.data-table-bordered th:first-child { text-align: left; }
+/* Primera columna siempre a la izquierda (código, nombre, lote...) */
+.data-table td:first-child, .data-table th:first-child,
+.data-table-bordered td:first-child, .data-table-bordered th:first-child {
+    text-align: left;
+}
 
 /* ══════════════════════════════════════════════════════════════════════════════
     TABS DE NAVEGACIÓN — módulos
@@ -492,8 +513,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .btn-sm   { padding: 5px 11px; font-size: 15px; }
 .btn-lg   { padding: 11px 22px; font-size: 17px; }
 .btn-full { width: 100%; justify-content: center; }
-.btn-primary   { background: #4f8ef7; color: #fff; border-color: #4f8ef7; }
-.btn-primary:hover   { background: #3b7de8; }
+.btn-primary   { background: #1a407d; color: #fff; border-color: #1a407d; }
+.btn-primary:hover   { background: #1a407d; }
 .btn-secondary { background: #fff; color: var(--text-secondary); border-color: var(--border); }
 .btn-secondary:hover { background: #f8fafc; }
 .btn-success   { background: #22c55e; color: #fff; border-color: #22c55e; }
@@ -502,7 +523,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .btn-danger:hover    { background: #dc2626; }
 .btn-warning   { background: #f59e0b; color: #fff; border-color: #f59e0b; }
 .btn-warning:hover   { background: #d97706; }
-.btn-outline   { background: transparent; border-color: #4f8ef7; color: #4f8ef7; }
+.btn-outline   { background: transparent; border-color: #1a407d; color: #1a407d; }
 .btn-outline:hover   { background: rgba(79,142,247,.08); }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -607,3 +628,54 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .mb-4   { margin-bottom: 24px; }
 .me-2   { margin-right: 8px; }
 .me-1   { margin-right: 4px; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+    TABLA SPC DENSA — subgrupos y valores simples dentro de una sesión (M2)
+    Reemplaza los font-size sueltos (11px/12px/13px/20px) por la escala
+    --fs-dense-*, y usa la paleta --etapa-* en vez de colores arcoíris.
+══════════════════════════════════════════════════════════════════════════════ */
+.spc-panel-title {
+    font-size: var(--fs-dense-md); font-weight: 700; color: var(--text-secondary);
+}
+.spc-panel-title .spc-unidad { font-size: var(--fs-dense-xs); font-weight: 400; color: var(--text-muted); }
+
+table.spc-table { width: 100%; border-collapse: collapse; font-size: var(--fs-dense-sm); }
+.spc-table th {
+    background: #090e22; color: #ffffff;
+    font-size: var(--fs-dense-xs); font-weight: 600; text-transform: uppercase;
+    letter-spacing: .07em;
+    padding: 8px 10px; text-align: center; border: 1px solid #1a2550;
+    white-space: nowrap;
+}
+.spc-table th:first-child, .spc-table td:first-child { text-align: left; }
+.spc-table td {
+    padding: 7px 10px; text-align: center; vertical-align: middle;
+    border: 1px solid #e2e8f0; color: var(--text-primary); background: #ffffff;
+}
+.spc-table tbody tr:nth-child(even) td { background: #f8fafc; }
+.spc-table tbody tr:hover td { background: #eff6ff; }
+.spc-table td.spc-xbar  { font-weight: 700; color: var(--etapa-5); font-size: var(--fs-dense-md); }
+.spc-table td.spc-rango { font-weight: 700; color: var(--color-primary); font-size: var(--fs-dense-md); }
+.spc-table tr.spc-fuera-control td { background: #fef2f2; }
+
+/* Acciones de fila: editar / eliminar / confirmar / cancelar */
+.spc-row-actions { display: inline-flex; gap: 4px; white-space: nowrap; }
+.spc-icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: #fff; cursor: pointer;
+    color: var(--text-muted); transition: background .12s, color .12s, border-color .12s;
+    font-size: 13px; padding: 0;
+}
+.spc-icon-btn:hover        { background: #eff6ff; color: var(--etapa-6); border-color: var(--etapa-6); }
+.spc-icon-btn.spc-delete:hover  { background: #fef2f2; color: var(--color-danger); border-color: var(--color-danger); }
+.spc-icon-btn.spc-confirm { background: var(--etapa-6); color: #fff; border-color: var(--etapa-6); }
+.spc-icon-btn.spc-confirm:hover { background: var(--etapa-5); }
+
+.spc-edit-input {
+    width: 64px; padding: 3px 5px; font-size: var(--fs-dense-sm);
+    border: 1px solid var(--etapa-6); border-radius: 4px; text-align: center;
+}
+.spc-edit-error {
+    font-size: 11px; color: var(--color-danger); margin-top: 2px; display: none;
+}

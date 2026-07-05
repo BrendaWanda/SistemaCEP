@@ -48,9 +48,10 @@ class SesionRegistroController extends Controller
                 )"
             ),
             'liberados_hoy'=> (int)$this->db->fetchScalar(
-                "SELECT COUNT(*) FROM reg_liberacion_pt
-                WHERE DATE(hora) = CURDATE()
-                AND decision_final = 'liberado'"
+                "SELECT COUNT(*) FROM reg_liberacion_pt lib
+                JOIN sesiones_registro s ON s.id = lib.sesion_id
+                WHERE s.fecha = CURDATE()
+                AND lib.decision_final = 'liberado'"
             ),
             'cuarentena'   => (int)$this->db->fetchScalar(
                 "SELECT COUNT(*) FROM lotes_produccion WHERE estado = 'cuarentena'"
@@ -269,26 +270,39 @@ class SesionRegistroController extends Controller
         if (!$sesion) {
             $this->flash('error', 'Sesión no encontrada.');
             $this->redirect('/m2');
+            return;
         }
 
-        // Limpieza best-effort de las tablas dinámicas (M0) que dependen
-        // de sesion_id. El try/catch protege si alguna no aplica.
-        $tablasConocidas = [
-            'reg_valores_simples', 'reg_subgrupos_spc', 'reg_inspeccion_atributos',
-            'spc_senales_detectadas', 'reg_liberacion_pt',
-        ];
-        foreach ($tablasConocidas as $tabla) {
-            try {
-                $this->db->execute(
-                    "DELETE FROM `{$tabla}` WHERE sesion_id = ?",
-                    [$sesionId]
+        // ¿Esta sesión tiene una liberación registrada? Si el lote quedó
+        // 'liberado' o 'cuarentena' por esa decisión, al borrar la sesión
+        // el lote debe volver a 'en_proceso' — si no, queda un lote
+        // "liberado" fantasma sin ninguna liberación real que lo respalde
+        // (hallazgo H de la auditoría).
+        $liberacion = $this->db->fetchOne(
+            "SELECT id FROM reg_liberacion_pt WHERE sesion_id = ?",
+            [$sesionId]
+        );
+
+        $this->db->transaction(function($db) use ($sesionId, $sesion, $liberacion) {
+            // Orden correcto según las FK reales del esquema: primero lo
+            // que depende de reg_subgrupos_spc (spc_senales_detectadas),
+            // recién después reg_subgrupos_spc. El orden anterior estaba
+            // invertido y la excepción de FK quedaba silenciada por el
+            // try/catch genérico, dejando registros huérfanos.
+            $db->execute("DELETE FROM spc_senales_detectadas WHERE sesion_id = ?", [$sesionId]);
+            $db->execute("DELETE FROM reg_subgrupos_spc WHERE sesion_id = ?", [$sesionId]);
+            $db->execute("DELETE FROM reg_valores_simples WHERE sesion_id = ?", [$sesionId]);
+            $db->execute("DELETE FROM reg_inspeccion_atributos WHERE sesion_id = ?", [$sesionId]);
+            $db->execute("DELETE FROM reg_liberacion_pt WHERE sesion_id = ?", [$sesionId]);
+            $db->execute("DELETE FROM sesiones_registro WHERE id = ?", [$sesionId]);
+
+            if ($liberacion) {
+                $db->execute(
+                    "UPDATE lotes_produccion SET estado = 'en_proceso' WHERE id = ?",
+                    [$sesion['lote_id']]
                 );
-            } catch (\Throwable $e) {
-                // tabla/columna inexistente en este proyecto: se ignora
             }
-        }
-
-        $this->db->execute("DELETE FROM sesiones_registro WHERE id = ?", [$sesionId]);
+        });
 
         $this->redirectWithSuccess('/m2', 'Sesión eliminada correctamente.');
     }

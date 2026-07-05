@@ -134,4 +134,40 @@ class InspeccionAtributosController extends Controller
             );
         }
     }
+
+    // -------------------------------------------------------------------
+    // POST /m2/sesion/:id/inspeccion-atributos/:parametro_id/eliminar
+    // Borra por completo el registro de inspección de un parámetro dentro
+    // de la sesión (a diferencia de reenviar el formulario, que actualiza
+    // in-place, esto quita el registro entero si el operador se equivocó
+    // de parámetro o quiere empezar de cero).
+    // -------------------------------------------------------------------
+    public function eliminar(array $params): void
+    {
+        Auth::requireWrite('m2_registro_proceso');
+        $this->verifyCsrf();
+
+        $sesionId    = (int)$params['id'];
+        $parametroId = (int)$params['parametro_id'];
+        $sesion      = $this->modelSesion->find($sesionId);
+
+        if (!$sesion || $sesion['estado'] !== 'en_proceso') {
+            $msg = 'Esta sesión ya está cerrada; no se pueden eliminar sus registros.';
+            if ($this->isAjax()) { $this->jsonError($msg, 403); return; }
+            $this->flash('error', $msg);
+            $this->redirect('/m2');
+            return;
+        }
+
+        $this->db->execute(
+            "DELETE FROM reg_inspeccion_atributos WHERE sesion_id = ? AND parametro_id = ?",
+            [$sesionId, $parametroId]
+        );
+
+        if ($this->isAjax()) {
+            $this->jsonSuccess(['parametro_id' => $parametroId], 'Inspección eliminada correctamente.');
+            return;
+        }
+        $this->redirectWithSuccess("/m2/sesion/{$sesionId}", 'Inspección eliminada correctamente.');
+    }
 }

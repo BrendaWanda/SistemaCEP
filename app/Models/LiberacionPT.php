@@ -8,21 +8,8 @@ class LiberacionPT extends Model
     protected string $table    = 'reg_liberacion_pt';
     protected string $pk       = 'id';
     protected array  $fillable = [
-        'sesion_id','hora',
-        'codif_lote_legible','codif_lote_correcto',
-        'codif_fvenc_legible','codif_fvenc_correcto',
-        'envase_primario','envase_secundario','envase_terciario','inocuo',
-        'conf_color','conf_olor','conf_sabor','conf_apariencia',
-        'conf_textura','conf_particulas_extranas',
-        'resultado_humedad_pct','resultado_ph',
-        'decision_final','observaciones',
+        'sesion_id','hora','decision_final','observaciones',
         'supervisor_calidad_id','encargado_nutricion_id','jefe_produccion_id'
-    ];
-
-    public const OPCIONES_CONF = [
-        'conforme'    => ['label'=>'Conforme',    'badge'=>'badge-success', 'icon'=>'✓'],
-        'no_conforme' => ['label'=>'No conforme', 'badge'=>'badge-danger',  'icon'=>'✕'],
-        'na'          => ['label'=>'N/A',          'badge'=>'badge-muted',   'icon'=>'—'],
     ];
 
     // Guardar liberación y actualizar estado del lote

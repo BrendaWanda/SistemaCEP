@@ -10,14 +10,17 @@
 <?php $est = $estados[$sesion['estado']] ?? ['label'=>$sesion['estado'],'badge'=>'badge-muted']; ?>
 
 <?php
-// Apariencia por etapa (icono, color de acento, color de fondo del header)
+// Apariencia por etapa — paleta azul tonal (de más oscuro a más claro según
+// avanza el proceso), en vez de un color distinto sin relación por etapa.
+// El badge verde/rojo de señal SPC (OK / fuera de control) es la única
+// excepción: ese color es semántico (estado de calidad), no decorativo.
 $etapaConfig = [
-    'amasado'            => ['icon'=>'bi-thermometer-half',  'color'=>'#d97706', 'bg'=>'#fef3c7'],
-    'formado'            => ['icon'=>'bi-hand-index-thumb',  'color'=>'#2563eb', 'bg'=>'#dbeafe'],
-    'fermentacion'       => ['icon'=>'bi-hourglass-split',   'color'=>'#7c3aed', 'bg'=>'#f5f3ff'],
-    'horneado'           => ['icon'=>'bi-fire',              'color'=>'#f97316', 'bg'=>'#fff7ed'],
-    'envasado'           => ['icon'=>'bi-box-seam',          'color'=>'#22c55e', 'bg'=>'#f0fdf4'],
-    'producto_terminado' => ['icon'=>'bi-patch-check',       'color'=>'#dc2626', 'bg'=>'#fef2f2'],
+    'amasado'            => ['icon'=>'bi-thermometer-half',  'color'=>'var(--etapa-1)', 'bg'=>'#eef2f9'],
+    'formado'            => ['icon'=>'bi-hand-index-thumb',  'color'=>'var(--etapa-2)', 'bg'=>'#eef2f9'],
+    'fermentacion'       => ['icon'=>'bi-hourglass-split',   'color'=>'var(--etapa-3)', 'bg'=>'#eef2f9'],
+    'horneado'           => ['icon'=>'bi-fire',              'color'=>'var(--etapa-4)', 'bg'=>'#eef2f9'],
+    'envasado'           => ['icon'=>'bi-box-seam',          'color'=>'var(--etapa-5)', 'bg'=>'#eef2f9'],
+    'producto_terminado' => ['icon'=>'bi-patch-check',       'color'=>'var(--etapa-6)', 'bg'=>'#eef2f9'],
 ];
 
 // Mapa parametro_id => inspección de atributos ya registrada en esta sesión
@@ -92,10 +95,10 @@ foreach ($etapas as $etapaKey => $etapaLabel):
 
     $valoresEtapa = $valores_por_etapa[$etapaKey] ?? [];
 
-    // Pivote de valores simples por hora: [hora => [parametro_id => valor]]
+    // Pivote de valores simples por hora: [hora => [parametro_id => ['valor'=>.., 'id'=>..]]]
     $porHora = [];
     foreach ($valoresEtapa as $v) {
-        $porHora[$v['hora']][(int)$v['parametro_id']] = $v['valor'];
+        $porHora[$v['hora']][(int)$v['parametro_id']] = ['valor' => $v['valor'], 'id' => (int)$v['id']];
     }
     ksort($porHora);
 ?>
@@ -113,18 +116,19 @@ foreach ($etapas as $etapaKey => $etapaLabel):
 
         <?php if (!empty($porHora)): ?>
         <div class="table-wrap">
-            <table class="data-table" style="font-size:12px">
+            <table class="spc-table">
                 <thead>
                     <tr>
                         <th>Hora</th>
                         <?php foreach ($noSpc as $p): ?>
-                        <th style="text-align:center">
+                        <th>
                             <?= htmlspecialchars($p['nombre']) ?>
                             <?php if ($p['unidad']): ?>
-                            <span style="color:#94a3b8">(<?= htmlspecialchars($p['unidad']) ?>)</span>
+                            <span class="spc-unidad">(<?= htmlspecialchars($p['unidad']) ?>)</span>
                             <?php endif ?>
                         </th>
                         <?php endforeach ?>
+                        <?php if ($canWrite): ?><th>Acciones</th><?php endif ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -132,18 +136,70 @@ foreach ($etapas as $etapaKey => $etapaLabel):
                     <tr>
                         <td><?= htmlspecialchars($hora) ?></td>
                         <?php foreach ($noSpc as $p):
-                            $val = $valoresFila[(int)$p['id']] ?? null;
+                            $vid = (int)$p['id'];
+                            $cel = $valoresFila[$vid] ?? null;
+                            $val = $cel['valor'] ?? null;
+                            $regId = $cel['id'] ?? null;
                         ?>
-                        <td style="text-align:center">
+                        <td>
                             <?php if ($val === null): ?>
-                                <span style="color:#94a3b8">—</span>
-                            <?php elseif ($p['tipo_dato'] === 'si_no'): ?>
-                                <?= $val === '1' ? '✓ Sí' : 'No' ?>
+                                <span class="text-muted">—</span>
                             <?php else: ?>
-                                <?= htmlspecialchars($val) ?>
+                                <span id="vista-val-<?= $regId ?>">
+                                <?php if ($p['tipo_dato'] === 'si_no'): ?>
+                                    <?= $val === '1' ? '✓ Sí' : 'No' ?>
+                                <?php else: ?>
+                                    <?= htmlspecialchars($val) ?>
+                                <?php endif ?>
+                                </span>
+                                <?php if ($canWrite && $p['tipo_dato'] !== 'si_no'): ?>
+                                <span id="edita-val-<?= $regId ?>" style="display:none">
+                                    <input type="text" class="spc-edit-input val-edit-input"
+                                            id="input-val-<?= $regId ?>"
+                                            value="<?= htmlspecialchars($val) ?>"
+                                            <?= $p['tipo_dato']==='numerico' ? 'inputmode="decimal"' : '' ?>>
+                                    <div class="spc-edit-error" id="error-val-<?= $regId ?>"></div>
+                                </span>
+                                <?php endif ?>
                             <?php endif ?>
                         </td>
                         <?php endforeach ?>
+                        <?php if ($canWrite): ?>
+                        <td>
+                            <?php
+                            // Botones de acción por fila: uno por cada celda con
+                            // dato editable en esta hora (excluye si_no, que se
+                            // corrige des-marcando/marcando el checkbox al crear).
+                            foreach ($noSpc as $p):
+                                $vid = (int)$p['id'];
+                                $cel = $valoresFila[$vid] ?? null;
+                                if (!$cel || $p['tipo_dato'] === 'si_no') continue;
+                                $regId = (int)$cel['id'];
+                                $tipoNum = $p['tipo_dato'] === 'numerico' ? '1' : '0';
+                            ?>
+                            <span class="spc-row-actions" id="acciones-ver-val-<?= $regId ?>" title="<?= htmlspecialchars($p['nombre']) ?>">
+                                <button type="button" class="spc-icon-btn" title="Editar <?= htmlspecialchars($p['nombre']) ?>"
+                                        onclick="activarEdicionValor(<?= $regId ?>)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="spc-icon-btn spc-delete" title="Eliminar <?= htmlspecialchars($p['nombre']) ?>"
+                                        onclick="eliminarValor(<?= $sesion['id'] ?>, <?= $regId ?>)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </span>
+                            <span class="spc-row-actions" id="acciones-edit-val-<?= $regId ?>" style="display:none">
+                                <button type="button" class="spc-icon-btn spc-confirm" title="Guardar"
+                                        onclick="guardarEdicionValor(<?= $sesion['id'] ?>, <?= $regId ?>, <?= $tipoNum ?>)">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button type="button" class="spc-icon-btn" title="Cancelar"
+                                        onclick="cancelarEdicionValor(<?= $regId ?>)">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </span>
+                            <?php endforeach ?>
+                        </td>
+                        <?php endif ?>
                     </tr>
                 <?php endforeach ?>
                 </tbody>
@@ -239,10 +295,10 @@ foreach ($etapas as $etapaKey => $etapaLabel):
     ?>
     <div style="<?= $bordes ?>padding:16px;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-            <div style="font-size:13px;font-weight:700;color:#374151">
+            <div class="spc-panel-title">
                 <i class="bi bi-bar-chart-line" style="color:<?= $cfg['color'] ?>"></i>
                 <?= htmlspecialchars($p['nombre']) ?>
-                <span style="color:#94a3b8;font-weight:400">
+                <span class="spc-unidad">
                     (<?= htmlspecialchars($p['unidad']) ?> · <?= $n > 1 ? "n={$n}, carta X̄-" . ($n >= 6 ? 'S' : 'R') : 'n=1, carta X-MR' ?>)
                 </span>
             </div>
@@ -260,30 +316,43 @@ foreach ($etapas as $etapaKey => $etapaLabel):
 
         <?php if (!empty($subgrupos)): ?>
         <div class="table-wrap" style="margin-top:10px">
-            <table class="data-table" style="font-size:11px">
+            <table class="spc-table">
                 <thead>
                     <tr>
                         <th>Hora</th>
                         <th>Lecturas</th>
-                        <th style="text-align:center;color:#1d4ed8">X̄</th>
-                        <?php if ($n > 1): ?><th style="text-align:center;color:#7c3aed">R</th><?php endif ?>
-                        <th style="text-align:center">Estado</th>
+                        <th>X̄</th>
+                        <?php if ($n > 1): ?><th>R</th><?php endif ?>
+                        <th>Estado</th>
+                        <?php if ($canWrite): ?><th>Acciones</th><?php endif ?>
                     </tr>
                 </thead>
                 <tbody>
-                <?php foreach ($subgrupos as $sg): ?>
-                <tr style="<?= $sg['fuera_de_control'] ? 'background:#fef2f2' : '' ?>">
+                <?php foreach ($subgrupos as $sg): $sgId = (int)$sg['id']; ?>
+                <tr id="fila-sg-<?= $sgId ?>" class="<?= $sg['fuera_de_control'] ? 'spc-fuera-control' : '' ?>">
                     <td><?= htmlspecialchars($sg['hora']) ?></td>
-                    <td><?= implode(' / ', array_map(fn($v) => number_format((float)$v,2), $sg['valores'])) ?></td>
-                    <td style="text-align:center;font-weight:700;color:#1d4ed8">
+                    <td>
+                        <span id="vista-sg-<?= $sgId ?>">
+                            <?= implode(' / ', array_map(fn($v) => number_format((float)$v,2), $sg['valores'])) ?>
+                        </span>
+                        <span id="edita-sg-<?= $sgId ?>" style="display:none">
+                            <?php foreach ($sg['valores'] as $i => $v): ?>
+                            <input type="text" inputmode="decimal"
+                                    class="spc-edit-input sg-lectura-edit" data-sg="<?= $sgId ?>"
+                                    value="<?= htmlspecialchars(number_format((float)$v,2,'.','')) ?>">
+                            <?php endforeach ?>
+                            <div class="spc-edit-error" id="error-sg-<?= $sgId ?>"></div>
+                        </span>
+                    </td>
+                    <td class="spc-xbar" id="xbar-vista-<?= $sgId ?>">
                         <?= $sg['promedio_xbar'] !== null ? number_format((float)$sg['promedio_xbar'],2) : '—' ?>
                     </td>
                     <?php if ($n > 1): ?>
-                    <td style="text-align:center;font-weight:700;color:#7c3aed">
+                    <td class="spc-rango" id="rango-vista-<?= $sgId ?>">
                         <?= $sg['rango_r'] !== null ? number_format((float)$sg['rango_r'],2) : '—' ?>
                     </td>
                     <?php endif ?>
-                    <td style="text-align:center">
+                    <td>
                         <?php if ($sg['fuera_de_control']): ?>
                         <span class="badge badge-danger" title="<?= htmlspecialchars($sg['regla_violada'] ?? '') ?>">
                             <i class="bi bi-exclamation-triangle"></i> Señal
@@ -292,6 +361,30 @@ foreach ($etapas as $etapaKey => $etapaLabel):
                         <span class="badge badge-success"><i class="bi bi-check"></i></span>
                         <?php endif ?>
                     </td>
+                    <?php if ($canWrite): ?>
+                    <td>
+                        <span class="spc-row-actions" id="acciones-ver-sg-<?= $sgId ?>">
+                            <button type="button" class="spc-icon-btn" title="Editar"
+                                    onclick="activarEdicionSubgrupo(<?= $sgId ?>)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="spc-icon-btn spc-delete" title="Eliminar"
+                                    onclick="eliminarSubgrupo(<?= $sesion['id'] ?>, <?= $sgId ?>, '<?= htmlspecialchars($sg['hora']) ?>')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </span>
+                        <span class="spc-row-actions" id="acciones-edit-sg-<?= $sgId ?>" style="display:none">
+                            <button type="button" class="spc-icon-btn spc-confirm" title="Guardar"
+                                    onclick="guardarEdicionSubgrupo(<?= $sesion['id'] ?>, <?= $sgId ?>)">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                            <button type="button" class="spc-icon-btn" title="Cancelar"
+                                    onclick="cancelarEdicionSubgrupo(<?= $sgId ?>)">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </span>
+                    </td>
+                    <?php endif ?>
                 </tr>
                 <?php endforeach ?>
                 </tbody>
@@ -301,7 +394,7 @@ foreach ($etapas as $etapaKey => $etapaLabel):
 
         <?php if ($canWrite): ?>
         <div style="margin-top:10px;padding:12px;background:#f8fafc;border-radius:8px">
-            <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px">
+            <div class="spc-panel-title" style="margin-bottom:8px">
                 <i class="bi bi-plus-circle" style="color:<?= $cfg['color'] ?>"></i>
                 Registrar nuevo <?= $n > 1 ? "subgrupo (n={$n})" : 'dato' ?>
             </div>
@@ -311,22 +404,23 @@ foreach ($etapas as $etapaKey => $etapaLabel):
             <input type="hidden" name="parametro_id" value="<?= $pid ?>">
             <div style="display:grid;grid-template-columns:120px repeat(<?= $n ?>,1fr);gap:6px;margin-bottom:8px;align-items:end">
                 <div>
-                    <label class="form-label" style="font-size:11px">Hora</label>
-                    <input type="time" name="hora" class="form-control" value="<?= date('H:i') ?>" style="font-size:11px;padding:4px">
+                    <label class="form-label" style="font-size:var(--fs-dense-xs)">Hora</label>
+                    <input type="time" name="hora" class="form-control" value="<?= date('H:i') ?>" style="font-size:var(--fs-dense-xs);padding:4px">
                 </div>
                 <?php for ($i=1;$i<=$n;$i++): ?>
                 <div>
-                    <label class="form-label" style="font-size:11px">L<?= $i ?></label>
-                    <input type="number" name="lecturas[]" step="any" class="form-control lectura-input"
-                            data-pid="<?= $pid ?>" style="font-size:11px;padding:4px;text-align:center">
+                    <label class="form-label" style="font-size:var(--fs-dense-xs)">L<?= $i ?></label>
+                    <input type="text" inputmode="decimal" name="lecturas[]" class="form-control lectura-input"
+                            data-pid="<?= $pid ?>" style="font-size:var(--fs-dense-sm);padding:4px;text-align:center">
                 </div>
                 <?php endfor ?>
             </div>
+            <div class="spc-edit-error" id="error-nuevo-<?= $pid ?>" style="margin-bottom:8px"></div>
             <?php if ($n > 1): ?>
             <div style="display:flex;gap:16px;align-items:center;margin-bottom:8px;padding:6px 10px;
-                        background:#fff;border-radius:6px;font-size:12px;border:1px solid #e2e8f0">
-                <span>X̄: <strong id="xbar-<?= $pid ?>" style="color:#1d4ed8">—</strong></span>
-                <span>R: <strong id="rango-<?= $pid ?>" style="color:#7c3aed">—</strong></span>
+                        background:#fff;border-radius:6px;border:1px solid #e2e8f0;font-size:var(--fs-dense-sm)">
+                <span>X̄: <strong id="xbar-<?= $pid ?>" style="color:var(--etapa-5)">—</strong></span>
+                <span>R: <strong id="rango-<?= $pid ?>" style="color:var(--color-primary)">—</strong></span>
             </div>
             <?php endif ?>
             <div style="text-align:right">
@@ -349,19 +443,26 @@ foreach ($etapas as $etapaKey => $etapaLabel):
         $n    = max(1, (int)$p['tamanio_subgrupo']);
     ?>
     <div style="border-top:1px solid #f1f5f9;padding:16px">
-        <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:8px">
+        <div class="spc-panel-title" style="margin-bottom:8px">
             <i class="bi bi-clipboard2-check" style="color:<?= $cfg['color'] ?>"></i>
             <?= htmlspecialchars($p['nombre']) ?>
-            <span style="color:#94a3b8;font-weight:400">(Carta p, n=<?= $n ?>)</span>
+            <span class="spc-unidad">(Carta p, n=<?= $n ?>)</span>
         </div>
 
         <?php if ($insp): ?>
-        <div style="display:flex;gap:24px;align-items:center;padding:10px 14px;background:#f5f3ff;border-radius:8px;font-size:13px">
+        <div style="display:flex;gap:24px;align-items:center;padding:10px 14px;background:#f5f3ff;border-radius:8px;font-size:var(--fs-dense-sm)">
             <span>n inspeccionado: <strong><?= $insp['n_inspeccionado'] ?></strong></span>
-            <span>No conformes: <strong style="color:<?= $insp['n_no_conformes']>0?'#dc2626':'#15803d' ?>"><?= $insp['n_no_conformes'] ?></strong></span>
+            <span>No conformes: <strong style="color:<?= $insp['n_no_conformes']>0?'var(--color-danger)':'#15803d' ?>"><?= $insp['n_no_conformes'] ?></strong></span>
             <span>Proporción p: <strong><?= number_format($insp['proporcion_p'],4) ?></strong> (<?= number_format($insp['proporcion_p']*100,2) ?>%)</span>
             <?php if (!empty($insp['observaciones'])): ?>
-            <span style="color:#64748b">— <?= htmlspecialchars($insp['observaciones']) ?></span>
+            <span style="color:var(--text-muted)">— <?= htmlspecialchars($insp['observaciones']) ?></span>
+            <?php endif ?>
+            <?php if ($canWrite): ?>
+            <button type="button" class="spc-icon-btn spc-delete" title="Eliminar esta inspección"
+                    style="margin-left:auto"
+                    onclick="eliminarInspeccionAtributo(<?= $sesion['id'] ?>, <?= $pid ?>, '<?= htmlspecialchars($p['nombre']) ?>')">
+                <i class="bi bi-trash"></i>
+            </button>
             <?php endif ?>
         </div>
         <?php endif ?>
@@ -411,9 +512,9 @@ foreach ($etapas as $etapaKey => $etapaLabel):
     ANÁLISIS Y LIBERACIÓN DE PRODUCTO TERMINADO
 ════════════════════════════════════════════════════════════ -->
 <div class="card" style="margin-bottom:14px">
-    <div class="card-header" style="background:#ede9fe;border-bottom:2px solid #7c3aed">
+    <div class="card-header" style="background:#eef2f9;border-bottom:2px solid var(--etapa-1)">
         <span class="card-title">
-            <i class="bi bi-patch-check" style="color:#7c3aed"></i>
+            <i class="bi bi-patch-check" style="color:var(--etapa-1)"></i>
             <?= $numSeccion + 1 ?>. Análisis y Liberación de Producto Terminado
         </span>
         <?php if ($sesion['liberacion']): ?>
@@ -582,6 +683,23 @@ document.querySelectorAll('.form-subgrupo').forEach(form => {
     form.addEventListener('submit', function (e) {
         e.preventDefault();
 
+        const pid = this.dataset.parametroId;
+        const errorEl = document.getElementById('error-nuevo-' + pid);
+        const lecturaInputs = this.querySelectorAll('.lectura-input');
+
+        for (const inp of lecturaInputs) {
+            if (inp.value.trim() === '') continue; // se valida como "faltante" en el servidor
+            if (validarNumeroCliente(inp.value) === null) {
+                if (errorEl) {
+                    errorEl.textContent = 'Valor inválido: "' + inp.value + '". Solo números, máx. 6 dígitos enteros y 4 decimales.';
+                    errorEl.style.display = 'block';
+                }
+                inp.focus();
+                return;
+            }
+        }
+        if (errorEl) errorEl.style.display = 'none';
+
         fetch(this.action, {
             method: 'POST',
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -595,10 +713,184 @@ document.querySelectorAll('.form-subgrupo').forEach(form => {
                 }
                 location.reload();
             } else {
-                alert(resp.message || 'No se pudo registrar el subgrupo.');
+                if (errorEl) { errorEl.textContent = resp.message || 'No se pudo registrar el subgrupo.'; errorEl.style.display = 'block'; }
+                else alert(resp.message || 'No se pudo registrar el subgrupo.');
             }
         })
         .catch(() => alert('Error de conexión al registrar el subgrupo.'));
     });
 });
+
+// ── Validación numérica de cliente (misma regla que el servidor) ─────
+// Máx. 6 dígitos enteros, 4 decimales, solo números (acepta coma o punto).
+// Esto es solo UX (feedback inmediato) — el servidor vuelve a validar
+// siempre, así que no hay forma de saltarse la regla editando el DOM.
+function validarNumeroCliente(valor) {
+    if (typeof valor !== 'string') return null;
+    valor = valor.trim().replace(',', '.');
+    if (valor === '') return null;
+    if (!/^-?\d{1,6}(\.\d{1,4})?$/.test(valor)) return null;
+    return parseFloat(valor);
+}
+
+// ── Editar subgrupo SPC ────────────────────────────────────────────────
+function activarEdicionSubgrupo(sgId) {
+    document.getElementById('vista-sg-' + sgId).style.display = 'none';
+    document.getElementById('edita-sg-' + sgId).style.display = 'inline';
+    document.getElementById('acciones-ver-sg-' + sgId).style.display = 'none';
+    document.getElementById('acciones-edit-sg-' + sgId).style.display = 'inline-flex';
+}
+function cancelarEdicionSubgrupo(sgId) {
+    document.getElementById('vista-sg-' + sgId).style.display = 'inline';
+    document.getElementById('edita-sg-' + sgId).style.display = 'none';
+    document.getElementById('acciones-ver-sg-' + sgId).style.display = 'inline-flex';
+    document.getElementById('acciones-edit-sg-' + sgId).style.display = 'none';
+    document.getElementById('error-sg-' + sgId).style.display = 'none';
+}
+function guardarEdicionSubgrupo(sesionId, sgId) {
+    const inputs  = document.querySelectorAll('.sg-lectura-edit[data-sg="' + sgId + '"]');
+    const errorEl = document.getElementById('error-sg-' + sgId);
+    const lecturas = [];
+
+    for (const inp of inputs) {
+        const num = validarNumeroCliente(inp.value);
+        if (num === null) {
+            errorEl.textContent = 'Valor inválido: "' + inp.value + '". Solo números, máx. 6 dígitos enteros y 4 decimales.';
+            errorEl.style.display = 'block';
+            inp.focus();
+            return;
+        }
+        lecturas.push(num);
+    }
+    errorEl.style.display = 'none';
+
+    const fd = new FormData();
+    fd.append('_token', document.querySelector('input[name="_token"]').value);
+    lecturas.forEach(v => fd.append('lecturas[]', v));
+
+    fetch(`${appUrl}/m2/sesion/${sesionId}/subgrupo/${sgId}/editar`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd
+    })
+    .then(r => r.json())
+    .then(resp => {
+        if (resp.success) {
+            if (resp.data && resp.data.fuera_de_control) alert(resp.message);
+            location.reload();
+        } else {
+            errorEl.textContent = resp.message || 'No se pudo actualizar.';
+            errorEl.style.display = 'block';
+        }
+    })
+    .catch(() => { errorEl.textContent = 'Error de conexión.'; errorEl.style.display = 'block'; });
+}
+function eliminarSubgrupo(sesionId, sgId, hora) {
+    if (!confirm(`¿Eliminar el registro de las ${hora}? Esta acción no se puede deshacer.`)) return;
+
+    const fd = new FormData();
+    fd.append('_token', document.querySelector('input[name="_token"]').value);
+
+    fetch(`${appUrl}/m2/sesion/${sesionId}/subgrupo/${sgId}/eliminar`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd
+    })
+    .then(r => r.json())
+    .then(resp => {
+        if (resp.success) location.reload();
+        else alert(resp.message || 'No se pudo eliminar.');
+    })
+    .catch(() => alert('Error de conexión al eliminar.'));
+}
+
+// ── Editar valor simple ────────────────────────────────────────────────
+function activarEdicionValor(regId) {
+    document.getElementById('vista-val-' + regId).style.display = 'none';
+    document.getElementById('edita-val-' + regId).style.display = 'inline';
+    document.getElementById('acciones-ver-val-' + regId).style.display = 'none';
+    document.getElementById('acciones-edit-val-' + regId).style.display = 'inline-flex';
+}
+function cancelarEdicionValor(regId) {
+    document.getElementById('vista-val-' + regId).style.display = 'inline';
+    document.getElementById('edita-val-' + regId).style.display = 'none';
+    document.getElementById('acciones-ver-val-' + regId).style.display = 'inline-flex';
+    document.getElementById('acciones-edit-val-' + regId).style.display = 'none';
+    document.getElementById('error-val-' + regId).style.display = 'none';
+}
+function guardarEdicionValor(sesionId, regId, esNumerico) {
+    const input  = document.getElementById('input-val-' + regId);
+    const errorEl = document.getElementById('error-val-' + regId);
+    let valor = input.value;
+
+    if (esNumerico) {
+        const num = validarNumeroCliente(valor);
+        if (num === null) {
+            errorEl.textContent = 'Debe ser un número (máx. 6 dígitos enteros, 4 decimales).';
+            errorEl.style.display = 'block';
+            input.focus();
+            return;
+        }
+        valor = num;
+    } else if (valor.trim() === '') {
+        errorEl.textContent = 'El valor no puede quedar vacío.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    errorEl.style.display = 'none';
+
+    const fd = new FormData();
+    fd.append('_token', document.querySelector('input[name="_token"]').value);
+    fd.append('valor', valor);
+
+    fetch(`${appUrl}/m2/sesion/${sesionId}/valor/${regId}/editar`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd
+    })
+    .then(r => r.json())
+    .then(resp => {
+        if (resp.success) location.reload();
+        else { errorEl.textContent = resp.message || 'No se pudo actualizar.'; errorEl.style.display = 'block'; }
+    })
+    .catch(() => { errorEl.textContent = 'Error de conexión.'; errorEl.style.display = 'block'; });
+}
+function eliminarValor(sesionId, regId) {
+    if (!confirm('¿Eliminar este valor registrado? Esta acción no se puede deshacer.')) return;
+
+    const fd = new FormData();
+    fd.append('_token', document.querySelector('input[name="_token"]').value);
+
+    fetch(`${appUrl}/m2/sesion/${sesionId}/valor/${regId}/eliminar`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd
+    })
+    .then(r => r.json())
+    .then(resp => {
+        if (resp.success) location.reload();
+        else alert(resp.message || 'No se pudo eliminar.');
+    })
+    .catch(() => alert('Error de conexión al eliminar.'));
+}
+
+// ── Eliminar inspección de atributos ──────────────────────────────────
+function eliminarInspeccionAtributo(sesionId, parametroId, nombre) {
+    if (!confirm(`¿Eliminar la inspección de "${nombre}"? Esta acción no se puede deshacer.`)) return;
+
+    const fd = new FormData();
+    fd.append('_token', document.querySelector('input[name="_token"]').value);
+
+    fetch(`${appUrl}/m2/sesion/${sesionId}/inspeccion-atributos/${parametroId}/eliminar`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd
+    })
+    .then(r => r.json())
+    .then(resp => {
+        if (resp.success) location.reload();
+        else alert(resp.message || 'No se pudo eliminar.');
+    })
+    .catch(() => alert('Error de conexión al eliminar.'));
+}
 </script>

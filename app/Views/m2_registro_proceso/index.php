@@ -197,17 +197,12 @@
                         </span>
                     </td>
                     <td style="white-space:nowrap">
-                        <a href="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>"
-                            class="btn btn-sm btn-secondary">Ver</a>
-                        <a href="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>/imprimir"
-                            class="btn btn-sm btn-secondary"
-                            target="_blank">Imprimir</a>
                         <?php if ($canWrite): ?>
                         <a href="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>/editar"
                             class="btn btn-sm btn-secondary">Editar</a>
                         <form method="POST"
-                              action="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>/eliminar"
-                              style="display:inline">
+                                action="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>/eliminar"
+                                style="display:inline">
                             <input type="hidden" name="_token" value="<?= $csrfToken ?>">
                             <button type="submit" class="btn btn-sm"
                                 style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca"
@@ -216,6 +211,9 @@
                             </button>
                         </form>
                         <?php endif ?>
+                        <a href="<?= APP_URL ?>/m2/sesion/<?= $s['id'] ?>/imprimir"
+                            class="btn btn-sm btn-secondary"
+                            target="_blank">Imprimir</a>
                     </td>
                 </tr>
                 <?php endforeach ?>

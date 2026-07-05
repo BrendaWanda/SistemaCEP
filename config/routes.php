@@ -90,9 +90,6 @@ $router->get( '/m1/proveedores/nuevo',         'M1_RecepcionMP\ProveedorControll
 $router->post('/m1/proveedores/nuevo',         'M1_RecepcionMP\ProveedorController@crear');
 $router->get( '/m1/proveedores/:id/editar',    'M1_RecepcionMP\ProveedorController@editar');
 $router->post('/m1/proveedores/:id/editar',    'M1_RecepcionMP\ProveedorController@actualizar');
-$router->get( '/m2/sesion/:id/editar',   'M2_RegistroProceso\SesionRegistroController@editar');
-$router->post('/m2/sesion/:id/editar',   'M2_RegistroProceso\SesionRegistroController@actualizar');
-$router->post('/m2/sesion/:id/eliminar', 'M2_RegistroProceso\SesionRegistroController@eliminar');
 // :id al final
 $router->get( '/m1/:id',         'M1_RecepcionMP\RecepcionController@ver');
 $router->get( '/m1/:id/imprimir','M1_RecepcionMP\RecepcionController@imprimir');
@@ -105,11 +102,27 @@ $router->post('/m2/nueva-sesion', 'M2_RegistroProceso\SesionRegistroController@c
 // :id al final
 $router->get( '/m2/sesion/:id',             'M2_RegistroProceso\SesionRegistroController@ver');
 $router->get( '/m2/sesion/:id/imprimir',    'M2_RegistroProceso\SesionRegistroController@imprimir');
+$router->get( '/m2/sesion/:id/editar',      'M2_RegistroProceso\SesionRegistroController@editar');
+$router->post('/m2/sesion/:id/editar',      'M2_RegistroProceso\SesionRegistroController@actualizar');
+$router->post('/m2/sesion/:id/eliminar',    'M2_RegistroProceso\SesionRegistroController@eliminar');
+
+// Liberación / cuarentena
 $router->post('/m2/sesion/:id/liberacion',  'M2_RegistroProceso\LiberacionController@guardar');
-$router->post('/m2/sesion/:id/inspeccion-atributos', 'M2_RegistroProceso\InspeccionAtributosController@guardar');
-$router->post('/m2/sesion/:id/valores',                    'M2_RegistroProceso\RegistroDinamicoController@guardarValores');
-$router->post('/m2/sesion/:id/subgrupo',                   'M2_RegistroProceso\RegistroDinamicoController@guardarSubgrupo');
+
+// Inspección de atributos (carta p)
+$router->post('/m2/sesion/:id/inspeccion-atributos',                        'M2_RegistroProceso\InspeccionAtributosController@guardar');
+$router->post('/m2/sesion/:id/inspeccion-atributos/:parametro_id/eliminar', 'M2_RegistroProceso\InspeccionAtributosController@eliminar');
+
+// Valores simples (no-SPC) y subgrupos SPC (X̄-R/S)
+$router->post('/m2/sesion/:id/valores',                     'M2_RegistroProceso\RegistroDinamicoController@guardarValores');
+$router->post('/m2/sesion/:id/subgrupo',                    'M2_RegistroProceso\RegistroDinamicoController@guardarSubgrupo');
 $router->get( '/m2/sesion/:id/subgrupo/:parametro_id/datos','M2_RegistroProceso\RegistroDinamicoController@datosGrafico');
+
+// Editar/eliminar un subgrupo SPC o valor simple ya guardado (corrección de typeo)
+$router->post('/m2/sesion/:id/subgrupo/:subgrupo_id/editar',   'M2_RegistroProceso\RegistroDinamicoController@editarSubgrupo');
+$router->post('/m2/sesion/:id/subgrupo/:subgrupo_id/eliminar', 'M2_RegistroProceso\RegistroDinamicoController@eliminarSubgrupo');
+$router->post('/m2/sesion/:id/valor/:valor_id/editar',         'M2_RegistroProceso\RegistroDinamicoController@editarValor');
+$router->post('/m2/sesion/:id/valor/:valor_id/eliminar',       'M2_RegistroProceso\RegistroDinamicoController@eliminarValor');
 
 // ── M3 — MANTENIMIENTO ────────────────────────────────────────────────────────
 // Fijas antes que :id

@@ -131,16 +131,17 @@ class DashboardController extends Controller
                     SUM(l.rendimiento_real_total)    AS und_reales,
                     SUM(l.rendimiento_teorico_total) AS und_teoricas,
                     AVG(l.porcentaje_rendimiento)    AS rend_promedio,
-                    SUM(l.merma_producto_kg + l.merma_envase_kg +
-                        l.merma_reproceso_kg + l.merma_no_conforme_kg +
-                        l.merma_quemado_kg) AS merma_total_kg,
+                    SUM(l.merma_envase_kg + l.merma_panes_mordidos_kg +
+                        l.merma_panes_besados_kg + l.merma_panes_quemados_kg +
+                        l.merma_panes_blancos_kg + l.merma_panes_sobrados_kg +
+                        l.merma_aspecto_no_deseado_kg) AS merma_total_kg,
                     COUNT(CASE WHEN l.estado='liberado'   THEN 1 END) AS liberados,
                     COUNT(CASE WHEN l.estado='cuarentena' THEN 1 END) AS cuarentena,
                     COUNT(CASE WHEN l.estado='rechazado'  THEN 1 END) AS rechazados
-             FROM lotes_produccion l
-             JOIN productos p ON p.id = l.producto_id
-             WHERE l.fecha_produccion BETWEEN ? AND ? {$whereProducto}
-             GROUP BY p.id ORDER BY und_reales DESC",
+            FROM lotes_produccion l
+            JOIN productos p ON p.id = l.producto_id
+            WHERE l.fecha_produccion BETWEEN ? AND ? {$whereProducto}
+            GROUP BY p.id ORDER BY und_reales DESC",
             $paramsProducto
         );
 

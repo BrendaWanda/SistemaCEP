@@ -91,9 +91,11 @@ class RegistroDinamicoController extends Controller
 
         $guardados = 0;
         $faltantes = [];
+        $recibidos = []; // parametro_id => true, para detectar obligatorios que ni siquiera llegaron en el POST
 
         foreach ($valores as $parametroId => $valor) {
             $parametroId = (int)$parametroId;
+            $recibidos[$parametroId] = true;
 
             // El parámetro debe pertenecer a este producto, ser NO-SPC
             // (es_variable_spc = 0) y estar activo.
@@ -120,6 +122,19 @@ class RegistroDinamicoController extends Controller
                 continue;
             }
 
+            // Validación numérica estricta: solo dígitos, un decimal, y un
+            // tamaño razonable (máx. 6 dígitos enteros, 4 decimales). Evita
+            // que se guarde texto en un campo numérico o un número
+            // desproporcionado por typeo (ej. "4000" en vez de "40.0").
+            if ($parametro['tipo_dato'] === 'numerico') {
+                $num = $this->validarNumero($valor);
+                if ($num === null) {
+                    $faltantes[] = $parametro['nombre'] . ' (valor no numérico o fuera de rango)';
+                    continue;
+                }
+                $valor = (string)$num;
+            }
+
             $this->modelValor->create([
                 'sesion_id'         => $sesionId,
                 'parametro_id'      => $parametroId,
@@ -128,6 +143,23 @@ class RegistroDinamicoController extends Controller
                 'registrado_por_id' => Auth::id(),
             ]);
             $guardados++;
+        }
+
+        // Hallazgo G de la auditoría: un parámetro obligatorio que ni
+        // siquiera llegó en el POST (campo eliminado del HTML por error,
+        // formulario roto, etc.) antes pasaba desapercibido porque el
+        // foreach solo evaluaba lo que SÍ llegó. Aquí se compara contra
+        // la lista completa de obligatorios configurados en M0.
+        $obligatoriosProducto = $this->db->fetchAll(
+            "SELECT id, nombre FROM parametros_proceso
+            WHERE producto_id = ? AND es_variable_spc = 0
+                AND activo = 1 AND obligatorio = 1",
+            [$productoId]
+        );
+        foreach ($obligatoriosProducto as $op) {
+            if (!isset($recibidos[(int)$op['id']])) {
+                $faltantes[] = $op['nombre'] . ' (no incluido en el formulario)';
+            }
         }
 
         if (!empty($faltantes)) {
@@ -212,16 +244,43 @@ class RegistroDinamicoController extends Controller
         }
 
         if (!is_array($lecturas)) $lecturas = [];
-        $lecturas = array_values(array_filter(
+        $lecturasCrudas = array_values(array_filter(
             $lecturas, fn($v) => $v !== '' && $v !== null
         ));
 
-        if (empty($lecturas)) {
+        if (empty($lecturasCrudas)) {
             if ($this->isAjax()) {
                 $this->jsonError('Ingrese al menos una lectura.', 400);
                 return;
             }
             $this->flash('error', 'Ingrese al menos una lectura.');
+            $this->redirect("/m2/sesion/{$sesionId}");
+            return;
+        }
+
+        // Validación numérica estricta: cada lectura debe ser un número
+        // real (nunca letras), con un tamaño razonable (máx. 6 dígitos
+        // enteros, 4 decimales) — evita valores absurdos por typeo.
+        $lecturas = [];
+        foreach ($lecturasCrudas as $v) {
+            $num = $this->validarNumero($v);
+            if ($num === null) {
+                $msg = 'La lectura "' . htmlspecialchars((string)$v) . '" no es un número válido.';
+                if ($this->isAjax()) { $this->jsonError($msg, 422); return; }
+                $this->flash('error', $msg);
+                $this->redirect("/m2/sesion/{$sesionId}");
+                return;
+            }
+            $lecturas[] = $num;
+        }
+
+        // El tamaño del subgrupo debe coincidir con lo configurado en M0
+        // (parametro.tamanio_subgrupo) — una carta X̄-R exige n constante.
+        $tamanioEsperado = (int)$parametro['tamanio_subgrupo'];
+        if ($tamanioEsperado > 0 && count($lecturas) !== $tamanioEsperado) {
+            $msg = "Se esperaban {$tamanioEsperado} lectura(s) para este parámetro, se recibieron " . count($lecturas) . '.';
+            if ($this->isAjax()) { $this->jsonError($msg, 422); return; }
+            $this->flash('error', $msg);
             $this->redirect("/m2/sesion/{$sesionId}");
             return;
         }
@@ -243,31 +302,44 @@ class RegistroDinamicoController extends Controller
             ];
         }
 
-        $id = $this->modelSubgrupo->registrarSubgrupo(
-            $sesionId, $parametroId, $hora, $lecturas, $limites, Auth::id()
-        );
+        // Hallazgo F de la auditoría: antes el subgrupo y su señal SPC se
+        // insertaban en dos pasos sueltos — si el segundo fallaba, quedaba
+        // un subgrupo fuera de control sin señal asociada. Ahora ambos
+        // pasos van en una sola transacción: o se guardan los dos, o no
+        // se guarda ninguno.
+        $id = $this->db->transaction(function($db) use (
+            $sesionId, $parametroId, $hora, $lecturas, $limites, $sesion, $productoId
+        ) {
+            $id = $this->modelSubgrupo->registrarSubgrupo(
+                $sesionId, $parametroId, $hora, $lecturas, $limites, Auth::id()
+            );
+
+            $registro = $this->modelSubgrupo->find($id);
+
+            if ($registro['fuera_de_control']) {
+                $db->execute(
+                    "INSERT INTO spc_senales_detectadas
+                        (lote_id, sesion_id, registro_peso_id, producto_id,
+                        tipo_grafico, regla_western_electric, descripcion_regla,
+                        valor_detectado, estado)
+                    VALUES (?,?,?,?,'xbar',?,?,?, 'nueva')",
+                    [
+                        $sesion['lote_id'],
+                        $sesionId,
+                        $id,
+                        $productoId,
+                        $this->extraerNumeroRegla($registro['regla_violada']),
+                        $registro['regla_violada'] ?? 'Señal detectada',
+                        $registro['promedio_xbar'],
+                    ]
+                );
+            }
+
+            return $id;
+        });
 
         $registro = $this->modelSubgrupo->find($id);
         $registro['valores'] = json_decode($registro['valores'], true);
-
-        // Señal SPC → registrar en spc_senales_detectadas
-        if ($registro['fuera_de_control']) {
-            $this->db->execute(
-                "INSERT INTO spc_senales_detectadas
-                    (lote_id, sesion_id, registro_peso_id, producto_id,
-                    tipo_grafico, regla_western_electric, descripcion_regla,
-                    valor_detectado, estado)
-                VALUES (?,?,?,?,'xbar',1,?,?, 'nueva')",
-                [
-                    $sesion['lote_id'],
-                    $sesionId,
-                    $id,
-                    $productoId,
-                    $registro['regla_violada'] ?? 'Señal detectada',
-                    $registro['promedio_xbar'],
-                ]
-            );
-        }
 
         $mensaje = $registro['fuera_de_control']
             ? '⚠️ SEÑAL DETECTADA: ' . $registro['regla_violada']
@@ -291,6 +363,337 @@ class RegistroDinamicoController extends Controller
 
         $this->flash('success', $mensaje);
         $this->redirect("/m2/sesion/{$sesionId}");
+    }
+
+    // -------------------------------------------------------------------
+    // Validación numérica estricta compartida por los 4 métodos nuevos.
+    // Exige: solo dígitos y un único punto decimal (nunca letras ni texto
+    // mezclado), máximo 6 dígitos enteros y 4 decimales (evita valores
+    // absurdamente grandes por typeo, ej. "40000" en vez de "40.00").
+    // Devuelve el float ya validado, o null si no pasa la validación.
+    // -------------------------------------------------------------------
+    private function validarNumero(mixed $valor): ?float
+    {
+        if (!is_string($valor) && !is_numeric($valor)) return null;
+        $valor = trim((string)$valor);
+        if ($valor === '') return null;
+
+        // Acepta coma o punto decimal (el operador puede escribir cualquiera)
+        $valor = str_replace(',', '.', $valor);
+
+        if (!preg_match('/^-?\d{1,6}(\.\d{1,4})?$/', $valor)) {
+            return null;
+        }
+        return (float)$valor;
+    }
+
+    // -------------------------------------------------------------------
+    // Extrae el número de la primera regla de Nelson detectada desde el
+    // texto descriptivo (ej. "Regla 1 (Punto fuera de UCL...), 6 (...)"
+    // → 1). spc_senales_detectadas.regla_western_electric es un tinyint
+    // único, así que se guarda la más relevante (la de menor número,
+    // por convención la primera evaluada); el texto completo con todas
+    // las reglas que se dispararon queda en descripcion_regla.
+    // -------------------------------------------------------------------
+    private function extraerNumeroRegla(?string $texto): int
+    {
+        if ($texto && preg_match('/Regla (\d+)/', $texto, $m)) {
+            return (int)$m[1];
+        }
+        return 1;
+    }
+
+    // -------------------------------------------------------------------
+    // POST /m2/sesion/:id/subgrupo/:subgrupo_id/editar
+    // Corrige las lecturas de un subgrupo ya guardado (typeo humano).
+    // Recalcula x̄/R/S y sincroniza la señal SPC asociada:
+    //   - si ya no está fuera de control  → borra la señal 'nueva' asociada
+    //   - si sigue fuera de control       → actualiza el valor/descripcion
+    //   - si ahora SÍ queda fuera control → crea la señal si no existía
+    // -------------------------------------------------------------------
+    public function editarSubgrupo(array $params): void
+    {
+        Auth::requireWrite('m2_registro_proceso');
+        $this->verifyCsrf();
+
+        $sesionId    = (int)$params['id'];
+        $subgrupoId  = (int)$params['subgrupo_id'];
+        $sesion      = $this->modelSesion->find($sesionId);
+
+        if (!$sesion || $sesion['estado'] !== 'en_proceso') {
+            $msg = 'Esta sesión ya está cerrada; no se pueden editar sus registros.';
+            if ($this->isAjax()) { $this->jsonError($msg, 403); return; }
+            $this->flash('error', $msg);
+            $this->redirect('/m2');
+            return;
+        }
+
+        $subgrupo = $this->modelSubgrupo->find($subgrupoId);
+        if (!$subgrupo || (int)$subgrupo['sesion_id'] !== $sesionId) {
+            if ($this->isAjax()) { $this->jsonError('Registro no encontrado.', 404); return; }
+            $this->flash('error', 'Registro no encontrado.');
+            $this->redirect("/m2/sesion/{$sesionId}");
+            return;
+        }
+
+        $lecturasCrudas = $_POST['lecturas'] ?? [];
+        if (!is_array($lecturasCrudas)) $lecturasCrudas = [];
+
+        $lecturas = [];
+        foreach ($lecturasCrudas as $v) {
+            $num = $this->validarNumero($v);
+            if ($num === null) {
+                $msg = 'Todas las lecturas deben ser números válidos (máx. 6 dígitos enteros, 4 decimales). Revise el valor "' . htmlspecialchars((string)$v) . '".';
+                if ($this->isAjax()) { $this->jsonError($msg, 422); return; }
+                $this->flash('error', $msg);
+                $this->redirect("/m2/sesion/{$sesionId}");
+                return;
+            }
+            $lecturas[] = $num;
+        }
+
+        if (empty($lecturas)) {
+            $msg = 'Ingrese al menos una lectura numérica.';
+            if ($this->isAjax()) { $this->jsonError($msg, 422); return; }
+            $this->flash('error', $msg);
+            $this->redirect("/m2/sesion/{$sesionId}");
+            return;
+        }
+
+        $hora = $this->input('hora') ?: $subgrupo['hora'];
+
+        $limites = $this->db->fetchOne(
+            "SELECT ucl_xbar, lcl_xbar, cl_xbar FROM spc_limites_control
+            WHERE parametro_id = ? AND vigente = 1
+            ORDER BY calculado_en DESC LIMIT 1",
+            [$subgrupo['parametro_id']]
+        );
+        if (!$limites) {
+            $parametro = $this->db->fetchOne(
+                "SELECT valor_min, valor_max, valor_nominal FROM parametros_proceso WHERE id = ?",
+                [$subgrupo['parametro_id']]
+            );
+            $limites = [
+                'ucl_xbar' => $parametro['valor_max']     ?? null,
+                'lcl_xbar' => $parametro['valor_min']     ?? null,
+                'cl_xbar'  => $parametro['valor_nominal'] ?? null,
+            ];
+        }
+
+        $stats = $this->modelSubgrupo->actualizarSubgrupo($subgrupoId, $hora, $lecturas, $limites);
+
+        // Sincronizar señal SPC asociada a este subgrupo
+        $senalExistente = $this->db->fetchOne(
+            "SELECT id FROM spc_senales_detectadas
+            WHERE registro_peso_id = ? AND estado = 'nueva'",
+            [$subgrupoId]
+        );
+
+        if ($stats['fuera_control']) {
+            if ($senalExistente) {
+                $this->db->execute(
+                    "UPDATE spc_senales_detectadas
+                    SET valor_detectado = ?, descripcion_regla = ?, regla_western_electric = ?
+                    WHERE id = ?",
+                    [$stats['xbar'], $stats['regla'] ?? 'Señal detectada',
+                     $this->extraerNumeroRegla($stats['regla']), $senalExistente['id']]
+                );
+            } else {
+                $this->db->execute(
+                    "INSERT INTO spc_senales_detectadas
+                        (lote_id, sesion_id, registro_peso_id, producto_id,
+                        tipo_grafico, regla_western_electric, descripcion_regla,
+                        valor_detectado, estado)
+                    VALUES (?,?,?,?, 'xbar',?,?,?, 'nueva')",
+                    [
+                        $sesion['lote_id'], $sesionId, $subgrupoId,
+                        $subgrupo['parametro_id'],
+                        $this->extraerNumeroRegla($stats['regla']),
+                        $stats['regla'] ?? 'Señal detectada',
+                        $stats['xbar'],
+                    ]
+                );
+            }
+        } elseif ($senalExistente) {
+            // Ya no está fuera de control (el typeo era la causa) → se
+            // marca como falsa alarma en vez de borrarla, para conservar
+            // el historial de que hubo una alarma y por qué se descartó.
+            $this->db->execute(
+                "UPDATE spc_senales_detectadas
+                SET estado = 'falsa_alarma',
+                    accion_tomada = CONCAT(COALESCE(accion_tomada,''),
+                        ' [Corregido: lectura editada, ya no excede límites]')
+                WHERE id = ?",
+                [$senalExistente['id']]
+            );
+        }
+
+        $mensaje = $stats['fuera_control']
+            ? '⚠️ Registro actualizado. SEÑAL: ' . $stats['regla']
+            : 'Registro actualizado correctamente.';
+
+        if ($this->isAjax()) {
+            $this->jsonSuccess([
+                'id'               => $subgrupoId,
+                'promedio_xbar'    => round($stats['xbar'], 4),
+                'rango_r'          => round($stats['r'], 4),
+                'fuera_de_control' => $stats['fuera_control'],
+                'regla_violada'    => $stats['regla'],
+                'valores'          => $stats['valores'],
+            ], $mensaje);
+            return;
+        }
+        $this->flash('success', $mensaje);
+        $this->redirect("/m2/sesion/{$sesionId}");
+    }
+
+    // -------------------------------------------------------------------
+    // POST /m2/sesion/:id/subgrupo/:subgrupo_id/eliminar
+    // Borra un subgrupo y cualquier señal SPC derivada de él (la señal no
+    // tiene sentido sin el subgrupo que la generó).
+    // -------------------------------------------------------------------
+    public function eliminarSubgrupo(array $params): void
+    {
+        Auth::requireWrite('m2_registro_proceso');
+        $this->verifyCsrf();
+
+        $sesionId   = (int)$params['id'];
+        $subgrupoId = (int)$params['subgrupo_id'];
+        $sesion     = $this->modelSesion->find($sesionId);
+
+        if (!$sesion || $sesion['estado'] !== 'en_proceso') {
+            $msg = 'Esta sesión ya está cerrada; no se pueden eliminar sus registros.';
+            if ($this->isAjax()) { $this->jsonError($msg, 403); return; }
+            $this->flash('error', $msg);
+            $this->redirect('/m2');
+            return;
+        }
+
+        $subgrupo = $this->modelSubgrupo->find($subgrupoId);
+        if (!$subgrupo || (int)$subgrupo['sesion_id'] !== $sesionId) {
+            if ($this->isAjax()) { $this->jsonError('Registro no encontrado.', 404); return; }
+            $this->flash('error', 'Registro no encontrado.');
+            $this->redirect("/m2/sesion/{$sesionId}");
+            return;
+        }
+
+        $this->db->transaction(function($db) use ($subgrupoId) {
+            $db->execute("DELETE FROM spc_senales_detectadas WHERE registro_peso_id = ?", [$subgrupoId]);
+            $db->execute("DELETE FROM reg_subgrupos_spc WHERE id = ?", [$subgrupoId]);
+        });
+
+        if ($this->isAjax()) {
+            $this->jsonSuccess(['id' => $subgrupoId], 'Registro eliminado correctamente.');
+            return;
+        }
+        $this->redirectWithSuccess("/m2/sesion/{$sesionId}", 'Registro eliminado correctamente.');
+    }
+
+    // -------------------------------------------------------------------
+    // POST /m2/sesion/:id/valor/:valor_id/editar
+    // Corrige un valor simple ya guardado. Si el parámetro es numérico,
+    // valida estrictamente; si es texto/selección/si_no, solo sanitiza.
+    // -------------------------------------------------------------------
+    public function editarValor(array $params): void
+    {
+        Auth::requireWrite('m2_registro_proceso');
+        $this->verifyCsrf();
+
+        $sesionId = (int)$params['id'];
+        $valorId  = (int)$params['valor_id'];
+        $sesion   = $this->modelSesion->find($sesionId);
+
+        if (!$sesion || $sesion['estado'] !== 'en_proceso') {
+            $msg = 'Esta sesión ya está cerrada; no se pueden editar sus registros.';
+            if ($this->isAjax()) { $this->jsonError($msg, 403); return; }
+            $this->flash('error', $msg);
+            $this->redirect('/m2');
+            return;
+        }
+
+        $registro = $this->modelValor->find($valorId);
+        if (!$registro || (int)$registro['sesion_id'] !== $sesionId) {
+            if ($this->isAjax()) { $this->jsonError('Registro no encontrado.', 404); return; }
+            $this->flash('error', 'Registro no encontrado.');
+            $this->redirect("/m2/sesion/{$sesionId}");
+            return;
+        }
+
+        $parametro = $this->db->fetchOne(
+            "SELECT tipo_dato FROM parametros_proceso WHERE id = ?",
+            [$registro['parametro_id']]
+        );
+
+        $valorCrudo = $_POST['valor'] ?? '';
+
+        if (($parametro['tipo_dato'] ?? '') === 'numerico') {
+            $num = $this->validarNumero($valorCrudo);
+            if ($num === null) {
+                $msg = 'El valor debe ser un número válido (máx. 6 dígitos enteros, 4 decimales).';
+                if ($this->isAjax()) { $this->jsonError($msg, 422); return; }
+                $this->flash('error', $msg);
+                $this->redirect("/m2/sesion/{$sesionId}");
+                return;
+            }
+            $valorFinal = (string)$num;
+        } elseif (($parametro['tipo_dato'] ?? '') === 'si_no') {
+            $valorFinal = in_array($valorCrudo, ['1','si','on','true'], true) ? '1' : '0';
+        } else {
+            // texto / selección: solo longitud razonable, sin HTML
+            $valorFinal = substr(strip_tags(trim((string)$valorCrudo)), 0, 255);
+            if ($valorFinal === '') {
+                $msg = 'El valor no puede quedar vacío.';
+                if ($this->isAjax()) { $this->jsonError($msg, 422); return; }
+                $this->flash('error', $msg);
+                $this->redirect("/m2/sesion/{$sesionId}");
+                return;
+            }
+        }
+
+        $this->modelValor->actualizarValor($valorId, $valorFinal);
+
+        if ($this->isAjax()) {
+            $this->jsonSuccess(['id' => $valorId, 'valor' => $valorFinal], 'Valor actualizado correctamente.');
+            return;
+        }
+        $this->redirectWithSuccess("/m2/sesion/{$sesionId}", 'Valor actualizado correctamente.');
+    }
+
+    // -------------------------------------------------------------------
+    // POST /m2/sesion/:id/valor/:valor_id/eliminar
+    // -------------------------------------------------------------------
+    public function eliminarValor(array $params): void
+    {
+        Auth::requireWrite('m2_registro_proceso');
+        $this->verifyCsrf();
+
+        $sesionId = (int)$params['id'];
+        $valorId  = (int)$params['valor_id'];
+        $sesion   = $this->modelSesion->find($sesionId);
+
+        if (!$sesion || $sesion['estado'] !== 'en_proceso') {
+            $msg = 'Esta sesión ya está cerrada; no se pueden eliminar sus registros.';
+            if ($this->isAjax()) { $this->jsonError($msg, 403); return; }
+            $this->flash('error', $msg);
+            $this->redirect('/m2');
+            return;
+        }
+
+        $registro = $this->modelValor->find($valorId);
+        if (!$registro || (int)$registro['sesion_id'] !== $sesionId) {
+            if ($this->isAjax()) { $this->jsonError('Registro no encontrado.', 404); return; }
+            $this->flash('error', 'Registro no encontrado.');
+            $this->redirect("/m2/sesion/{$sesionId}");
+            return;
+        }
+
+        $this->modelValor->delete($valorId);
+
+        if ($this->isAjax()) {
+            $this->jsonSuccess(['id' => $valorId], 'Valor eliminado correctamente.');
+            return;
+        }
+        $this->redirectWithSuccess("/m2/sesion/{$sesionId}", 'Valor eliminado correctamente.');
     }
 
     // -------------------------------------------------------------------

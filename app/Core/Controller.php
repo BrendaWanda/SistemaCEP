@@ -24,7 +24,7 @@ abstract class Controller
 
         if (!file_exists($viewFile)) {
             if (APP_DEBUG) {
-                die("❌ Vista no encontrada: {$viewFile}");
+                die("Vista no encontrada: {$viewFile}");
             }
             http_response_code(500);
             exit;

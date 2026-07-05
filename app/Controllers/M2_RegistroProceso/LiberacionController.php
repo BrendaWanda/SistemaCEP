@@ -49,25 +49,13 @@ class LiberacionController extends Controller
         }
 
         // La verificación de codificado/envase, los organolépticos y los
-        // resultados fisicoquímicos (humedad/pH) ahora se registran de
-        // forma dinámica como parámetros de M0 en sus etapas
-        // correspondientes (Envasado, Horneado y Producto Terminado) y ya
-        // no se capturan en este formulario. Se dejan en NULL aquí
-        // únicamente para mantener compatibilidad con las columnas de
-        // reg_liberacion_pt.
-        $camposNulos = [
-            'codif_lote_legible','codif_lote_correcto',
-            'codif_fvenc_legible','codif_fvenc_correcto',
-            'envase_primario','envase_secundario','envase_terciario','inocuo',
-            'conf_color','conf_olor','conf_sabor','conf_apariencia',
-            'conf_textura','conf_particulas_extranas',
-            'resultado_humedad_pct','resultado_ph',
-        ];
-
+        // resultados fisicoquímicos (humedad/pH) se registran de forma
+        // dinámica como parámetros de M0 en sus etapas correspondientes
+        // (Envasado, Horneado y Producto Terminado). Las 16 columnas que
+        // antes existían aquí solo para eso (siempre en NULL) se
+        // eliminaron del esquema en la limpieza de auditoría — ya no
+        // hace falta construirlas ni enviarlas.
         $data = ['sesion_id' => $sesionId, 'hora' => date('H:i:s')];
-        foreach ($camposNulos as $campo) {
-            $data[$campo] = null;
-        }
 
         $data['decision_final']         = $decision;
         $data['observaciones']          = $this->input('observaciones');
@@ -92,8 +80,8 @@ class LiberacionController extends Controller
         ]);
 
         $msg = $decision === 'liberado'
-            ? '✅ Producto LIBERADO correctamente.'
-            : '⚠️ Producto enviado a CUARENTENA.';
+            ? 'Producto LIBERADO correctamente.'
+            : 'Producto enviado a CUARENTENA.';
 
         $this->redirectWithSuccess("/m2/sesion/{$sesionId}", $msg);
     }

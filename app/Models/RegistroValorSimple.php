@@ -22,6 +22,15 @@ class RegistroValorSimple extends Model
         'sesion_id','parametro_id','hora','valor','registrado_por_id'
     ];
 
+    // Actualiza el valor de un registro ya guardado (corrección de typeo).
+    // No cambia sesion_id/parametro_id — solo el valor y, opcionalmente, la hora.
+    public function actualizarValor(int $id, string $valor, ?string $hora = null): int
+    {
+        $data = ['valor' => $valor];
+        if ($hora !== null) $data['hora'] = $hora;
+        return $this->update($id, $data);
+    }
+
     // Todos los valores de una sesión, con datos del parámetro (nombre,
     // unidad, tipo, etapa) para poder renderizarlos sin consultas extra.
     public function porSesion(int $sesionId): array
@@ -33,10 +42,10 @@ class RegistroValorSimple extends Model
                     pp.tipo_dato,
                     pp.etapa,
                     pp.opciones_json
-             FROM reg_valores_simples rv
-             JOIN parametros_proceso pp ON pp.id = rv.parametro_id
-             WHERE rv.sesion_id = ?
-             ORDER BY rv.hora ASC, rv.id ASC",
+            FROM reg_valores_simples rv
+            JOIN parametros_proceso pp ON pp.id = rv.parametro_id
+            WHERE rv.sesion_id = ?
+            ORDER BY rv.hora ASC, rv.id ASC",
             [$sesionId]
         );
     }
@@ -61,10 +70,10 @@ class RegistroValorSimple extends Model
                     pp.unidad,
                     pp.tipo_dato,
                     pp.opciones_json
-             FROM reg_valores_simples rv
-             JOIN parametros_proceso pp ON pp.id = rv.parametro_id
-             WHERE rv.sesion_id = ? AND pp.etapa = ?
-             ORDER BY rv.hora ASC, rv.id ASC",
+            FROM reg_valores_simples rv
+            JOIN parametros_proceso pp ON pp.id = rv.parametro_id
+            WHERE rv.sesion_id = ? AND pp.etapa = ?
+            ORDER BY rv.hora ASC, rv.id ASC",
             [$sesionId, $etapa]
         );
     }
