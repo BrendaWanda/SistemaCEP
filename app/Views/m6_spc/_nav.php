@@ -5,8 +5,10 @@ $uri      = ($basePath && str_starts_with($uriRaw, $basePath))
             ? substr($uriRaw, strlen($basePath)) : $uriRaw;
 
 $navItems = [
-    ['url'=>'/m6',         'label'=>'Análisis',         'icon'=>'bi-graph-up-arrow', 'exacto'=>true],
-    ['url'=>'/m6/senales', 'label'=>'Gestión de Señales','icon'=>'bi-exclamation-diamond', 'exacto'=>false],
+    ['url'=>'/m6',            'label'=>'Análisis',          'icon'=>'bi-graph-up-arrow',      'exacto'=>true],
+    ['url'=>'/m6/dispersion', 'label'=>'Dispersión',        'icon'=>'bi-graph-up',            'exacto'=>false],
+    ['url'=>'/m6/pareto',     'label'=>'Pareto',            'icon'=>'bi-bar-chart-steps',     'exacto'=>false],
+    ['url'=>'/m6/senales',    'label'=>'Gestión de Señales','icon'=>'bi-exclamation-diamond', 'exacto'=>false],
 ];
 ?>
 <div style="display:flex;gap:4px;flex-wrap:wrap;background:#f1f5f9;

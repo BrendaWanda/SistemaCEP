@@ -515,31 +515,6 @@ $csrfToken = \App\Core\Controller::csrfToken();
         </div>
     </div>
 
-    <!-- ─── BLOQUE 9: PARETO (solo carta p) ─── -->
-    <div id="seccion-pareto-p" class="card mb-3" style="display:none">
-        <div class="card-header" style="background:#090e22;color:#fff;cursor:pointer;
-             display:flex;justify-content:space-between;align-items:center"
-             onclick="toggleSeccion('pareto-p-body','ico-pareto-p')">
-            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
-                <i class="bi bi-bar-chart-steps me-2"></i>Diagrama de Pareto — No Conformes por Lote
-            </span>
-            <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-size:var(--fs-dense-xs);color:#9ca3af">Montgomery (2013), Cap.7</span>
-                <i id="ico-pareto-p" class="bi bi-chevron-up" style="font-size:var(--fs-dense-md)"></i>
-            </div>
-        </div>
-        <div id="pareto-p-body">
-            <div class="card-body">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-                    <div style="position:relative;width:100%;height:360px">
-                        <canvas id="chart-pareto-p"></canvas>
-                    </div>
-                    <div id="tabla-pareto-p" style="overflow-x:auto"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- ─── BLOQUE 10: SEÑALES NELSON (conclusiones) ─── -->
     <div class="card mb-3" id="card-violaciones" style="display:none">
         <div class="card-header" style="background:#991b1b;color:#fff;cursor:pointer;
@@ -729,7 +704,6 @@ function renderizarResultados(d) {
     renderIndicesAdicionales(d);
     renderRunChart(d);
     renderRunChartP(d);
-    renderParetoP(d);
     renderCurvaOC(d);
     renderViolaciones(d);
 
@@ -1949,113 +1923,8 @@ function renderRunChartP(d) {
 
 // ── Pareto de no conformes — Carta p ──
 // Ref: Montgomery (2013), Cap.7, p.292
-let chartParetoP = null;
-function renderParetoP(d) {
-    const sec = document.getElementById('seccion-pareto-p');
-    if (d.tipo_carta !== 'p' || !d.pareto || d.pareto.length === 0) {
-        sec.style.display = 'none'; return;
-    }
-    sec.style.display = 'block';
-    const pareto = d.pareto;
+// (Pareto por lote eliminado — reemplazado por /m6/pareto)
 
-    const labels   = pareto.map(p => p.fecha.length > 20 ? p.fecha.substring(0,18)+'…' : p.fecha);
-    const barras   = pareto.map(p => p.no_conformes);
-    const acumLine = pareto.map(p => p.pct_acumulado);
-
-    // Colores: rojo si contribuye >20% al total, naranja si >10%, azul si menos
-    const colores = pareto.map(p =>
-        p.pct_relativo > 20 ? 'rgba(220,38,38,0.75)' :
-        p.pct_relativo > 10 ? 'rgba(249,115,22,0.75)' :
-        'rgba(124,58,237,0.65)'
-    );
-
-    if (chartParetoP) chartParetoP.destroy();
-    chartParetoP = new Chart(document.getElementById('chart-pareto-p'), {
-        type: 'bar',
-        data: { labels, datasets: [
-            { label:'No conformes', data:barras,
-              backgroundColor:colores, borderColor:colores.map(c=>c.replace('0.75','1').replace('0.65','1')),
-              borderWidth:1, yAxisID:'y' },
-            { label:'% Acumulado', data:acumLine,
-              type:'line', borderColor:'#f59e0b', backgroundColor:'transparent',
-              borderWidth:2, pointRadius:4, pointBackgroundColor:'#f59e0b',
-              fill:false, tension:0.1, yAxisID:'y2' },
-        ]},
-        options: {
-            responsive: true,
-    maintainAspectRatio: false,
-            plugins: {
-                legend: { labels:{ color:'#334155', font:{size:11} } },
-                tooltip: { backgroundColor:'#1e293b', bodyColor:'#cbd5e1',
-                    callbacks:{
-                        title: ctx => pareto[ctx[0].dataIndex]?.fecha ?? '',
-                        afterBody: ctx => {
-                            const p = pareto[ctx[0].dataIndex];
-                            if (!p) return '';
-                            return [`Proporción: ${p.proporcion} (${p.porcentaje}%)`,
-                                    `% del total: ${p.pct_relativo}%`,
-                                    `% acumulado: ${p.pct_acumulado}%`];
-                        }
-                    }
-                },
-                annotation: {
-                    annotations: {
-                        pareto80: { type:'line', yScaleID:'y2', yMin:80, yMax:80,
-                            borderColor:'#f59e0b', borderWidth:1.5, borderDash:[5,3],
-                            label:{ display:true, content:'80%', position:'end',
-                                    color:'#d97706', font:{size:10},
-                                    backgroundColor:'rgba(255,255,255,0.85)' } }
-                    }
-                }
-            },
-            scales: {
-                x: { ticks:{color:'#64748b',maxRotation:45,font:{size:10}}, grid:{color:'#f1f5f9'} },
-                y: { position:'left', title:{display:true,text:'N° No conformes',color:'#64748b'},
-                     ticks:{color:'#64748b'}, grid:{color:'#f1f5f9'} },
-                y2: { position:'right', min:0, max:100,
-                      title:{display:true,text:'% Acumulado',color:'#d97706'},
-                      ticks:{color:'#d97706',callback:v=>v+'%'}, grid:{display:false} }
-            }
-        }
-    });
-
-    // Tabla Pareto
-    let html = `<table class="data-table-bordered" style="font-size:var(--fs-dense-xs)">
-        <thead>
-            <tr>
-                <th>Rango</th><th>Lote / Fecha</th>
-                <th>No conf.</th><th>% Relativo</th><th>% Acum.</th>
-            </tr>
-        </thead>
-        <tbody>
-        ${pareto.map((p, i) => {
-            const color = p.pct_relativo > 20 ? '#dc2626' :
-                          p.pct_relativo > 10 ? '#d97706' : '#374151';
-            const acumColor = p.pct_acumulado <= 80 ? '#16a34a' : '#64748b';
-            return `<tr>
-                <td style="text-align:center;font-weight:700">${i+1}</td>
-                <td style="font-size:var(--fs-dense-xs)">${p.fecha}</td>
-                <td style="text-align:center;font-weight:700;color:${color}">${p.no_conformes}</td>
-                <td style="text-align:center;color:${color};font-weight:600">${p.pct_relativo}%</td>
-                <td style="text-align:center;color:${acumColor};font-weight:600">${p.pct_acumulado}%</td>
-            </tr>`;
-        }).join('')}
-        </tbody>
-        <tfoot>
-            <tr style="border-top:2px solid #e2e8f0;font-weight:700">
-                <td colspan="2" style="text-align:right">Total</td>
-                <td style="text-align:center">${d.total_nc_pareto}</td>
-                <td style="text-align:center">100%</td><td></td>
-            </tr>
-        </tfoot>
-    </table>
-    <p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:8px">
-        Línea naranja: % acumulado · Regla 80/20: los primeros lotes/turnos
-        concentran el mayor % de no conformes.<br>
-        <em>Montgomery (2013), Cap.7, p.292</em>
-    </p>`;
-    document.getElementById('tabla-pareto-p').innerHTML = html;
-}
 
 // ── Violaciones ──
 function renderViolaciones(d) {
@@ -2143,8 +2012,8 @@ function renderCartaP(d) {
         type: 'line',
         data: { labels, datasets: [
             { label:'p Proporción', data:d.xbars, borderColor:'#7c3aed',
-                backgroundColor:'transparent', pointBackgroundColor:pColors,
-                pointRadius:5, borderWidth:2, tension:0.1 },
+              backgroundColor:'transparent', pointBackgroundColor:pColors,
+              pointRadius:5, borderWidth:2, tension:0.1 },
         ]},
         options: {
             responsive: true,
@@ -2286,12 +2155,12 @@ function limpiarFiltros() {
     'stat-cards','hist-ad-resultado','qq-resultado',
     'tabla-capacidad','contenido-capacidad','contenido-anova',
     'contenido-indices-adic','contenido-run-chart','contenido-run-chart-p',
-    'tabla-pareto-p','panel-violaciones','tbody-oc-refs'].forEach(id => {
+    'panel-violaciones','tbody-oc-refs'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = '';
     });
     ['seccion-normalidad','seccion-curva-oc','seccion-run-chart',
-    'seccion-run-chart-p','seccion-pareto-p','card-violaciones'].forEach(id => {
+    'seccion-run-chart-p','card-violaciones'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });

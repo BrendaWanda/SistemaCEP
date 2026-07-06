@@ -172,6 +172,343 @@ class SpcController extends Controller
     }
 
     // ═══════════════════════════════════════════════════════════
+    // PARETO DE PARÁMETROS CRÍTICOS
+    //
+    // A diferencia del resto de M6 (que analiza 1 parámetro a la vez),
+    // este Pareto opera a nivel de PRODUCTO: agrega los "eventos de no
+    // conformidad" de TODOS sus parámetros (atributos + variables) para
+    // responder "¿cuál parámetro concentra la mayoría de los problemas?"
+    // — la pregunta correcta de un Pareto, no "¿cuál lote fue peor?".
+    //
+    // Unificación de unidades (decisión metodológica confirmada):
+    //   - Atributos (carta p)   → no conformes (reg_inspeccion_atributos)
+    //   - Variables (X̄-R/X-MR)  → señales SPC detectadas (reg_subgrupos_spc)
+    //
+    // CORRECCIÓN METODOLÓGICA (tras revisión): NO se combinan atributos y
+    // variables en un solo Pareto. Un Pareto riguroso exige que todas las
+    // barras compartan la misma unidad de conteo (Montgomery, 2013, Cap.3);
+    // "no conformes individuales" y "subgrupos con señal SPC" no son la
+    // misma unidad. Se generan dos Paretos INDEPENDIENTES, cada uno
+    // homogéneo en su propia unidad — se elige cuál ver con el filtro
+    // "tipo" (atributo | variable).
+    //
+    // ESTRATIFICACIÓN (4ª herramienta básica de calidad — Kume, Statistical
+    // Methods for Quality Improvement, Cap.5): se puede filtrar por etapa
+    // "en proceso" (amasado…envasado, para detección temprana) vs.
+    // "producto terminado" (última barrera antes de liberar) — mezclarlas
+    // oculta que responden preguntas gerenciales distintas.
+    // ═══════════════════════════════════════════════════════════
+
+    // GET /m6/pareto — página
+    public function pareto(): void
+    {
+        $this->render('m6_spc/pareto', [
+            'pageTitle'  => 'Pareto de Parámetros Críticos',
+            'breadcrumb' => [['label' => 'SPC', 'url' => APP_URL.'/m6'], ['label' => 'Pareto']],
+            'productos'  => $this->getProductos(),
+        ]);
+    }
+
+    // GET /m6/pareto/analizar — AJAX
+    public function analizarPareto(): void
+    {
+        $productoId = (int)($_GET['producto_id'] ?? 0);
+        $tipo       = $_GET['tipo']    ?? 'atributo'; // 'atributo' | 'variable'
+        $estrato    = $_GET['estrato'] ?? 'todos';    // 'todos' | 'proceso' | 'terminado'
+        $fechaDesde = $_GET['fecha_desde'] ?? null;
+        $fechaHasta = $_GET['fecha_hasta'] ?? null;
+
+        if (!$productoId) {
+            $this->jsonError('Seleccione un producto.', 422);
+            return;
+        }
+        if (!in_array($tipo, ['atributo', 'variable'], true)) {
+            $this->jsonError('Tipo de Pareto inválido.', 422);
+            return;
+        }
+        if (!in_array($estrato, ['todos', 'proceso', 'terminado'], true)) {
+            $this->jsonError('Estrato inválido.', 422);
+            return;
+        }
+
+        $datos = $this->getDatosPareto($productoId, $tipo, $estrato, $fechaDesde, $fechaHasta);
+        if (empty($datos)) {
+            $this->jsonError(
+                'No hay datos de ' . ($tipo === 'atributo' ? 'atributos' : 'variables')
+                . ' para este producto con estos filtros.',
+                422
+            );
+            return;
+        }
+
+        $resultado = $this->calcularPareto($datos);
+        $resultado['tipo']    = $tipo;
+        $resultado['estrato'] = $estrato;
+        $this->jsonSuccess($resultado);
+    }
+
+    // Eventos de no conformidad de UN SOLO tipo (atributo o variable),
+    // filtrados opcionalmente por estrato de etapa.
+    private function getDatosPareto(
+        int $productoId, string $tipo, string $estrato, ?string $fechaDesde, ?string $fechaHasta
+    ): array {
+        $cond   = '';
+        $params = [$productoId];
+        if ($fechaDesde) { $cond .= ' AND s.fecha >= ?'; $params[] = $fechaDesde; }
+        if ($fechaHasta) { $cond .= ' AND s.fecha <= ?'; $params[] = $fechaHasta; }
+
+        if ($estrato === 'proceso')    $cond .= " AND pp.etapa != 'producto_terminado'";
+        if ($estrato === 'terminado')  $cond .= " AND pp.etapa = 'producto_terminado'";
+
+        if ($tipo === 'atributo') {
+            // Atributos (carta p): eventos = no conformes, oportunidades = inspeccionado
+            return $this->db->fetchAll(
+                "SELECT pp.id AS parametro_id, pp.nombre AS parametro_nombre, pp.etapa,
+                        COALESCE(SUM(ia.n_no_conformes), 0)  AS eventos,
+                        COALESCE(SUM(ia.n_inspeccionado), 0) AS oportunidades
+                FROM parametros_proceso pp
+                JOIN reg_inspeccion_atributos ia ON ia.parametro_id = pp.id
+                JOIN sesiones_registro s ON s.id = ia.sesion_id
+                WHERE pp.producto_id = ? AND pp.es_variable_spc = 1 AND pp.activo = 1
+                    AND pp.tipo_dato IN ('seleccion','si_no') {$cond}
+                GROUP BY pp.id, pp.nombre, pp.etapa",
+                $params
+            );
+        }
+
+        // Variables (X̄-R/X-MR): eventos = señales SPC, oportunidades = subgrupos evaluados
+        return $this->db->fetchAll(
+            "SELECT pp.id AS parametro_id, pp.nombre AS parametro_nombre, pp.etapa,
+                    COALESCE(SUM(CASE WHEN rs.fuera_de_control = 1 THEN 1 ELSE 0 END), 0) AS eventos,
+                    COUNT(rs.id) AS oportunidades
+            FROM parametros_proceso pp
+            JOIN reg_subgrupos_spc rs ON rs.parametro_id = pp.id
+            JOIN sesiones_registro s ON s.id = rs.sesion_id
+            WHERE pp.producto_id = ? AND pp.es_variable_spc = 1 AND pp.activo = 1
+                AND pp.tipo_dato = 'numerico' {$cond}
+            GROUP BY pp.id, pp.nombre, pp.etapa",
+            $params
+        );
+    }
+
+    // Ordena descendente por eventos, calcula % relativo, % acumulado,
+    // y marca cuántos parámetros son "vitales" (acumulan hasta el 80%).
+    private function calcularPareto(array $datos): array
+    {
+        foreach ($datos as &$d) {
+            $d['eventos']       = (int)$d['eventos'];
+            $d['oportunidades'] = (int)$d['oportunidades'];
+            $d['tasa_pct']      = $d['oportunidades'] > 0
+                ? round($d['eventos'] / $d['oportunidades'] * 100, 2) : 0.0;
+        }
+        unset($d);
+
+        usort($datos, fn($a, $b) => $b['eventos'] <=> $a['eventos']);
+
+        $total = array_sum(array_column($datos, 'eventos'));
+        $acum  = 0;
+        foreach ($datos as &$d) {
+            $acum += $d['eventos'];
+            $d['pct_relativo']  = $total > 0 ? round($d['eventos'] / $total * 100, 2) : 0.0;
+            $d['pct_acumulado'] = $total > 0 ? round($acum / $total * 100, 2) : 0.0;
+        }
+        unset($d);
+
+        $vitales = 0;
+        foreach ($datos as $d) {
+            $vitales++;
+            if ($d['pct_acumulado'] >= 80) break;
+        }
+
+        return [
+            'datos'              => $datos,
+            'total_eventos'      => $total,
+            'total_parametros'   => count($datos),
+            'parametros_vitales' => $vitales,
+            'ref_biblio'         => 'Juran & Godfrey (1999), Cap.5; Montgomery (2013), Cap.3; Kume (1985), Cap.5',
+        ];
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // DIAGRAMA DE DISPERSIÓN — 3ª de las 7 herramientas básicas de
+    // calidad que faltaba en M6 (ya están histograma y carta de
+    // control). Requiere 2 parámetros NUMÉRICOS del mismo producto —
+    // a diferencia del resto de M6, que analiza un parámetro a la vez.
+    // ═══════════════════════════════════════════════════════════
+
+    // GET /m6/dispersion — página
+    public function dispersion(): void
+    {
+        $this->render('m6_spc/dispersion', [
+            'pageTitle'  => 'Diagrama de Dispersión',
+            'breadcrumb' => [['label' => 'SPC', 'url' => APP_URL.'/m6'], ['label' => 'Dispersión']],
+            'productos'  => $this->getProductos(),
+            'parametros' => $this->getParametrosSPC(), // se filtra a solo numéricos en el JS
+        ]);
+    }
+
+    // GET /m6/dispersion/analizar — AJAX
+    public function analizarDispersion(): void
+    {
+        $productoId = (int)($_GET['producto_id'] ?? 0);
+        $paramXId   = (int)($_GET['parametro_x']  ?? 0);
+        $paramYId   = (int)($_GET['parametro_y']  ?? 0);
+        $fechaDesde = $_GET['fecha_desde'] ?? null;
+        $fechaHasta = $_GET['fecha_hasta'] ?? null;
+
+        if (!$productoId || !$paramXId || !$paramYId) {
+            $this->jsonError('Seleccione el producto y ambos parámetros.', 422);
+            return;
+        }
+        if ($paramXId === $paramYId) {
+            $this->jsonError('Seleccione dos parámetros distintos para correlacionar.', 422);
+            return;
+        }
+
+        $specX = $this->getEspecificaciones($paramXId);
+        $specY = $this->getEspecificaciones($paramYId);
+        if (!$specX || !$specY) {
+            $this->jsonError('Uno de los parámetros no fue encontrado.', 404);
+            return;
+        }
+        if ($specX['tipo_dato'] !== 'numerico' || $specY['tipo_dato'] !== 'numerico') {
+            $this->jsonError('El diagrama de dispersión solo aplica a parámetros numéricos (X̄-R/X-MR), no a atributos.', 422);
+            return;
+        }
+
+        $pares = $this->getParesDispersion($paramXId, $paramYId, $fechaDesde, $fechaHasta);
+        if (count($pares) < 5) {
+            $this->jsonError(
+                'Se necesitan al menos 5 lotes con ambos parámetros medidos en la misma sesión. '
+                . 'Actualmente hay ' . count($pares) . '.',
+                422
+            );
+            return;
+        }
+
+        $this->jsonSuccess($this->calcularDispersion($pares, $specX, $specY));
+    }
+
+    // Pares (x,y) por sesión: promedia si hubo más de una lectura del mismo
+    // parámetro dentro de la misma sesión, y solo incluye sesiones donde
+    // AMBOS parámetros fueron medidos (INNER, vía HAVING).
+    private function getParesDispersion(
+        int $paramXId, int $paramYId, ?string $fechaDesde, ?string $fechaHasta
+    ): array {
+        $where  = ['1=1'];
+        $params = [$paramXId, $paramYId, $paramXId, $paramYId];
+
+        if ($fechaDesde) { $where[] = 's.fecha >= ?'; $params[] = $fechaDesde; }
+        if ($fechaHasta) { $where[] = 's.fecha <= ?'; $params[] = $fechaHasta; }
+        $whereStr = implode(' AND ', $where);
+
+        return $this->db->fetchAll(
+            "SELECT s.id AS sesion_id, s.fecha, l.codigo_lote,
+                    AVG(CASE WHEN rs.parametro_id = ? THEN rs.promedio_xbar END) AS valor_x,
+                    AVG(CASE WHEN rs.parametro_id = ? THEN rs.promedio_xbar END) AS valor_y
+            FROM reg_subgrupos_spc rs
+            JOIN sesiones_registro s ON s.id = rs.sesion_id
+            JOIN lotes_produccion l  ON l.id = s.lote_id
+            WHERE rs.parametro_id IN (?, ?) AND {$whereStr}
+            GROUP BY s.id, s.fecha, l.codigo_lote
+            HAVING valor_x IS NOT NULL AND valor_y IS NOT NULL
+            ORDER BY s.fecha ASC",
+            $params
+        );
+    }
+
+    // Correlación de Pearson + regresión lineal simple + prueba de
+    // significancia (t de Student, H0: ρ=0) contra valores críticos
+    // tabulados estándar (α=0.05, dos colas).
+    // Ref: Montgomery & Runger, Applied Statistics and Probability for
+    // Engineers (2014), Cap.11-12; Montgomery (2013) SQC, Cap.3 (diagrama
+    // de dispersión como herramienta básica de calidad).
+    private function calcularDispersion(array $pares, array $specX, array $specY): array
+    {
+        $n  = count($pares);
+        $xs = array_map(fn($p) => (float)$p['valor_x'], $pares);
+        $ys = array_map(fn($p) => (float)$p['valor_y'], $pares);
+
+        $xbar = array_sum($xs) / $n;
+        $ybar = array_sum($ys) / $n;
+
+        $sxy = 0.0; $sxx = 0.0; $syy = 0.0;
+        for ($i = 0; $i < $n; $i++) {
+            $dx = $xs[$i] - $xbar;
+            $dy = $ys[$i] - $ybar;
+            $sxy += $dx * $dy;
+            $sxx += $dx * $dx;
+            $syy += $dy * $dy;
+        }
+
+        $r  = ($sxx > 0 && $syy > 0) ? $sxy / sqrt($sxx * $syy) : 0.0;
+        $r2 = $r * $r;
+        $b1 = $sxx > 0 ? $sxy / $sxx : 0.0;
+        $b0 = $ybar - $b1 * $xbar;
+
+        $gl = $n - 2;
+        $tStat = ($gl > 0 && (1 - $r2) > 0) ? $r * sqrt($gl / (1 - $r2)) : 0.0;
+        $rCritico = $this->rCriticoTabla($gl);
+        $significativa = abs($r) > $rCritico;
+
+        return [
+            'n'              => $n,
+            'pares'          => $pares,
+            'x_label'        => $specX['nombre'] . ($specX['unidad'] ? ' (' . $specX['unidad'] . ')' : ''),
+            'y_label'        => $specY['nombre'] . ($specY['unidad'] ? ' (' . $specY['unidad'] . ')' : ''),
+            'r'              => round($r, 4),
+            'r2'             => round($r2, 4),
+            'b0'             => round($b0, 6),
+            'b1'             => round($b1, 6),
+            't_stat'         => round($tStat, 3),
+            'gl'             => $gl,
+            'r_critico'      => round($rCritico, 3),
+            'significativa'  => $significativa,
+            'interpretacion' => $this->interpretarCorrelacion($r, $significativa),
+            'ref_biblio'     => 'Montgomery & Runger (2014), Cap.11-12; Montgomery (2013), Cap.3',
+        ];
+    }
+
+    private function interpretarCorrelacion(float $r, bool $significativa): string
+    {
+        $abs = abs($r);
+        $fuerza = $abs >= 0.7 ? 'fuerte' : ($abs >= 0.3 ? 'moderada' : ($abs > 0 ? 'débil' : 'nula'));
+        $direccion = $r > 0 ? 'positiva' : ($r < 0 ? 'negativa' : '');
+        $base = trim("Correlación {$direccion} {$fuerza}");
+        return $significativa
+            ? "{$base} y estadísticamente significativa (α=0.05)."
+            : "{$base}, pero NO estadísticamente significativa a un 95% de confianza — "
+              . 'no hay evidencia suficiente para afirmar que existe correlación real.';
+    }
+
+    // Valores críticos tabulados de r de Pearson (α=0.05, dos colas) —
+    // tabla estándar presente en cualquier apéndice de estadística
+    // aplicada. Interpola linealmente entre los grados de libertad
+    // tabulados; para gl fuera de rango usa el valor más cercano.
+    private function rCriticoTabla(int $gl): float
+    {
+        $tabla = [
+            1=>0.997, 2=>0.950, 3=>0.878, 4=>0.811, 5=>0.754, 6=>0.707,
+            7=>0.666, 8=>0.632, 9=>0.602, 10=>0.576, 12=>0.532, 15=>0.482,
+            20=>0.423, 25=>0.381, 30=>0.349, 40=>0.304, 50=>0.273,
+            60=>0.250, 80=>0.217, 100=>0.195, 120=>0.178,
+        ];
+        if ($gl <= 1) return $tabla[1];
+        if ($gl >= 120) return $tabla[120];
+
+        $glsOrdenados = array_keys($tabla);
+        foreach ($glsOrdenados as $i => $g) {
+            if ($g === $gl) return $tabla[$g];
+            if ($g > $gl) {
+                $glAnterior = $glsOrdenados[$i - 1];
+                $fraccion = ($gl - $glAnterior) / ($g - $glAnterior);
+                return $tabla[$glAnterior] + $fraccion * ($tabla[$g] - $tabla[$glAnterior]);
+            }
+        }
+        return $tabla[120];
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // GESTIÓN DE SEÑALES SPC
     //
     // M2 detecta y crea señales en spc_senales_detectadas, pero hasta
@@ -508,25 +845,6 @@ class SpcController extends Controller
         $fechas_p    = array_map(fn($d) => $d['fecha_label'], $datos);
         $runChart    = $this->calcularRunChart($proporciones, $fechas_p);
 
-        // Pareto de no conformes
-        $paretoDatos = array_map(fn($d, $i) => [
-            'lote'         => $d['lote_ref'] ?? 'Lote ' . ($i + 1),
-            'fecha'        => $d['fecha_label'],
-            'no_conformes' => (int)$d['no_conformes'],
-            'n_insp'       => $ns[$i],
-            'proporcion'   => round($proporciones[$i], 4),
-            'porcentaje'   => round($proporciones[$i] * 100, 2),
-        ], $datos, array_keys($datos));
-        usort($paretoDatos, fn($a, $b) => $b['no_conformes'] <=> $a['no_conformes']);
-        $totalNC = array_sum(array_column($paretoDatos, 'no_conformes'));
-        $acum = 0;
-        foreach ($paretoDatos as &$pd) {
-            $acum += $pd['no_conformes'];
-            $pd['pct_relativo']  = $totalNC > 0 ? round($pd['no_conformes'] / $totalNC * 100, 2) : 0;
-            $pd['pct_acumulado'] = $totalNC > 0 ? round($acum / $totalNC * 100, 2) : 0;
-        }
-        unset($pd);
-
         $sgTabla = array_map(fn($d, $i) => [
             'numero'       => $i + 1,
             'fecha'        => $d['fecha_label'],
@@ -600,8 +918,6 @@ class SpcController extends Controller
             'advertencias'    => $advertencias,
             'histograma'      => $histograma,
             'run_chart'       => $runChart,
-            'pareto'          => $paretoDatos,
-            'total_nc_pareto' => $totalNC,
             'xbars'           => array_map(fn($v) => round($v, 4), $proporciones),
             'rangos'          => [],
             'todos_valores'   => $proporciones,

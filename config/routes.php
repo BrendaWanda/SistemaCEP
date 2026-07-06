@@ -166,6 +166,14 @@ $router->get( '/m6/limites-vigentes', 'M6_SPC\SpcController@limitesVigentes');
 $router->post('/m6/guardar-limites',  'M6_SPC\SpcController@guardarLimites');
 $router->post('/m6/anular-limites',   'M6_SPC\SpcController@anularLimites');
 
+// Pareto de Parámetros Críticos — combina atributos + variables por producto
+$router->get('/m6/pareto',          'M6_SPC\SpcController@pareto');
+$router->get('/m6/pareto/analizar', 'M6_SPC\SpcController@analizarPareto');
+
+// Diagrama de dispersión — correlación entre 2 variables numéricas
+$router->get('/m6/dispersion',          'M6_SPC\SpcController@dispersion');
+$router->get('/m6/dispersion/analizar', 'M6_SPC\SpcController@analizarDispersion');
+
 // Gestión de señales SPC — investigar y cerrar señales detectadas en M2
 $router->get( '/m6/senales',              'M6_SPC\SpcController@senales');
 $router->get( '/m6/senales/listar',       'M6_SPC\SpcController@listarSenales');
