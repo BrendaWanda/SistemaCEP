@@ -161,6 +161,17 @@ $router->get('/m5/insumo/:codigo',   'M5_Trazabilidad\TrazabilidadController@ins
 $router->get('/m6',         'M6_SPC\SpcController@index');
 $router->get('/m6/analizar','M6_SPC\SpcController@analizar');
 
+// Conexión Fase I (M6) → tiempo real (M2): guardar/anular límites vigentes
+$router->get( '/m6/limites-vigentes', 'M6_SPC\SpcController@limitesVigentes');
+$router->post('/m6/guardar-limites',  'M6_SPC\SpcController@guardarLimites');
+$router->post('/m6/anular-limites',   'M6_SPC\SpcController@anularLimites');
+
+// Gestión de señales SPC — investigar y cerrar señales detectadas en M2
+$router->get( '/m6/senales',              'M6_SPC\SpcController@senales');
+$router->get( '/m6/senales/listar',       'M6_SPC\SpcController@listarSenales');
+$router->post('/m6/senales/:id/asignar',  'M6_SPC\SpcController@asignarSenal');
+$router->post('/m6/senales/:id/resolver', 'M6_SPC\SpcController@resolverSenal');
+
 // ── MENÚ TRIMESTRAL ───────────────────────────────────────────────────────────
 // Fijas antes que :id
 $router->get( '/menu-trimestral',            'MenuTrimestral\MenuTrimestralController@index');

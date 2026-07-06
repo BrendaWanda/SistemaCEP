@@ -21,7 +21,7 @@ class Auth
         'm3_mantenimiento'     => [self::ROL_ADMIN => 'rw', self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'rw', self::ROL_CALIDAD => 'r'],
         'm4_seguimiento'       => [self::ROL_ADMIN => 'rw', self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'rw', self::ROL_CALIDAD => 'r'],
         'm5_trazabilidad'      => [self::ROL_ADMIN => 'r',  self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'r',  self::ROL_CALIDAD => 'r'],
-        'm6_spc'               => [self::ROL_ADMIN => 'r',  self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'r',  self::ROL_CALIDAD => 'r'],
+        'm6_spc'               => [self::ROL_ADMIN => 'rw', self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'r',  self::ROL_CALIDAD => 'rw'],
         'm7_dashboard'         => [self::ROL_ADMIN => 'r',  self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'r',  self::ROL_CALIDAD => 'r'],
         'reportes'             => [self::ROL_ADMIN => 'rw', self::ROL_GERENTE => 'rw', self::ROL_PRODUCCION => 'rw', self::ROL_CALIDAD => 'rw'],
         'menu_trimestral'      => [self::ROL_ADMIN => 'rw', self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'r',  self::ROL_CALIDAD => null],

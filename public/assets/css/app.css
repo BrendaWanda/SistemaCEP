@@ -49,7 +49,7 @@
         cada style="" suelto, lo que hacía que el texto saltara de tamaño sin
         lógica al mezclar varios componentes en una misma vista. Todo
         componente denso ahora usa una de estas 4 variables, nunca un
-       número suelto. */
+        número suelto. */
     --fs-dense-xs: 12px;  /* etiquetas de columna: "Hora", "L1", unidades */
     --fs-dense-sm: 13px;  /* datos de celda: lecturas, valores registrados */
     --fs-dense-md: 14px;  /* énfasis: X̄, R, nombre del parámetro */
@@ -177,7 +177,7 @@ body {
 .sb-avatar {
     width: 40px; height: 40px; min-width: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #4f8ef7 0%, #2e59db 100%);
+    background: linear-gradient(135deg, #1a407d 0%, #1a407d 100%);
     color: #fff;
     display: flex; align-items: center; justify-content: center;
     font-size: 19px; font-weight: 700;
@@ -369,7 +369,13 @@ body {
     padding: 18px 20px;
     display: flex; align-items: center; gap: 16px;
     border-left: 3px solid var(--color-primary-lt);
+    min-width: 0; /* evita "grid blowout": sin esto, un grid item no se
+                    encoge por debajo del ancho de su contenido y el
+                    auto-fill deja de envolver, causando overflow
+                     horizontal en vez de pasar a una nueva fila */
 }
+.stat-card .stat-label,
+.stat-card .stat-value { overflow-wrap: break-word; }
 .stat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
 .stat-value { font-size: 24px; font-weight: 800; color: var(--text-primary); }
 .stat-label { font-size: 17px; color: var(--text-muted); margin-top: 2px; }
@@ -513,7 +519,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .btn-sm   { padding: 5px 11px; font-size: 15px; }
 .btn-lg   { padding: 11px 22px; font-size: 17px; }
 .btn-full { width: 100%; justify-content: center; }
-.btn-primary   { background: #1a407d; color: #fff; border-color: #1a407d; }
+.btn-primary   { background: #1a407d; color: #fff; border-color: #4f8ef7; }
 .btn-primary:hover   { background: #1a407d; }
 .btn-secondary { background: #fff; color: var(--text-secondary); border-color: var(--border); }
 .btn-secondary:hover { background: #f8fafc; }
@@ -523,7 +529,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .btn-danger:hover    { background: #dc2626; }
 .btn-warning   { background: #f59e0b; color: #fff; border-color: #f59e0b; }
 .btn-warning:hover   { background: #d97706; }
-.btn-outline   { background: transparent; border-color: #1a407d; color: #1a407d; }
+.btn-outline   { background: transparent; border-color: #4f8ef7; color: #4f8ef7; }
 .btn-outline:hover   { background: rgba(79,142,247,.08); }
 
 /* ══════════════════════════════════════════════════════════════════════════════

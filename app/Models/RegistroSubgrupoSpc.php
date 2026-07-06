@@ -13,6 +13,7 @@
 namespace App\Models;
 
 use App\Core\Model;
+use App\Services\ReglasNelsonService;
 
 class RegistroSubgrupoSpc extends Model
 {
@@ -126,15 +127,17 @@ class RegistroSubgrupoSpc extends Model
     }
 
     // =====================================================================
-    //  REGLAS DE NELSON / WESTERN ELECTRIC (las 8)
+    //  REGLAS DE NELSON / WESTERN ELECTRIC
     // =====================================================================
+    //
+    //  La lógica de las 8 reglas vive en Services/ReglasNelsonService.php
+    //  (compartida con M6, ver SpcController::analizar()) — aquí solo se
+    //  arma la secuencia histórica y se le pasa al servicio.
     //
     //  Se evalúan contra la secuencia cronológica de x̄ de TODAS las
     //  sesiones para ese parámetro (carta de control continua real, no
     //  solo dentro de una sesión — una sesión nueva casi nunca acumula
-    //  los 9/14/15 puntos que varias reglas necesitan). Esta es la misma
-    //  fuente de datos que debe usar M6 para el análisis histórico, así
-    //  que ambos módulos quedan coherentes entre sí.
+    //  los 9/14/15 puntos que varias reglas necesitan).
     //
     //  Limitación documentada: al editar un punto que no es el más
     //  reciente, solo se re-evalúa la ventana que termina en ESE punto.
@@ -154,50 +157,23 @@ class RegistroSubgrupoSpc extends Model
         $ucl = isset($limites['ucl_xbar']) ? (float)$limites['ucl_xbar'] : null;
         $lcl = isset($limites['lcl_xbar']) ? (float)$limites['lcl_xbar'] : null;
 
-        // Regla 1 no necesita sigma ni historial: compara directo contra
-        // los límites de control ya calculados (UCL/LCL = CL ± 3σ).
-        $reglas = [];
-        if ($ucl !== null && $xbarNuevo > $ucl) $reglas[1] = 'Punto fuera de UCL (>3σ)';
-        if ($lcl !== null && $xbarNuevo < $lcl) $reglas[1] = 'Punto fuera de LCL (<3σ)';
-
-        // Sin CL no se puede establecer sigma ni evaluar las reglas 2-8
-        // (todas dependen de zonas de 1σ/2σ/3σ alrededor de la línea central).
         if ($cl === null) {
-            return $this->armarResultadoNelson($reglas);
+            // Sin CL solo se puede evaluar la Regla 1 contra ucl/lcl directos.
+            $reglas = [];
+            if ($ucl !== null && $xbarNuevo > $ucl) $reglas[1] = 'Punto fuera de UCL (>3σ)';
+            if ($lcl !== null && $xbarNuevo < $lcl) $reglas[1] = 'Punto fuera de LCL (<3σ)';
+            if (empty($reglas)) return ['fuera_control' => false, 'reglas' => [], 'descripcion' => null];
+            return ['fuera_control' => true, 'reglas' => [1], 'descripcion' => 'Regla 1 (' . reset($reglas) . ')'];
         }
 
-        // Sigma de x̄ a partir de los límites ya calculados. Se promedia
-        // el lado superior e inferior por si los límites no son
-        // perfectamente simétricos respecto al CL.
         $sigma = $this->calcularSigma($cl, $ucl, $lcl);
         if ($sigma === null || $sigma <= 0) {
-            return $this->armarResultadoNelson($reglas);
+            return ['fuera_control' => false, 'reglas' => [], 'descripcion' => null];
         }
 
         $secuencia = $this->obtenerSecuenciaConSustitucion($parametroId, $excludeId, $xbarNuevo, 30);
 
-        if ($this->reglaRachaMismoLado($secuencia, $cl, 9))                 $reglas[2] = '9 puntos seguidos del mismo lado de la línea central';
-        if ($this->reglaTendencia($secuencia, 6))                          $reglas[3] = '6 puntos seguidos en tendencia continua (subiendo o bajando)';
-        if ($this->reglaAlternancia($secuencia, 14))                       $reglas[4] = '14 puntos seguidos alternando arriba/abajo';
-        if ($this->reglaZona($secuencia, $cl, $sigma, 2, 3, 2))            $reglas[5] = '2 de 3 puntos más allá de 2σ, mismo lado';
-        if ($this->reglaZona($secuencia, $cl, $sigma, 1, 5, 4))            $reglas[6] = '4 de 5 puntos más allá de 1σ, mismo lado';
-        if ($this->reglaEstratificacion($secuencia, $cl, $sigma, 15))       $reglas[7] = '15 puntos seguidos dentro de 1σ (estratificación)';
-        if ($this->reglaMezcla($secuencia, $cl, $sigma, 8))                $reglas[8] = '8 puntos seguidos fuera de 1σ, sin ninguno cerca del centro (mezcla)';
-
-        return $this->armarResultadoNelson($reglas);
-    }
-
-    private function armarResultadoNelson(array $reglas): array
-    {
-        if (empty($reglas)) {
-            return ['fuera_control' => false, 'reglas' => [], 'descripcion' => null];
-        }
-        ksort($reglas);
-        $primera = array_key_first($reglas);
-        $descripcion = 'Regla ' . implode(', ', array_map(
-            fn($n, $desc) => "{$n} ({$desc})", array_keys($reglas), $reglas
-        ));
-        return ['fuera_control' => true, 'reglas' => array_keys($reglas), 'descripcion' => $descripcion];
+        return ReglasNelsonService::evaluar($secuencia, $cl, $sigma, $ucl, $lcl);
     }
 
     // Sigma de x̄ estimado a partir de CL y los límites de control (± 3σ).
@@ -245,82 +221,6 @@ class RegistroSubgrupoSpc extends Model
             $secuencia[] = $nuevoValor;
         }
         return $secuencia;
-    }
-
-    // ── Regla 2: n puntos seguidos del mismo lado de la línea central ──
-    private function reglaRachaMismoLado(array $seq, float $cl, int $n): bool
-    {
-        if (count($seq) < $n) return false;
-        $tail = array_slice($seq, -$n);
-        $arriba = array_filter($tail, fn($v) => $v > $cl);
-        $abajo  = array_filter($tail, fn($v) => $v < $cl);
-        return count($arriba) === $n || count($abajo) === $n;
-    }
-
-    // ── Regla 3: n puntos seguidos en tendencia continua ──
-    private function reglaTendencia(array $seq, int $n): bool
-    {
-        if (count($seq) < $n) return false;
-        $tail = array_slice($seq, -$n);
-        $subiendo = $bajando = true;
-        for ($i = 1; $i < count($tail); $i++) {
-            if ($tail[$i] <= $tail[$i - 1]) $subiendo = false;
-            if ($tail[$i] >= $tail[$i - 1]) $bajando  = false;
-        }
-        return $subiendo || $bajando;
-    }
-
-    // ── Regla 4: n puntos seguidos alternando dirección (zigzag) ──
-    private function reglaAlternancia(array $seq, int $n): bool
-    {
-        if (count($seq) < $n) return false;
-        $tail = array_slice($seq, -$n);
-        $signos = [];
-        for ($i = 1; $i < count($tail); $i++) {
-            $diff = $tail[$i] - $tail[$i - 1];
-            if ($diff == 0) return false; // sin cambio no cuenta como alternancia
-            $signos[] = $diff > 0 ? 1 : -1;
-        }
-        for ($i = 1; $i < count($signos); $i++) {
-            if ($signos[$i] === $signos[$i - 1]) return false;
-        }
-        return true;
-    }
-
-    // ── Reglas 5 y 6: k de m puntos más allá de kSigma, mismo lado ──
-    private function reglaZona(array $seq, float $cl, float $sigma, int $kSigma, int $m, int $minimo): bool
-    {
-        if (count($seq) < $m) return false;
-        $tail = array_slice($seq, -$m);
-        $limiteSup = $cl + $kSigma * $sigma;
-        $limiteInf = $cl - $kSigma * $sigma;
-
-        $arriba = count(array_filter($tail, fn($v) => $v > $limiteSup));
-        $abajo  = count(array_filter($tail, fn($v) => $v < $limiteInf));
-
-        return $arriba >= $minimo || $abajo >= $minimo;
-    }
-
-    // ── Regla 7: n puntos seguidos dentro de 1σ (estratificación) ──
-    private function reglaEstratificacion(array $seq, float $cl, float $sigma, int $n): bool
-    {
-        if (count($seq) < $n) return false;
-        $tail = array_slice($seq, -$n);
-        foreach ($tail as $v) {
-            if (abs($v - $cl) > $sigma) return false;
-        }
-        return true;
-    }
-
-    // ── Regla 8: n puntos seguidos fuera de 1σ, ninguno cerca del centro ──
-    private function reglaMezcla(array $seq, float $cl, float $sigma, int $n): bool
-    {
-        if (count($seq) < $n) return false;
-        $tail = array_slice($seq, -$n);
-        foreach ($tail as $v) {
-            if (abs($v - $cl) <= $sigma) return false;
-        }
-        return true;
     }
 
     // -------------------------------------------------------------------

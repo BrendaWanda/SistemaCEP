@@ -3,6 +3,7 @@
 namespace App\Controllers\M6_SPC;
 use App\Core\Controller;
 use App\Core\Auth;
+use App\Services\ReglasNelsonService;
 
 class SpcController extends Controller
 {
@@ -60,6 +61,7 @@ class SpcController extends Controller
             'breadcrumb' => [['label' => 'SPC']],
             'productos'  => $this->getProductos(),
             'parametros' => $this->getParametrosSPC(),
+            'canWrite'   => Auth::canWrite('m6_spc'),
         ]);
     }
 
@@ -68,18 +70,34 @@ class SpcController extends Controller
     // ═══════════════════════════════════════════════════════════
     public function analizar(): void
     {
-        header('Content-Type: application/json; charset=utf-8');
         $productoId  = (int)($_GET['producto_id']  ?? 0);
         $parametroId = (int)($_GET['parametro_id'] ?? 0);
         $fechaDesde  = $_GET['fecha_desde'] ?? null;
         $fechaHasta  = $_GET['fecha_hasta'] ?? null;
 
+        $resultado = $this->calcularAnalisis($productoId, $parametroId, $fechaDesde, $fechaHasta);
+        if (isset($resultado['error'])) {
+            $this->jsonError($resultado['error'], 422);
+            return;
+        }
+        $this->jsonSuccess($resultado, 'Análisis calculado correctamente.');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Lógica de análisis compartida entre analizar() (solo muestra en
+    // pantalla) y guardarLimites() (además persiste en spc_limites_control).
+    // Devuelve ['error' => '...'] si no se puede calcular, o el array
+    // completo de resultados (mismo shape que antes devolvía analizar()).
+    // ═══════════════════════════════════════════════════════════
+    private function calcularAnalisis(
+        int $productoId, int $parametroId, ?string $fechaDesde, ?string $fechaHasta
+    ): array {
         if (!$productoId || !$parametroId) {
-            echo json_encode(['error' => 'Seleccione producto y parámetro.']); exit;
+            return ['error' => 'Seleccione producto y parámetro.'];
         }
         $specs = $this->getEspecificaciones($parametroId);
         if (!$specs) {
-            echo json_encode(['error' => 'Parámetro no encontrado.']); exit;
+            return ['error' => 'Parámetro no encontrado.'];
         }
 
         $tipoDato = $specs['tipo_dato'];
@@ -88,25 +106,359 @@ class SpcController extends Controller
         if ($tipoDato === 'seleccion' || $tipoDato === 'si_no') {
             $datos = $this->getDatosCartaP($productoId, $parametroId, $fechaDesde, $fechaHasta);
             if (count($datos) < 3) {
-                echo json_encode(['error' => 'Se necesitan al menos 3 lotes para la carta p. Actualmente hay ' . count($datos) . '.']); exit;
+                return ['error' => 'Se necesitan al menos 3 lotes para la carta p. Actualmente hay ' . count($datos) . '.'];
             }
-            echo json_encode($this->calcularCartaP($datos, $specs));
+            return $this->calcularCartaP($datos, $specs);
+        }
 
-        } elseif ($n > 1) {
+        if ($n > 1) {
             $subgrupos = $this->getSubgruposXR($productoId, $parametroId, $fechaDesde, $fechaHasta);
             if (count($subgrupos) < 3) {
-                echo json_encode(['error' => 'Se necesitan al menos 3 subgrupos. Actualmente hay ' . count($subgrupos) . '.']); exit;
+                return ['error' => 'Se necesitan al menos 3 subgrupos. Actualmente hay ' . count($subgrupos) . '.'];
             }
-            echo json_encode($this->calcularXR($subgrupos, $specs));
-
-        } else {
-            $valores = $this->getValoresXMR($productoId, $parametroId, $fechaDesde, $fechaHasta);
-            if (count($valores) < 3) {
-                echo json_encode(['error' => 'Se necesitan al menos 3 observaciones. Actualmente hay ' . count($valores) . '.']); exit;
-            }
-            echo json_encode($this->calcularXMR($valores, $specs));
+            return $this->calcularXR($subgrupos, $specs);
         }
-        exit;
+
+        $valores = $this->getValoresXMR($productoId, $parametroId, $fechaDesde, $fechaHasta);
+        if (count($valores) < 3) {
+            return ['error' => 'Se necesitan al menos 3 observaciones. Actualmente hay ' . count($valores) . '.'];
+        }
+        return $this->calcularXMR($valores, $specs);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // POST /m6/anular-limites
+    //
+    // Desactiva el límite vigente de un parámetro SIN reemplazarlo por
+    // uno nuevo (a diferencia de guardarLimites(), que siempre supersede
+    // con un cálculo nuevo). Caso de uso: Calidad determina que el
+    // límite guardado ya no es confiable (ej. se calculó con datos que
+    // luego resultaron comprometidos) pero todavía no tiene un análisis
+    // nuevo listo. Tras anular, M2 vuelve a usar la especificación de
+    // M0 (valor_min/valor_max) como respaldo hasta que se guarde un
+    // nuevo análisis — nunca se borra la fila, solo se marca vigente=0,
+    // así el historial de "qué límite se usó y cuándo" queda intacto.
+    // ═══════════════════════════════════════════════════════════
+    public function anularLimites(): void
+    {
+        Auth::requireWrite('m6_spc');
+        $this->verifyCsrf();
+
+        $parametroId = (int)($_POST['parametro_id'] ?? 0);
+        if (!$parametroId) {
+            $this->jsonError('Parámetro requerido.', 422);
+            return;
+        }
+
+        $vigente = $this->db->fetchOne(
+            "SELECT id FROM spc_limites_control WHERE parametro_id = ? AND vigente = 1",
+            [$parametroId]
+        );
+        if (!$vigente) {
+            $this->jsonError('Este parámetro no tiene límites vigentes para anular.', 404);
+            return;
+        }
+
+        $this->db->execute(
+            "UPDATE spc_limites_control SET vigente = 0 WHERE id = ?",
+            [$vigente['id']]
+        );
+
+        $this->jsonSuccess(
+            ['parametro_id' => $parametroId],
+            '✅ Límites anulados. M2 volverá a usar la especificación de M0 (valor mín/máx) '
+            . 'hasta que se guarde un nuevo análisis.'
+        );
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // GESTIÓN DE SEÑALES SPC
+    //
+    // M2 detecta y crea señales en spc_senales_detectadas, pero hasta
+    // ahora nada permitía investigarlas ni cerrarlas — quedaban creadas
+    // para siempre en estado 'nueva'. Este panel conecta las columnas
+    // que ya existían en el esquema (asignado_a_id, causa_identificada,
+    // accion_tomada, resuelta_por_id, resuelta_en) con un flujo real:
+    //   nueva → investigando (al asignar) → resuelta | falsa_alarma (al resolver)
+    // ═══════════════════════════════════════════════════════════
+
+    // GET /m6/senales — página del panel
+    public function senales(): void
+    {
+        $modelUsuario = new \App\Models\Usuario();
+        $this->render('m6_spc/senales', [
+            'pageTitle'   => 'Gestión de Señales SPC',
+            'breadcrumb'  => [['label' => 'SPC', 'url' => APP_URL.'/m6'], ['label' => 'Señales']],
+            'productos'   => $this->getProductos(),
+            'usuarios'    => $modelUsuario->toSelectList('id', 'nombre'),
+            'canWrite'    => Auth::canWrite('m6_spc'),
+        ]);
+    }
+
+    // GET /m6/senales/listar — AJAX, filtrable por estado y producto
+    public function listarSenales(): void
+    {
+        $estado    = $_GET['estado']     ?? 'pendientes'; // 'pendientes' agrupa nueva+investigando
+        $productoId = (int)($_GET['producto_id'] ?? 0);
+
+        $where  = ['1=1'];
+        $params = [];
+
+        if ($estado === 'pendientes') {
+            $where[] = "s.estado IN ('nueva','investigando')";
+        } elseif (in_array($estado, ['nueva','investigando','resuelta','falsa_alarma'], true)) {
+            $where[]  = 's.estado = ?';
+            $params[] = $estado;
+        }
+        if ($productoId) {
+            $where[]  = 's.producto_id = ?';
+            $params[] = $productoId;
+        }
+        $whereStr = implode(' AND ', $where);
+
+        $senales = $this->db->fetchAll(
+            "SELECT s.*,
+                    lp.codigo_lote,
+                    pr.nombre  AS producto_nombre,
+                    pp.nombre  AS parametro_nombre,
+                    ua.nombre  AS asignado_nombre,
+                    ur.nombre  AS resuelta_por_nombre
+            FROM spc_senales_detectadas s
+            JOIN lotes_produccion lp ON lp.id = s.lote_id
+            JOIN productos pr        ON pr.id = s.producto_id
+            LEFT JOIN parametros_proceso pp ON pp.id = s.parametro_id
+            LEFT JOIN usuarios ua ON ua.id = s.asignado_a_id
+            LEFT JOIN usuarios ur ON ur.id = s.resuelta_por_id
+            WHERE {$whereStr}
+            ORDER BY s.creado_en DESC
+            LIMIT 200",
+            $params
+        );
+
+        $this->jsonSuccess(['senales' => $senales]);
+    }
+
+    // POST /m6/senales/:id/asignar — nueva → investigando
+    public function asignarSenal(array $params): void
+    {
+        Auth::requireWrite('m6_spc');
+        $this->verifyCsrf();
+
+        $senalId  = (int)$params['id'];
+        $usuarioId = (int)($_POST['asignado_a_id'] ?? 0);
+
+        $senal = $this->db->fetchOne("SELECT id, estado FROM spc_senales_detectadas WHERE id = ?", [$senalId]);
+        if (!$senal) { $this->jsonError('Señal no encontrada.', 404); return; }
+        if (!$usuarioId) { $this->jsonError('Seleccione a quién asignar la señal.', 422); return; }
+
+        $this->db->execute(
+            "UPDATE spc_senales_detectadas
+            SET asignado_a_id = ?, estado = 'investigando'
+            WHERE id = ?",
+            [$usuarioId, $senalId]
+        );
+
+        $this->jsonSuccess(['id' => $senalId], '✅ Señal asignada y marcada como en investigación.');
+    }
+
+    // POST /m6/senales/:id/resolver — investigando/nueva → resuelta | falsa_alarma
+    public function resolverSenal(array $params): void
+    {
+        Auth::requireWrite('m6_spc');
+        $this->verifyCsrf();
+
+        $senalId = (int)$params['id'];
+        $causa   = trim($_POST['causa_identificada'] ?? '');
+        $accion  = trim($_POST['accion_tomada'] ?? '');
+        $estadoFinal = $_POST['estado_final'] ?? 'resuelta';
+
+        $senal = $this->db->fetchOne("SELECT id FROM spc_senales_detectadas WHERE id = ?", [$senalId]);
+        if (!$senal) { $this->jsonError('Señal no encontrada.', 404); return; }
+        if (!in_array($estadoFinal, ['resuelta', 'falsa_alarma'], true)) {
+            $this->jsonError('Estado final inválido.', 422);
+            return;
+        }
+        if ($causa === '') {
+            $this->jsonError('Indique la causa identificada (o el motivo si es falsa alarma).', 422);
+            return;
+        }
+
+        $this->db->execute(
+            "UPDATE spc_senales_detectadas
+            SET causa_identificada = ?, accion_tomada = ?,
+                estado = ?, resuelta_por_id = ?, resuelta_en = NOW()
+            WHERE id = ?",
+            [$causa, $accion ?: null, $estadoFinal, Auth::id(), $senalId]
+        );
+
+        $msg = $estadoFinal === 'resuelta'
+            ? '✅ Señal marcada como resuelta.'
+            : '✅ Señal marcada como falsa alarma.';
+        $this->jsonSuccess(['id' => $senalId], $msg);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // GET /m6/limites-vigentes — límites actualmente vigentes de un
+    // parámetro (o null si nunca se guardó ninguno). Se usa en la UI
+    // para mostrar "esto es lo que M2 está usando ahora mismo" ANTES de
+    // sobrescribir con un nuevo cálculo — parte del flujo de usabilidad
+    // para no reemplazar límites vigentes a ciegas.
+    // ═══════════════════════════════════════════════════════════
+    public function limitesVigentes(): void
+    {
+        $parametroId = (int)($_GET['parametro_id'] ?? 0);
+        if (!$parametroId) {
+            $this->jsonError('Parámetro requerido.', 422);
+            return;
+        }
+
+        $vigente = $this->db->fetchOne(
+            "SELECT lc.*, u.nombre AS calculado_por_nombre
+            FROM spc_limites_control lc
+            LEFT JOIN usuarios u ON u.id = lc.calculado_por_id
+            WHERE lc.parametro_id = ? AND lc.vigente = 1
+            ORDER BY lc.calculado_en DESC LIMIT 1",
+            [$parametroId]
+        );
+
+        $this->jsonSuccess(['vigente' => $vigente ?: null]);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // POST /m6/guardar-limites
+    //
+    // Recalcula el análisis desde cero (nunca confía en números que
+    // pudo haber mandado el navegador) y lo persiste en
+    // spc_limites_control como el límite vigente para ese parámetro,
+    // marcando como no vigente cualquier fila anterior del mismo
+    // parámetro. Esta es la conexión que faltaba entre M6 (calcula
+    // Fase I) y M2 (consume los límites en tiempo real).
+    // ═══════════════════════════════════════════════════════════
+    public function guardarLimites(): void
+    {
+        Auth::requireWrite('m6_spc');
+        $this->verifyCsrf();
+
+        $productoId  = (int)($_POST['producto_id']  ?? 0);
+        $parametroId = (int)($_POST['parametro_id'] ?? 0);
+        $fechaDesde  = $_POST['fecha_desde'] ?? null;
+        $fechaHasta  = $_POST['fecha_hasta'] ?? null;
+        $confirmarInestable = !empty($_POST['confirmar_inestable']);
+
+        $r = $this->calcularAnalisis($productoId, $parametroId, $fechaDesde, $fechaHasta);
+        if (isset($r['error'])) {
+            $this->jsonError($r['error'], 422);
+            return;
+        }
+
+        $procesoEstable = empty($r['violaciones']);
+
+        // No se guarda a ciegas un proceso inestable como límite vigente
+        // (Montgomery 2013, Cap.6, p.354: Cp/Cpk no son válidos con
+        // proceso fuera de control, y usar esos límites como operativos
+        // perpetuaría la inestabilidad). Se exige confirmación explícita.
+        if (!$procesoEstable && !$confirmarInestable) {
+            $this->jsonError(
+                'El proceso muestra ' . count($r['violaciones']) . ' señal(es) de descontrol. '
+                . 'Los límites calculados sobre un proceso inestable no son representativos '
+                . '(Montgomery, 2013, Cap.6, p.354). Confirme si desea guardarlos de todas formas.',
+                409,
+                ['requiere_confirmacion' => true, 'violaciones' => count($r['violaciones'])]
+            );
+            return;
+        }
+
+        $tipoCarta = $r['tipo_carta']; // 'p' | 'xr'
+        $n         = (int)$r['n'];
+        $k         = (int)$r['k'];
+
+        // Rango de fechas real de los datos usados (no lo que el usuario
+        // tecleó en el filtro, por si lo dejó vacío)
+        $fechasReales = array_column($r['subgrupos'], 'fecha');
+        $fDesde = $fechaDesde ?: (min($fechasReales) ?: date('Y-m-d'));
+        $fHasta = $fechaHasta ?: (max($fechasReales) ?: date('Y-m-d'));
+        // 'fecha' en $subgrupos viene como "YYYY-MM-DD (turno)" vía fecha_label
+        // en algunos casos; nos aseguramos de tomar solo la parte de fecha.
+        $fDesde = substr((string)$fDesde, 0, 10);
+        $fHasta = substr((string)$fHasta, 0, 10);
+
+        $data = [
+            'producto_id'        => $productoId,
+            'parametro_id'       => $parametroId,
+            'fecha_desde'        => $fDesde,
+            'fecha_hasta'        => $fHasta,
+            'n_subgrupos'        => $k,
+            'tamanio_subgrupo'   => $n,
+            'ucl_xbar'           => $r['limites_xbar']['lcs']   ?? null,
+            'cl_xbar'            => $r['limites_xbar']['media'] ?? null,
+            'lcl_xbar'           => $r['limites_xbar']['lci']   ?? null,
+            'pct_fuera_control'  => $k > 0 ? round(count($r['violaciones']) / $k * 100, 2) : 0,
+            'proceso_estable'    => $procesoEstable ? 1 : 0,
+            'calculado_por_id'   => Auth::id(),
+            'calculado_en'       => date('Y-m-d H:i:s'),
+            'vigente'            => 1,
+        ];
+
+        if ($tipoCarta === 'p') {
+            // Carta p: no aplica R/S ni Cp/Cpk (son índices para variables
+            // continuas) — gran_media_xbarbar guarda p̄ por conveniencia
+            // de reutilizar la misma columna, con nivel_sigma y ppm sí
+            // aplicables (se derivan directo de p̄).
+            $data['gran_media_xbarbar'] = $r['pbar'];
+            $data['media_rangos_rbar']  = null;
+            $data['desv_est_proceso']   = $r['estadisticos']['desv_lp'] ?? null;
+            $data['tipo_secundaria']    = 'r';
+            $data['ucl_r']              = null;
+            $data['cl_r']               = null;
+            $data['lcl_r']              = null;
+            $data['lse']                = null;
+            $data['lie']                = null;
+            $data['cp']                 = null;
+            $data['cpk']                = null;
+            $data['pp']                 = null;
+            $data['ppk']                = null;
+            $data['ppm_cp']             = $r['capacidad']['ppm_cp'] ?? null;
+            $data['ppm_lp']             = $r['capacidad']['ppm_lp'] ?? null;
+            $data['nivel_sigma']        = null;
+        } else {
+            $data['gran_media_xbarbar'] = $r['estadisticos']['media']   ?? null;
+            $data['media_rangos_rbar']  = $r['limites_r']['media']      ?? null;
+            $data['desv_est_proceso']   = $r['estadisticos']['desv_lp'] ?? null;
+            $data['tipo_secundaria']    = $r['usa_carta_s'] ? 's' : 'r';
+            $data['ucl_r']              = $r['limites_r']['lcs']   ?? null;
+            $data['cl_r']               = $r['limites_r']['media'] ?? null;
+            $data['lcl_r']              = $r['limites_r']['lci']   ?? null;
+            $data['lse']                = $r['specs']['lse'] ?: null;
+            $data['lie']                = $r['specs']['lie'] ?: null;
+            $cap = $r['capacidad'];
+            $data['cp']          = is_numeric($cap['cp'])  ? $cap['cp']  : null;
+            $data['cpk']         = is_numeric($cap['cpk']) ? $cap['cpk'] : null;
+            $data['pp']          = is_numeric($cap['pp'])  ? $cap['pp']  : null;
+            $data['ppk']         = is_numeric($cap['ppk']) ? $cap['ppk'] : null;
+            $data['ppm_cp']      = is_numeric($cap['ppm_cp']) ? $cap['ppm_cp'] : null;
+            $data['ppm_lp']      = is_numeric($cap['ppm_lp']) ? $cap['ppm_lp'] : null;
+            $data['nivel_sigma'] = is_numeric($cap['sigma_nivel']) ? $cap['sigma_nivel'] : null;
+        }
+
+        $this->db->transaction(function($db) use ($data, $parametroId) {
+            // Supersede: el límite anterior de este parámetro deja de ser vigente
+            $db->execute(
+                "UPDATE spc_limites_control SET vigente = 0 WHERE parametro_id = ? AND vigente = 1",
+                [$parametroId]
+            );
+
+            $cols  = implode(',', array_keys($data));
+            $marks = implode(',', array_fill(0, count($data), '?'));
+            $db->execute(
+                "INSERT INTO spc_limites_control ({$cols}) VALUES ({$marks})",
+                array_values($data)
+            );
+        });
+
+        $this->jsonSuccess(
+            ['parametro_id' => $parametroId, 'vigente_desde' => $data['calculado_en']],
+            '✅ Límites de control guardados como vigentes. M2 los usará desde ahora para detectar señales en tiempo real.'
+        );
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -133,34 +485,22 @@ class SpcController extends Controller
 
         $curvaOC_p = $this->calcularCurvaOC_p($pbar, $ni, $lcs_p, $lci_p);
 
-        // Violaciones Nelson adaptadas a carta p — reglas 1, 2, 3
-        // Ref: Montgomery (2013), Cap.7, p.306
+        // Violaciones Nelson — mismo Service compartido que M2 y la carta
+        // X̄-R/X̄-S de este mismo controller (ver reglasNelson() más abajo).
+        // Antes esto tenía una implementación propia con solo 3 reglas
+        // adaptadas; ahora la carta p tiene las 8 reglas completas, igual
+        // que las demás cartas.
+        $violacionesPorPunto = ReglasNelsonService::evaluarSerieCompleta(
+            $proporciones, $pbar, $factor, $lcs_p, $lci_p
+        );
         $violaciones = [];
-        foreach ($proporciones as $i => $p) {
-            if ($p > $lcs_p || ($lci_p > 0 && $p < $lci_p)) {
-                $violaciones[] = ['subgrupo' => $i + 1, 'regla' => 1,
-                    'desc' => 'Proporción fuera de límites (±3σ_p)'];
-            }
-            if ($i >= 8) {
-                $seg = array_slice($proporciones, $i - 8, 9);
-                $arr = count(array_filter($seg, fn($x) => $x > $pbar));
-                $aba = count(array_filter($seg, fn($x) => $x < $pbar));
-                if ($arr === 9 || $aba === 9) {
-                    $violaciones[] = ['subgrupo' => $i + 1, 'regla' => 2,
-                        'desc' => '9 lotes consecutivos del mismo lado de p̄'];
-                }
-            }
-            if ($i >= 5) {
-                $seg = array_slice($proporciones, $i - 5, 6);
-                $asc = true; $des = true;
-                for ($j = 1; $j < 6; $j++) {
-                    if ($seg[$j] <= $seg[$j - 1]) $asc = false;
-                    if ($seg[$j] >= $seg[$j - 1]) $des = false;
-                }
-                if ($asc || $des) {
-                    $violaciones[] = ['subgrupo' => $i + 1, 'regla' => 3,
-                        'desc' => '6 lotes en tendencia monótona — deriva en proporciones'];
-                }
+        foreach ($violacionesPorPunto as $i => $r) {
+            foreach ($r['reglas'] as $numRegla) {
+                $violaciones[] = [
+                    'subgrupo' => $i + 1,
+                    'regla'    => $numRegla,
+                    'desc'     => ReglasNelsonService::DESCRIPCIONES[$numRegla] ?? "Regla {$numRegla}",
+                ];
             }
         }
 
@@ -669,50 +1009,33 @@ class SpcController extends Controller
     // REGLAS DE NELSON
     // Ref: Nelson (1984); Montgomery (2013), Cap.5, p.196-200
     // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
+    // REGLAS DE NELSON — delega en Services/ReglasNelsonService.php,
+    // el mismo que usa M2 (RegistroSubgrupoSpc). Antes esta función tenía
+    // su propia lógica con solo 4 reglas, y lo que aquí se llamaba
+    // "Regla 4" (2 de 3 puntos fuera de ±2σ) era en realidad la Regla 5
+    // en la numeración estándar de Nelson — la misma que ya usa M2. Esa
+    // inconsistencia quedaba resuelta al compartir una sola fuente de
+    // verdad para las 8 reglas.
+    // ═══════════════════════════════════════════════════════════
     private function reglasNelson(array $vals, float $media, float $sigma,
                                     float $lcs, float $lci): array
     {
-        $v = []; $n = count($vals);
-        for ($i = 0; $i < $n; $i++) {
-            // Regla 1: punto fuera de límites ±3σ
-            if ($vals[$i] > $lcs || $vals[$i] < $lci) {
-                $v[] = ['subgrupo' => $i + 1, 'regla' => 1,
-                    'desc' => 'Punto fuera de límites de control (±3σ)'];
-            }
-            // Regla 2: 9 puntos consecutivos del mismo lado
-            if ($i >= 8) {
-                $seg = array_slice($vals, $i - 8, 9);
-                $arr = count(array_filter($seg, fn($x) => $x > $media));
-                $aba = count(array_filter($seg, fn($x) => $x < $media));
-                if ($arr === 9 || $aba === 9) {
-                    $v[] = ['subgrupo' => $i + 1, 'regla' => 2,
-                        'desc' => '9 puntos consecutivos del mismo lado de la línea central'];
-                }
-            }
-            // Regla 3: 6 puntos en tendencia monótona
-            if ($i >= 5) {
-                $seg = array_slice($vals, $i - 5, 6);
-                $asc = true; $des = true;
-                for ($j = 1; $j < 6; $j++) {
-                    if ($seg[$j] <= $seg[$j - 1]) $asc = false;
-                    if ($seg[$j] >= $seg[$j - 1]) $des = false;
-                }
-                if ($asc || $des) {
-                    $v[] = ['subgrupo' => $i + 1, 'regla' => 3,
-                        'desc' => '6 puntos en tendencia monótona (deriva del proceso)'];
-                }
-            }
-            // Regla 4: 2 de 3 puntos fuera de ±2σ
-            if ($i >= 2) {
-                $seg = array_slice($vals, $i - 2, 3);
-                $cnt = count(array_filter($seg, fn($x) => abs($x - $media) > 2 * $sigma));
-                if ($cnt >= 2) {
-                    $v[] = ['subgrupo' => $i + 1, 'regla' => 4,
-                        'desc' => '2 de 3 puntos consecutivos fuera de ±2σ'];
-                }
+        $resultadosPorPunto = ReglasNelsonService::evaluarSerieCompleta(
+            $vals, $media, $sigma, $lcs, $lci
+        );
+
+        $violaciones = [];
+        foreach ($resultadosPorPunto as $i => $r) {
+            foreach ($r['reglas'] as $numRegla) {
+                $violaciones[] = [
+                    'subgrupo' => $i + 1,
+                    'regla'    => $numRegla,
+                    'desc'     => ReglasNelsonService::DESCRIPCIONES[$numRegla] ?? "Regla {$numRegla}",
+                ];
             }
         }
-        return $v;
+        return $violaciones;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -904,7 +1227,12 @@ class SpcController extends Controller
     }
 
     // ═══════════════════════════════════════════════════════════
-    // Q-Q PLOT — Filliben (1975); Montgomery (2013), Cap.3
+    // Q-Q PLOT — Posición de graficación de Blom (1958)
+    // Ref: Blom, G. (1958). Statistical Estimates and Transformed
+    // Beta-Variables. New York: Wiley.
+    // La fórmula (i-0.375)/(n+0.25) corresponde a Blom, no a Filliben
+    // (1975) — la fórmula de Filliben usa constantes distintas
+    // (0.3175/0.365) y casos especiales para el primer y último punto.
     // ═══════════════════════════════════════════════════════════
     private function qqPlot(array $vals, float $media, float $sigma): array
     {
@@ -932,7 +1260,13 @@ class SpcController extends Controller
         ]];
     }
 
-    // Inversa normal — Beasley-Springer-Moro; Glasserman (2004)
+    // Inversa normal — Algoritmo de Acklam (2003)
+    // Ref: Acklam, P.J. (2003). "An algorithm for computing the inverse
+    // normal cumulative distribution function". Los coeficientes de esta
+    // implementación corresponden a la aproximación racional de Acklam
+    // (precisión ~1.15×10⁻⁹), no a Beasley-Springer-Moro (que usa
+    // coeficientes distintos) — confusión frecuente entre ambos métodos
+    // en implementaciones que circulan públicamente.
     private function invNormal(float $p): float
     {
         if ($p <= 0) return -8.0;

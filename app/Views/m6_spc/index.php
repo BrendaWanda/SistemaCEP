@@ -1,5 +1,9 @@
 <?php
 // app/Views/m6_spc/index.php
+/** @var array $productos
+ *  @var array $parametros
+ *  @var bool  $canWrite */
+$csrfToken = \App\Core\Controller::csrfToken();
 ?>
 
 <style>
@@ -8,7 +12,7 @@
     /* Ocultar elementos de navegación y filtros */
     .sidebar, .topbar, nav, .page-header .page-actions,
     #filtros-spc, #spc-placeholder, #spc-loading,
-    #btn-imprimir-spc, .btn, button,
+    #btn-imprimir-spc, #panel-guardar-limites, .btn, button,
     .fase-banner-btns { display: none !important; }
 
     /* Sin márgenes en body */
@@ -49,6 +53,16 @@
 
 /* Ocultar header y footer de print en pantalla */
 #print-header, #print-footer { display: none; }
+
+/* Panel de Resumen Estadístico de M6: hasta 17 tarjetas (más que en
+   otros módulos), así que usa columnas más angostas para que quepan
+   más por fila en pantallas normales sin generar scroll horizontal. */
+#stat-cards.stats-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+@media (max-width: 640px) {
+    #stat-cards.stats-grid { grid-template-columns: 1fr 1fr; }
+}
 </style>
 
 <!-- Header oculto que aparece solo al imprimir -->
@@ -58,11 +72,11 @@
             <div style="font-size:18px;font-weight:700;color:#090e22">
                 Industrias Alimenticias Gustossi SRL
             </div>
-            <div style="font-size:13px;color:#64748b">
+            <div style="font-size:var(--fs-dense-sm);color:#64748b">
                 SIACEP — Sistema de Control Estadístico de Proceso (M6)
             </div>
         </div>
-        <div style="text-align:right;font-size:12px;color:#64748b">
+        <div style="text-align:right;font-size:var(--fs-dense-xs);color:#64748b">
             <div id="print-producto-param" style="font-weight:600"></div>
             <div>Fecha impresión: <?= date('d/m/Y H:i') ?></div>
             <div>Fase I — Análisis Retrospectivo</div>
@@ -72,7 +86,7 @@
 
 <!-- Footer oculto que aparece solo al imprimir -->
 <div id="print-footer" style="display:none;margin-top:24px;padding-top:12px;
-     border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center">
+     border-top:1px solid #e2e8f0;font-size:var(--fs-dense-xs);color:#94a3b8;text-align:center">
     Generado por SIACEP · Industrias Alimenticias Gustossi SRL ·
     Metodología: Montgomery, D.C. (2013). Introduction to Statistical Quality Control, 7th Ed.
 </div>
@@ -93,10 +107,12 @@
     </div>
 </div>
 
+<?php require __DIR__ . '/_nav.php'; ?>
+
 <!-- ══ FILTROS ══ -->
 <div class="card mb-4" id="filtros-spc">
     <div class="card-header" style="background:#090e22;color:#fff">
-        <span style="font-weight:600;font-size:15px">
+        <span style="font-weight:600;font-size:var(--fs-dense-lg)">
             <i class="bi bi-funnel me-2"></i> Filtros de Análisis
         </span>
     </div>
@@ -148,12 +164,12 @@
             <div id="specs-banner" style="display:none;
                 margin-left:8px;display:none;gap:20px;
                 background:#eff6ff;border:1px solid #bfdbfe;
-                border-radius:8px;padding:8px 16px;font-size:14px;color:#1e40af">
+                border-radius:8px;padding:8px 16px;font-size:var(--fs-dense-md);color:#1e40af">
                 <span><i class="bi bi-arrow-up-circle me-1"></i>LSE: <strong id="val-lse">—</strong></span>
                 <span><i class="bi bi-arrow-down-circle me-1"></i>LIE: <strong id="val-lie">—</strong></span>
                 <span><i class="bi bi-rulers me-1"></i>Tolerancia: <strong id="val-tol">—</strong></span>
                 <span id="val-carta-tipo" style="background:#1e3a5f;color:#93c5fd;
-                    padding:2px 10px;border-radius:10px;font-size:12px;font-weight:700"></span>
+                    padding:2px 10px;border-radius:10px;font-size:var(--fs-dense-xs);font-weight:700"></span>
             </div>
         </div>
     </div>
@@ -185,10 +201,10 @@
         <div class="card-header" style="background:#090e22;color:#fff;cursor:pointer;
              display:flex;justify-content:space-between;align-items:center"
              onclick="toggleSeccion('stat-cards-body','ico-stat-cards')">
-            <span style="font-weight:600;font-size:15px">
+            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
                 <i class="bi bi-bar-chart-line me-2"></i>Resumen Estadístico
             </span>
-            <i id="ico-stat-cards" class="bi bi-chevron-up" style="font-size:14px"></i>
+            <i id="ico-stat-cards" class="bi bi-chevron-up" style="font-size:var(--fs-dense-md)"></i>
         </div>
         <div id="stat-cards-body">
             <div id="stat-cards" class="stats-grid" style="padding:12px 16px"></div>
@@ -197,6 +213,28 @@
 
     <!-- ─── BLOQUE 2: FASE I + ADVERTENCIAS ─── -->
     <div id="fase-banner" class="mb-3"></div>
+
+    <?php if ($canWrite): ?>
+    <!-- ─── Guardar límites vigentes — conecta Fase I (M6) con M2 en tiempo real ─── -->
+    <div id="panel-guardar-limites" class="card mb-3" style="display:none;border-left:4px solid #4f8ef7">
+        <div class="card-body" style="display:flex;justify-content:space-between;
+             align-items:center;flex-wrap:wrap;gap:12px;padding:14px 18px">
+            <div id="vigente-info" style="font-size:var(--fs-dense-sm);color:#475569;flex:1;min-width:280px">
+                <i class="bi bi-hourglass-split"></i> Consultando límites vigentes...
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button id="btn-anular-limites" class="btn btn-secondary" style="display:none;
+                        color:#b45309;border-color:#fde68a" onclick="iniciarAnularLimites()">
+                    <i class="bi bi-x-octagon"></i> Anular vigente
+                </button>
+                <button id="btn-guardar-limites" class="btn btn-primary" onclick="iniciarGuardarLimites()">
+                    <i class="bi bi-cloud-arrow-up"></i> Guardar como límites vigentes
+                </button>
+            </div>
+        </div>
+    </div>
+    <?php endif ?>
+
     <div id="panel-advertencias-metodologicas" class="mb-3"></div>
 
     <!-- ─── BLOQUE 3: ANÁLISIS DE NORMALIDAD (histograma + QQ) ─── -->
@@ -204,36 +242,36 @@
         <div class="card-header" style="background:#090e22;color:#fff;cursor:pointer;
              display:flex;justify-content:space-between;align-items:center"
              onclick="toggleSeccion('normalidad-body','ico-normalidad')">
-            <span style="font-weight:600;font-size:15px">
+            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
                 <i class="bi bi-distribute-vertical me-2"></i>
                 Análisis de Normalidad — Histograma y Gráfica de Probabilidad
             </span>
-            <i id="ico-normalidad" class="bi bi-chevron-up" style="font-size:14px"></i>
+            <i id="ico-normalidad" class="bi bi-chevron-up" style="font-size:var(--fs-dense-md)"></i>
         </div>
         <div id="normalidad-body">
             <div class="card-body">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%">
                     <!-- Histograma -->
                     <div style="min-width:0">
-                        <div style="font-weight:600;font-size:13px;color:#1e3a5f;
+                        <div style="font-weight:600;font-size:var(--fs-dense-sm);color:#1e3a5f;
                              margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">
                             <i class="bi bi-bar-chart-fill me-1"></i>Histograma de Frecuencias
                         </div>
-                        <div style="position:relative;width:100%">
+                        <div style="position:relative;width:100%;height:280px">
                             <canvas id="chart-histograma"></canvas>
                         </div>
                         <div id="hist-ad-resultado" style="margin-top:8px"></div>
                     </div>
                     <!-- Q-Q Plot -->
                     <div style="min-width:0">
-                        <div style="font-weight:600;font-size:13px;color:#1e3a5f;
+                        <div style="font-weight:600;font-size:var(--fs-dense-sm);color:#1e3a5f;
                              margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">
                             <i class="bi bi-graph-up me-1"></i>Gráfica de Probabilidad Normal (Q-Q Plot)
                         </div>
-                        <div style="position:relative;width:100%">
+                        <div style="position:relative;width:100%;height:280px">
                             <canvas id="chart-qq"></canvas>
                         </div>
-                        <div id="qq-resultado" style="margin-top:8px;font-size:12px"></div>
+                        <div id="qq-resultado" style="margin-top:8px;font-size:var(--fs-dense-xs)"></div>
                     </div>
                 </div>
             </div>
@@ -245,54 +283,64 @@
         <div class="card-header" style="background:#090e22;color:#fff;cursor:pointer;
              display:flex;justify-content:space-between;align-items:center"
              onclick="toggleSeccion('cartas-body','ico-cartas')">
-            <span style="font-weight:600;font-size:15px">
+            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
                 <i class="bi bi-activity me-2"></i>Cartas de Control SPC
             </span>
-            <i id="ico-cartas" class="bi bi-chevron-up" style="font-size:14px"></i>
+            <i id="ico-cartas" class="bi bi-chevron-up" style="font-size:var(--fs-dense-md)"></i>
         </div>
         <div id="cartas-body">
             <div class="card-body" style="padding:12px 16px">
 
                 <!-- Carta X̄-R o X̄-S -->
                 <div id="seccion-carta-xr" style="display:none">
-                    <div style="font-weight:600;font-size:13px;color:#1e3a5f;
+                    <div style="font-weight:600;font-size:var(--fs-dense-sm);color:#1e3a5f;
                          margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">
                         <i class="bi bi-activity me-1"></i>Carta de Control X̄ (Medias)
                     </div>
-                    <canvas id="chart-xbar" height="90" style="margin-bottom:20px"></canvas>
-                    <div style="font-weight:600;font-size:13px;color:#1e3a5f;
+                    <div style="position:relative;width:100%;height:300px;margin-bottom:20px">
+                        <canvas id="chart-xbar"></canvas>
+                    </div>
+                    <div style="font-weight:600;font-size:var(--fs-dense-sm);color:#1e3a5f;
                          margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">
                         <span id="hdr-carta-secundaria">
                             <i class="bi bi-activity me-1"></i>Carta de Control R (Rangos)
                         </span>
                     </div>
-                    <canvas id="chart-r" height="70"></canvas>
+                    <div style="position:relative;width:100%;height:240px">
+                        <canvas id="chart-r"></canvas>
+                    </div>
                 </div>
 
                 <!-- Carta X-MR -->
                 <div id="seccion-carta-xmr" style="display:none">
-                    <div style="font-weight:600;font-size:13px;color:#1e3a5f;
+                    <div style="font-weight:600;font-size:var(--fs-dense-sm);color:#1e3a5f;
                          margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">
                         <i class="bi bi-activity me-1"></i>Carta de Control X (Valores Individuales)
                     </div>
-                    <canvas id="chart-x" height="90" style="margin-bottom:20px"></canvas>
-                    <div style="font-weight:600;font-size:13px;color:#1e3a5f;
+                    <div style="position:relative;width:100%;height:300px;margin-bottom:20px">
+                        <canvas id="chart-x"></canvas>
+                    </div>
+                    <div style="font-weight:600;font-size:var(--fs-dense-sm);color:#1e3a5f;
                          margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">
                         <i class="bi bi-activity me-1"></i>Carta de Control MR (Rango Móvil)
                     </div>
-                    <canvas id="chart-mr" height="70"></canvas>
+                    <div style="position:relative;width:100%;height:240px">
+                        <canvas id="chart-mr"></canvas>
+                    </div>
                 </div>
 
                 <!-- Carta p -->
                 <div id="seccion-carta-p" style="display:none">
                     <div style="display:flex;justify-content:space-between;align-items:center;
                          margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #e2e8f0">
-                        <div style="font-weight:600;font-size:13px;color:#1e3a5f">
+                        <div style="font-weight:600;font-size:var(--fs-dense-sm);color:#1e3a5f">
                             <i class="bi bi-activity me-1"></i>Carta de Control p (Proporción de No Conformes)
                         </div>
-                        <div id="carta-p-resumen" style="font-size:12px;color:#64748b"></div>
+                        <div id="carta-p-resumen" style="font-size:var(--fs-dense-xs);color:#64748b"></div>
                     </div>
-                    <canvas id="chart-p" height="90"></canvas>
+                    <div style="position:relative;width:100%;height:300px">
+                        <canvas id="chart-p"></canvas>
+                    </div>
                 </div>
 
             </div>
@@ -304,12 +352,12 @@
         <div class="card-header" style="background:#090e22;color:#fff;cursor:pointer;
              display:flex;justify-content:space-between;align-items:center"
              onclick="toggleSeccion('tabla-sg-body','ico-tabla-sg')">
-            <span style="font-weight:600;font-size:15px">
+            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
                 <i class="bi bi-table me-2"></i>Tabla de Datos por Subgrupo
             </span>
             <div style="display:flex;align-items:center;gap:10px">
                 <span id="subgrupos-count" class="badge badge-info"></span>
-                <i id="ico-tabla-sg" class="bi bi-chevron-down" style="font-size:14px"></i>
+                <i id="ico-tabla-sg" class="bi bi-chevron-down" style="font-size:var(--fs-dense-md)"></i>
             </div>
         </div>
         <div id="tabla-sg-body" style="display:none">
@@ -355,19 +403,21 @@
         <div class="card-header" style="background:#090e22;color:#fff;cursor:pointer;
              display:flex;justify-content:space-between;align-items:center"
              onclick="toggleSeccion('run-chart-body','ico-run-chart')">
-            <span style="font-weight:600;font-size:15px">
+            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
                 <i class="bi bi-activity me-2"></i>Gráfico de Corridas (Run Chart)
             </span>
             <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-size:11px;color:#9ca3af">Montgomery (2013), Cap.3</span>
-                <i id="ico-run-chart" class="bi bi-chevron-up" style="font-size:14px"></i>
+                <span style="font-size:var(--fs-dense-xs);color:#9ca3af">Montgomery (2013), Cap.3</span>
+                <i id="ico-run-chart" class="bi bi-chevron-up" style="font-size:var(--fs-dense-md)"></i>
             </div>
         </div>
         <div id="run-chart-body">
             <div class="card-body">
                 <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start">
-                    <canvas id="chart-run" height="110"></canvas>
-                    <div id="contenido-run-chart" style="font-size:12px"></div>
+                    <div style="position:relative;width:100%;height:280px">
+                        <canvas id="chart-run"></canvas>
+                    </div>
+                    <div id="contenido-run-chart" style="font-size:var(--fs-dense-xs)"></div>
                 </div>
             </div>
         </div>
@@ -378,19 +428,21 @@
         <div class="card-header" style="background:#090e22;color:#fff;cursor:pointer;
              display:flex;justify-content:space-between;align-items:center"
              onclick="toggleSeccion('run-chart-p-body','ico-run-chart-p')">
-            <span style="font-weight:600;font-size:15px">
+            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
                 <i class="bi bi-activity me-2"></i>Gráfico de Corridas — Proporciones p
             </span>
             <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-size:11px;color:#9ca3af">Montgomery (2013), Cap.7</span>
-                <i id="ico-run-chart-p" class="bi bi-chevron-up" style="font-size:14px"></i>
+                <span style="font-size:var(--fs-dense-xs);color:#9ca3af">Montgomery (2013), Cap.7</span>
+                <i id="ico-run-chart-p" class="bi bi-chevron-up" style="font-size:var(--fs-dense-md)"></i>
             </div>
         </div>
         <div id="run-chart-p-body">
             <div class="card-body">
                 <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start">
-                    <canvas id="chart-run-p" height="110"></canvas>
-                    <div id="contenido-run-chart-p" style="font-size:12px"></div>
+                    <div style="position:relative;width:100%;height:280px">
+                        <canvas id="chart-run-p"></canvas>
+                    </div>
+                    <div id="contenido-run-chart-p" style="font-size:var(--fs-dense-xs)"></div>
                 </div>
             </div>
         </div>
@@ -401,10 +453,10 @@
         <div class="card-header" style="background:#090e22;color:#fff;cursor:pointer;
              display:flex;justify-content:space-between;align-items:center"
              onclick="toggleSeccion('capacidad-body','ico-capacidad')">
-            <span style="font-weight:600;font-size:15px">
+            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
                 <i class="bi bi-speedometer2 me-2"></i>Análisis de Capacidad del Proceso
             </span>
-            <i id="ico-capacidad" class="bi bi-chevron-up" style="font-size:14px"></i>
+            <i id="ico-capacidad" class="bi bi-chevron-up" style="font-size:var(--fs-dense-md)"></i>
         </div>
         <div id="capacidad-body">
             <div class="card-body">
@@ -426,23 +478,25 @@
         <div class="card-header" style="background:#090e22;color:#fff;cursor:pointer;
              display:flex;justify-content:space-between;align-items:center"
              onclick="toggleSeccion('curva-oc-body','ico-curva-oc')">
-            <span style="font-weight:600;font-size:15px">
+            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
                 <i class="bi bi-graph-down-arrow me-2"></i>
                 Curva OC — Probabilidad de No Detección (β)
             </span>
             <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-size:11px;color:#9ca3af">Montgomery (2013), Cap.5</span>
-                <i id="ico-curva-oc" class="bi bi-chevron-up" style="font-size:14px"></i>
+                <span style="font-size:var(--fs-dense-xs);color:#9ca3af">Montgomery (2013), Cap.5</span>
+                <i id="ico-curva-oc" class="bi bi-chevron-up" style="font-size:var(--fs-dense-md)"></i>
             </div>
         </div>
         <div id="curva-oc-body">
             <div class="card-body">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-                    <canvas id="chart-oc" height="200"></canvas>
+                    <div style="position:relative;width:100%;height:400px">
+                        <canvas id="chart-oc"></canvas>
+                    </div>
                     <div>
-                        <p style="font-size:12px;color:#64748b;margin-bottom:10px;line-height:1.6"
+                        <p style="font-size:var(--fs-dense-xs);color:#64748b;margin-bottom:10px;line-height:1.6"
                            id="texto-curva-oc"></p>
-                        <table class="data-table-bordered" style="font-size:12px">
+                        <table class="data-table-bordered" style="font-size:var(--fs-dense-xs)">
                             <thead>
                                 <tr>
                                     <th>δ / p₁</th><th>β (%)</th>
@@ -451,7 +505,7 @@
                             </thead>
                             <tbody id="tbody-oc-refs"></tbody>
                         </table>
-                        <p style="font-size:11px;color:#94a3b8;margin-top:8px">
+                        <p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:8px">
                             β(δ)=Φ(L−δ√n)−Φ(−L−δ√n), L=3 · ARL=1/(1−β)<br>
                             <em>Montgomery (2013), Cap.5, Ec.5.23</em>
                         </p>
@@ -466,18 +520,20 @@
         <div class="card-header" style="background:#090e22;color:#fff;cursor:pointer;
              display:flex;justify-content:space-between;align-items:center"
              onclick="toggleSeccion('pareto-p-body','ico-pareto-p')">
-            <span style="font-weight:600;font-size:15px">
+            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
                 <i class="bi bi-bar-chart-steps me-2"></i>Diagrama de Pareto — No Conformes por Lote
             </span>
             <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-size:11px;color:#9ca3af">Montgomery (2013), Cap.7</span>
-                <i id="ico-pareto-p" class="bi bi-chevron-up" style="font-size:14px"></i>
+                <span style="font-size:var(--fs-dense-xs);color:#9ca3af">Montgomery (2013), Cap.7</span>
+                <i id="ico-pareto-p" class="bi bi-chevron-up" style="font-size:var(--fs-dense-md)"></i>
             </div>
         </div>
         <div id="pareto-p-body">
             <div class="card-body">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-                    <canvas id="chart-pareto-p" height="180"></canvas>
+                    <div style="position:relative;width:100%;height:360px">
+                        <canvas id="chart-pareto-p"></canvas>
+                    </div>
                     <div id="tabla-pareto-p" style="overflow-x:auto"></div>
                 </div>
             </div>
@@ -489,11 +545,11 @@
         <div class="card-header" style="background:#991b1b;color:#fff;cursor:pointer;
              display:flex;justify-content:space-between;align-items:center"
              onclick="toggleSeccion('violaciones-body','ico-violaciones')">
-            <span style="font-weight:600;font-size:15px">
+            <span style="font-weight:600;font-size:var(--fs-dense-lg)">
                 <i class="bi bi-exclamation-triangle me-2"></i>
                 Señales de Control — Reglas de Nelson (Conclusiones)
             </span>
-            <i id="ico-violaciones" class="bi bi-chevron-up" style="font-size:14px"></i>
+            <i id="ico-violaciones" class="bi bi-chevron-up" style="font-size:var(--fs-dense-md)"></i>
         </div>
         <div id="violaciones-body">
             <div class="card-body" id="panel-violaciones"></div>
@@ -504,8 +560,11 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <script>
+const appUrl    = '<?= APP_URL ?>';
+const csrfToken = '<?= $csrfToken ?>';
 let chartXbar=null, chartR=null, chartX=null, chartMR=null, chartHist=null;
 let tipoCarta = 'xr'; // 'xr' o 'xmr'
+let ultimoAnalisis = null; // datos del último análisis, para "Guardar límites"
 
 // ── Filtrar parámetros por producto ──
 document.getElementById('fil_producto').addEventListener('change', function() {
@@ -567,16 +626,36 @@ async function cargarAnalisis() {
 
     try {
         const res  = await fetch('<?= APP_URL ?>/m6/analizar?' + params);
-        const data = await res.json();
+        const resp = await res.json();
 
-        if (data.error) {
-            alert(data.error);
+        // Respuesta unificada al contrato estándar del sistema:
+        // {success, message, data}. Antes esta ruta devolvía el análisis
+        // directo en la raíz y errores como {error:'...'}; ahora es
+        // consistente con el resto de los módulos (M2, etc.). Se
+        // desempaqueta aquí una sola vez — todas las funciones
+        // renderXxx(d) de más abajo siguen recibiendo el objeto de
+        // análisis "plano" tal como antes, no necesitaron cambiar.
+        if (!resp.success) {
+            alert(resp.message);
             document.getElementById('spc-placeholder').style.display = 'block';
             return;
         }
+        const data = resp.data;
 
         tipoCarta = data.tipo_carta || 'xr';
         renderizarResultados(data);
+
+        // Contexto para "Guardar como límites vigentes" — nunca se confía
+        // en enviar los números calculados al servidor; guardarLimites()
+        // los recalcula desde cero con estos mismos filtros.
+        ultimoAnalisis = {
+            producto_id:    prodId,
+            parametro_id:   paramId,
+            fecha_desde:    desde || null,
+            fecha_hasta:    hasta || null,
+            procesoEstable: !(data.advertencias || []).some(a => a.codigo === 'PROCESO_INESTABLE'),
+        };
+        renderPanelGuardarLimites();
 
     } catch(e) {
         alert('Error de conexión: ' + e.message);
@@ -670,24 +749,177 @@ function renderFaseBanner(d) {
     el.innerHTML = `
     <div style="background:#1e3a5f;border-radius:8px;padding:10px 16px;
                 display:flex;gap:16px;align-items:center;flex-wrap:wrap;
-                font-size:13px;color:#e2e8f0;margin-bottom:0">
+                font-size:var(--fs-dense-sm);color:#e2e8f0;margin-bottom:0">
         <div style="display:flex;align-items:center;gap:8px">
             <i class="bi bi-info-circle" style="color:#60a5fa;font-size:16px"></i>
             <strong style="color:#93c5fd">FASE I — Análisis Retrospectivo</strong>
         </div>
         <div style="flex:1;min-width:180px">
-            <div style="font-size:11px;color:#94a3b8;margin-bottom:3px">
+            <div style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-bottom:3px">
                 Subgrupos: ${kActual} / ${kRec} recomendados (Montgomery 2013, Cap.5)
             </div>
             <div style="background:#0f172a;border-radius:4px;height:5px;overflow:hidden">
                 <div style="width:${pct}%;height:100%;background:${color};border-radius:4px"></div>
             </div>
         </div>
-        <div style="font-size:11px;color:#94a3b8;max-width:380px">
+        <div style="font-size:var(--fs-dense-xs);color:#94a3b8;max-width:380px">
             Límites calculados son <strong style="color:#fbbf24">límites de prueba de Fase I</strong>.
             Para Fase II se requiere verificar estabilidad con nuevos datos.
         </div>
     </div>`;
+}
+
+// ── Panel "Guardar como límites vigentes" ──────────────────────────────
+// Conecta el cálculo de Fase I (M6) con el tiempo real de M2: sin esto,
+// M2 nunca tiene límites estadísticos reales y siempre cae al respaldo
+// de especificación de M0 (valor_min/valor_max).
+function renderPanelGuardarLimites() {
+    const panel = document.getElementById('panel-guardar-limites');
+    if (!panel || !ultimoAnalisis) return; // no existe si el rol es solo lectura
+    panel.style.display = 'flex';
+    cargarLimitesVigentes(ultimoAnalisis.parametro_id);
+}
+
+async function cargarLimitesVigentes(parametroId) {
+    const info    = document.getElementById('vigente-info');
+    const btnAnular = document.getElementById('btn-anular-limites');
+    if (!info) return;
+    info.innerHTML = '<i class="bi bi-hourglass-split"></i> Consultando límites vigentes...';
+    if (btnAnular) btnAnular.style.display = 'none';
+
+    try {
+        const res  = await fetch(`${appUrl}/m6/limites-vigentes?parametro_id=${parametroId}`);
+        const resp = await res.json();
+        if (!resp.success) { info.textContent = ''; return; }
+        const data = resp.data;
+
+        if (data.vigente) {
+            const v = data.vigente;
+            const fecha = new Date(v.calculado_en.replace(' ', 'T')).toLocaleString('es-BO', {
+                day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
+            });
+            info.innerHTML = `
+                <i class="bi bi-check-circle" style="color:#16a34a"></i>
+                <strong>Límites vigentes actuales</strong> (los que M2 usa ahora mismo en producción):
+                UCL=<strong>${parseFloat(v.ucl_xbar).toFixed(4)}</strong>
+                CL=<strong>${parseFloat(v.cl_xbar).toFixed(4)}</strong>
+                LCL=<strong>${parseFloat(v.lcl_xbar).toFixed(4)}</strong>
+                — calculados el ${fecha}${v.calculado_por_nombre ? ' por ' + v.calculado_por_nombre : ''}.`;
+            if (btnAnular) btnAnular.style.display = 'inline-flex';
+        } else {
+            info.innerHTML = `
+                <i class="bi bi-exclamation-triangle" style="color:#d97706"></i>
+                Este parámetro <strong>no tiene límites vigentes guardados todavía</strong> —
+                M2 está usando la especificación de M0 (valor mín/máx) como respaldo provisional,
+                no un límite calculado estadísticamente.`;
+        }
+    } catch (e) {
+        info.textContent = '';
+    }
+}
+
+function iniciarGuardarLimites() {
+    if (!ultimoAnalisis) return;
+
+    if (!ultimoAnalisis.procesoEstable) {
+        const confirmado = confirm(
+            '⚠️ ATENCIÓN: el proceso muestra señales de descontrol (violaciones a las reglas de Nelson).\n\n' +
+            'Los límites calculados sobre un proceso inestable pueden no ser representativos ' +
+            'del comportamiento real del proceso (Montgomery, 2013, Cap.6, p.354).\n\n' +
+            '¿Confirma que desea guardarlos de todas formas como límites vigentes?'
+        );
+        if (!confirmado) return;
+        ejecutarGuardarLimites(true);
+        return;
+    }
+
+    const confirmado = confirm(
+        'Esto reemplazará los límites vigentes actuales de este parámetro. ' +
+        'M2 empezará a usar estos nuevos límites de inmediato para detectar señales SPC en producción.\n\n' +
+        '¿Continuar?'
+    );
+    if (!confirmado) return;
+    ejecutarGuardarLimites(false);
+}
+
+async function ejecutarGuardarLimites(forzar) {
+    const btn = document.getElementById('btn-guardar-limites');
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Guardando...';
+
+    const fd = new FormData();
+    fd.append('_token', csrfToken);
+    fd.append('producto_id', ultimoAnalisis.producto_id);
+    fd.append('parametro_id', ultimoAnalisis.parametro_id);
+    if (ultimoAnalisis.fecha_desde) fd.append('fecha_desde', ultimoAnalisis.fecha_desde);
+    if (ultimoAnalisis.fecha_hasta) fd.append('fecha_hasta', ultimoAnalisis.fecha_hasta);
+    if (forzar) fd.append('confirmar_inestable', '1');
+
+    try {
+        const res  = await fetch(`${appUrl}/m6/guardar-limites`, { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (data.success) {
+            alert(data.message);
+            cargarLimitesVigentes(ultimoAnalisis.parametro_id);
+        } else if (data.errors && data.errors.requiere_confirmacion) {
+            // El servidor también valida esto de forma independiente al
+            // confirm() del cliente — si por algún motivo se saltó, se
+            // le vuelve a preguntar aquí antes de reintentar con "forzar".
+            if (confirm(data.message + '\n\n¿Confirma guardar de todas formas?')) {
+                await ejecutarGuardarLimites(true);
+                return;
+            }
+        } else {
+            alert(data.message || 'No se pudo guardar los límites.');
+        }
+    } catch (e) {
+        alert('Error de conexión: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+    }
+}
+
+// ── Anular límites vigentes (sin reemplazarlos por uno nuevo) ─────────
+function iniciarAnularLimites() {
+    if (!ultimoAnalisis) return;
+    const confirmado = confirm(
+        'Esto desactiva el límite vigente de este parámetro SIN guardar uno nuevo.\n\n' +
+        'M2 volverá a usar la especificación de M0 (valor mín/máx) como respaldo hasta que ' +
+        'se guarde un nuevo análisis.\n\n¿Confirma que desea anular el límite vigente?'
+    );
+    if (!confirmado) return;
+    ejecutarAnularLimites();
+}
+
+async function ejecutarAnularLimites() {
+    const btn = document.getElementById('btn-anular-limites');
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Anulando...';
+
+    const fd = new FormData();
+    fd.append('_token', csrfToken);
+    fd.append('parametro_id', ultimoAnalisis.parametro_id);
+
+    try {
+        const res  = await fetch(`${appUrl}/m6/anular-limites`, { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (data.success) {
+            alert(data.message);
+            cargarLimitesVigentes(ultimoAnalisis.parametro_id);
+        } else {
+            alert(data.message || 'No se pudo anular el límite vigente.');
+        }
+    } catch (e) {
+        alert('Error de conexión: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+    }
 }
 
 // ── Panel de advertencias metodológicas ──
@@ -710,14 +942,14 @@ function renderAdvertencias(d) {
                         border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:8px">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
                     <i class="bi ${s.icon}" style="color:${s.border}"></i>
-                    <strong style="color:${s.text};font-size:13px">${a.titulo}</strong>
-                    <span style="background:${s.badgeBg};color:#fff;font-size:10px;
+                    <strong style="color:${s.text};font-size:var(--fs-dense-sm)">${a.titulo}</strong>
+                    <span style="background:${s.badgeBg};color:#fff;font-size:var(--fs-dense-xs);
                                  padding:1px 6px;border-radius:4px;font-weight:700">
                         ${a.tipo.toUpperCase()}
                     </span>
                 </div>
-                <div style="font-size:12px;color:${s.text};margin-bottom:4px">${a.msg}</div>
-                <div style="font-size:11px;color:#64748b;font-style:italic">
+                <div style="font-size:var(--fs-dense-xs);color:${s.text};margin-bottom:4px">${a.msg}</div>
+                <div style="font-size:var(--fs-dense-xs);color:#64748b;font-style:italic">
                     <i class="bi bi-book"></i> ${a.ref}
                 </div>
             </div>`;
@@ -745,8 +977,8 @@ function renderStatCards(d) {
     } else {
         const esXR   = d.tipo_carta === 'xr';
         const tipoBadge = esXR
-            ? '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700">X̄-R</span>'
-            : '<span style="background:#dcfce7;color:#065f46;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700">X-MR</span>';
+            ? '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:8px;font-size:var(--fs-dense-xs);font-weight:700">X̄-R</span>'
+            : '<span style="background:#dcfce7;color:#065f46;padding:2px 8px;border-radius:8px;font-size:var(--fs-dense-xs);font-weight:700">X-MR</span>';
         const mediaLbl = esXR ? 'X̄̄ (Gran media)' : 'X̄ (Media global)';
         const sigmaLbl = esXR ? 'σ̂ C.P. = R̄/d₂' : 'σ̂ C.P. = MR̄/d₂';
         const lcsLbl   = esXR ? 'LCS (carta X̄)' : 'UCL (carta X)';
@@ -888,6 +1120,7 @@ function makeAnnotations(limites, specs, tipoCarta) {
 
 const chartOpts = (yLabel, limites, specs, tipoCarta) => ({
     responsive: true,
+    maintainAspectRatio: false,
     interaction: { mode:'index', intersect:false },
     plugins: {
         legend: { labels: { color:'#334155', font:{ size:11 } } },
@@ -1051,7 +1284,7 @@ function renderHistograma(d) {
     // Resultado Anderson-Darling debajo del canvas (solo cartas numéricas)
     const ad = d.normalidad ?? null;
     const adHtml = ad?.ad !== null && ad !== null
-        ? `<div style="margin-top:8px;padding:6px 10px;border-radius:6px;font-size:12px;
+        ? `<div style="margin-top:8px;padding:6px 10px;border-radius:6px;font-size:var(--fs-dense-xs);
                background:${ad.normal?'#f0fdf4':'#fef2f2'};
                border:1px solid ${ad.normal?'#86efac':'#fca5a5'};
                color:${ad.normal?'#15803d':'#dc2626'}">
@@ -1086,7 +1319,7 @@ function renderHistograma(d) {
         data: { labels: h.etiquetas.map(v => parseFloat(v)), datasets },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+    maintainAspectRatio: false,
             aspectRatio: 1.6,
             plugins: {
                 legend: { labels:{ color:'#64748b', font:{size:11} } },
@@ -1128,7 +1361,7 @@ function renderCapacidad(d) {
     // Advertencia visual si proceso inestable
     const alertaInestable = hayViolaciones
         ? `<div style="background:#fef2f2;border:1px solid #ef4444;border-radius:6px;
-                       padding:8px 12px;margin-bottom:10px;font-size:12px;color:#991b1b">
+                       padding:8px 12px;margin-bottom:10px;font-size:var(--fs-dense-xs);color:#991b1b">
                <i class="bi bi-exclamation-triangle-fill"></i>
                <strong>Proceso inestable:</strong> Cp y Cpk no son válidos con señales activas.
                Montgomery (2013), Cap.6, p.354.
@@ -1137,7 +1370,7 @@ function renderCapacidad(d) {
     // Advertencia PPM si no hay normalidad
     const alertaPPM = !esNormal
         ? `<div style="background:#fffbeb;border:1px solid #f59e0b;border-radius:6px;
-                       padding:8px 12px;margin-bottom:10px;font-size:12px;color:#92400e">
+                       padding:8px 12px;margin-bottom:10px;font-size:var(--fs-dense-xs);color:#92400e">
                <i class="bi bi-exclamation-circle-fill"></i>
                <strong>PPM con cautela:</strong> Los datos no son normales (AD p=${ad?.p_value}).
                El PPM estimado asume normalidad y puede ser impreciso.
@@ -1162,7 +1395,7 @@ function renderCapacidad(d) {
                     <td style="color:#d97706;font-weight:700">${fmtN(c.ppm_cp)}</td></tr>
             </tbody>
         </table>
-        <p style="font-size:11px;color:#94a3b8;margin-top:8px">
+        <p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:8px">
             Fórmulas: Montgomery (2013), Cap. 7 — Cartas de control para atributos.<br>
             LCS/LCI = p̄ ± 3√[p̄(1-p̄)/n]
         </p>`;
@@ -1181,13 +1414,13 @@ function renderCapacidad(d) {
                <tr><th>Límite</th><th>Fórmula</th><th>Valor</th></tr></thead>
         <tbody>
             <tr><td style="text-align:left">LCS</td>
-                <td style="font-size:11px;color:#64748b">${lcsFormula}</td>
+                <td style="font-size:var(--fs-dense-xs);color:#64748b">${lcsFormula}</td>
                 <td style="color:#ef4444;font-weight:700">${d.limites_xbar?.lcs ?? '—'}</td></tr>
             <tr><td style="text-align:left">LC</td>
-                <td style="font-size:11px;color:#64748b">X̄̄ o X̄</td>
+                <td style="font-size:var(--fs-dense-xs);color:#64748b">X̄̄ o X̄</td>
                 <td style="color:#22c55e;font-weight:700">${d.limites_xbar?.media ?? '—'}</td></tr>
             <tr><td style="text-align:left">LCI</td>
-                <td style="font-size:11px;color:#64748b">${lciFormula}</td>
+                <td style="font-size:var(--fs-dense-xs);color:#64748b">${lciFormula}</td>
                 <td style="color:#ef4444;font-weight:700">${d.limites_xbar?.lci ?? '—'}</td></tr>
         </tbody>
     </table>
@@ -1196,13 +1429,13 @@ function renderCapacidad(d) {
                <tr><th>Límite</th><th>Fuente</th><th>Valor</th></tr></thead>
         <tbody>
             <tr><td style="text-align:left">LSE</td>
-                <td style="font-size:11px;color:#64748b">parametros_proceso.valor_max</td>
+                <td style="font-size:var(--fs-dense-xs);color:#64748b">parametros_proceso.valor_max</td>
                 <td style="color:#f97316;font-weight:700">${d.specs?.lse ?? '—'}</td></tr>
             <tr><td style="text-align:left">LIE</td>
-                <td style="font-size:11px;color:#64748b">parametros_proceso.valor_min</td>
+                <td style="font-size:var(--fs-dense-xs);color:#64748b">parametros_proceso.valor_min</td>
                 <td style="color:#f97316;font-weight:700">${d.specs?.lie ?? '—'}</td></tr>
             <tr><td style="text-align:left">Tolerancia</td>
-                <td style="font-size:11px;color:#64748b">LSE − LIE</td>
+                <td style="font-size:var(--fs-dense-xs);color:#64748b">LSE − LIE</td>
                 <td style="font-weight:700">${c.tolerancia ?? '—'}</td></tr>
         </tbody>
     </table>
@@ -1220,20 +1453,20 @@ function renderCapacidad(d) {
                 <td>${interp(c.cpk)}</td></tr>
             <tr><td style="text-align:left" title="CPU=(LSE-X̄)/3σ̂">CPU / PPU ↑</td>
                 <td>${c.cpu}</td><td>${c.ppu??'—'}</td>
-                <td style="font-size:11px;color:#64748b">(LSE−X̄)/3σ</td></tr>
+                <td style="font-size:var(--fs-dense-xs);color:#64748b">(LSE−X̄)/3σ</td></tr>
             <tr><td style="text-align:left" title="CPL=(X̄-LIE)/3σ̂">CPL / PPL ↓</td>
                 <td>${c.cpl}</td><td>${c.ppl??'—'}</td>
-                <td style="font-size:11px;color:#64748b">(X̄−LIE)/3σ</td></tr>
+                <td style="font-size:var(--fs-dense-xs);color:#64748b">(X̄−LIE)/3σ</td></tr>
             <tr style="border-top:2px solid #e2e8f0">
                 <td style="text-align:left">PPM estimado</td>
                 <td colspan="2" style="color:#d97706;font-weight:700">
                     ${fmtN(c.ppm_cp)} / ${fmtN(c.ppm_lp)}
                 </td>
-                <td style="font-size:11px;color:#64748b">CP / LP</td></tr>
+                <td style="font-size:var(--fs-dense-xs);color:#64748b">CP / LP</td></tr>
             <tr><td style="text-align:left">Nivel Sigma</td>
                 <td colspan="3" style="color:#4f8ef7;font-weight:700">${c.sigma_nivel}σ</td></tr>
             <tr><td style="text-align:left">ARL₀ (sin cambio)</td>
-                <td colspan="3" style="color:#64748b;font-size:12px">≈ 370 muestras (límites 3σ)</td></tr>
+                <td colspan="3" style="color:#64748b;font-size:var(--fs-dense-xs)">≈ 370 muestras (límites 3σ)</td></tr>
         </tbody>
     </table>
     ${c.ic_cp || c.ic_cpk ? `
@@ -1255,11 +1488,11 @@ function renderCapacidad(d) {
             </tr>` : ''}
         </tbody>
     </table>
-    <p style="font-size:11px;color:#94a3b8;margin-top:4px">
+    <p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:4px">
         IC Cp: basado en χ² (Wilson & Hilferty) · IC Cpk: aproximación Bissell (1990)<br>
         Ref: Montgomery (2013), Cap.6, p.357-358
     </p>` : ''}
-    <p style="font-size:11px;color:#94a3b8;margin-top:8px">
+    <p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:8px">
         <strong>Bibliografía:</strong> Montgomery (2013), Cap.6 — Process Capability Analysis.<br>
         Cp = (LSE−LIE)/6σ̂ · Cpk = mín(CPU,CPL) · ${sigmaFormula}<br>
         Pp = (LSE−LIE)/6s · Ppk = mín(PPU,PPL) · s = desv. estándar global<br>
@@ -1300,7 +1533,7 @@ function renderCurvaOC(d) {
             <td style="text-align:center;color:${colorBeta};font-weight:700">${r.beta_pct}%</td>
             <td style="text-align:center;color:${colorPoder};font-weight:700">${r.poder}%</td>
             <td style="text-align:center;font-weight:600">${r.arl}</td>
-            <td style="font-size:11px;color:#64748b">${r.desc}</td>
+            <td style="font-size:var(--fs-dense-xs);color:#64748b">${r.desc}</td>
         </tr>`;
     }).join('');
 
@@ -1349,6 +1582,7 @@ function renderCurvaOC(d) {
         ]},
         options: {
             responsive:true,
+    maintainAspectRatio: false,
             interaction:{ mode:'index', intersect:false },
             plugins:{
                 legend:{ labels:{ color:'#334155', font:{size:11} } },
@@ -1384,7 +1618,7 @@ function renderANOVA(d) {
     el.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div>
-            <table class="data-table-bordered" style="font-size:12px;margin-bottom:0">
+            <table class="data-table-bordered" style="font-size:var(--fs-dense-xs);margin-bottom:0">
                 <thead>
                     <tr>
                         <th>Fuente</th>
@@ -1410,13 +1644,13 @@ function renderANOVA(d) {
                     </tr>
                 </tbody>
             </table>
-            <p style="font-size:11px;color:#94a3b8;margin-top:6px">
+            <p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:6px">
                 SC=Suma Cuadrados · GL=Grados Libertad · CM=Cuadrado Medio<br>
                 F = CM_entre / CM_dentro — Montgomery (2013), Cap.4, Ec.4.7
             </p>
         </div>
         <div>
-            <table class="data-table-bordered" style="font-size:12px;margin-bottom:0">
+            <table class="data-table-bordered" style="font-size:var(--fs-dense-xs);margin-bottom:0">
                 <thead>
                     <tr><th>Componente</th><th>σ²</th><th>σ</th><th>% Contrib.</th></tr>
                 </thead>
@@ -1441,7 +1675,7 @@ function renderANOVA(d) {
                     </tr>
                 </tbody>
             </table>
-            <p style="font-size:11px;color:#94a3b8;margin-top:6px">
+            <p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:6px">
                 St = √(σ²_dentro + σ²_entre) = desviación estándar total<br>
                 Montgomery (2013), Cap.5, p.234 — Componentes de varianza
             </p>
@@ -1467,7 +1701,7 @@ function renderIndicesAdicionales(d) {
 
     el.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <table class="data-table-bordered" style="font-size:12px">
+        <table class="data-table-bordered" style="font-size:var(--fs-dense-xs)">
             <thead>
                 <tr><th colspan="3" style="background:#1e3a5f">Índice Cpm — Taguchi</th></tr>
                 <tr><th>Índice</th><th>C. Plazo</th><th>L. Plazo</th></tr>
@@ -1492,7 +1726,7 @@ function renderIndicesAdicionales(d) {
                 </tr>
             </tbody>
         </table>
-        <table class="data-table-bordered" style="font-size:12px">
+        <table class="data-table-bordered" style="font-size:var(--fs-dense-xs)">
             <thead>
                 <tr><th colspan="2" style="background:#1e3a5f">Índice k (Centrado) y St</th></tr>
                 <tr><th>Índice</th><th>Valor</th></tr>
@@ -1504,7 +1738,7 @@ function renderIndicesAdicionales(d) {
                 </tr>
                 <tr>
                     <td style="text-align:left">Interpretación k</td>
-                    <td style="font-size:11px">${ia.interp_k}</td>
+                    <td style="font-size:var(--fs-dense-xs)">${ia.interp_k}</td>
                 </tr>
                 <tr>
                     <td style="text-align:left">St (desv. total)</td>
@@ -1513,7 +1747,7 @@ function renderIndicesAdicionales(d) {
             </tbody>
         </table>
     </div>
-    <p style="font-size:11px;color:#94a3b8;margin-top:8px">
+    <p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:8px">
         Cpm = (LSE−LIE) / (6·√(σ²+(μ−T)²)) — penaliza desviación del nominal T<br>
         k = |μ−m| / ((LSE−LIE)/2) — 0=centrado, 1=en límite<br>
         St = desviación total del proceso (incluye varianza entre y dentro subgrupos)<br>
@@ -1549,6 +1783,7 @@ function renderRunChart(d) {
         ]},
         options: {
             responsive: true,
+    maintainAspectRatio: false,
             plugins: {
                 legend: { labels: { color:'#334155', font:{size:11} } },
                 tooltip: { backgroundColor:'#1e293b', bodyColor:'#cbd5e1',
@@ -1580,13 +1815,13 @@ function renderRunChart(d) {
                 border-radius:8px;padding:10px 12px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
             <i class="bi ${iconAl}" style="color:${colorAl}"></i>
-            <strong style="color:${colorAl};font-size:13px">
+            <strong style="color:${colorAl};font-size:var(--fs-dense-sm)">
                 ${rc.aleatorio ? 'Proceso aleatorio' : 'Patrón no aleatorio'}
             </strong>
         </div>
-        <div style="font-size:12px;color:#374151">${rc.interpretacion}</div>
+        <div style="font-size:var(--fs-dense-xs);color:#374151">${rc.interpretacion}</div>
     </div>
-    <table class="data-table-bordered" style="font-size:12px">
+    <table class="data-table-bordered" style="font-size:var(--fs-dense-xs)">
         <tbody>
             <tr><td style="text-align:left">N observaciones</td><td>${rc.n}</td></tr>
             <tr><td style="text-align:left">Mediana</td><td><strong>${rc.mediana}</strong></td></tr>
@@ -1603,17 +1838,17 @@ function renderRunChart(d) {
     </table>`;
 
     if (rc.tendencias && rc.tendencias.length > 0) {
-        html += `<div style="margin-top:8px;padding:6px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:12px;color:#92400e">
+        html += `<div style="margin-top:8px;padding:6px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:var(--fs-dense-xs);color:#92400e">
             <i class="bi bi-arrow-up-right"></i> <strong>Tendencia detectada</strong> en posición(es):
             ${rc.tendencias.map(t => `SG${t.pos} (${t.tipo})`).join(', ')}
         </div>`;
     }
     if (rc.hay_ciclos) {
-        html += `<div style="margin-top:6px;padding:6px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:12px;color:#1e40af">
+        html += `<div style="margin-top:6px;padding:6px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:var(--fs-dense-xs);color:#1e40af">
             <i class="bi bi-arrow-repeat"></i> <strong>Posibles ciclos</strong> — alternancia frecuente detectada.
         </div>`;
     }
-    html += `<p style="font-size:11px;color:#94a3b8;margin-top:8px">${rc.ref}</p>`;
+    html += `<p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:8px">${rc.ref}</p>`;
 
     document.getElementById('contenido-run-chart').innerHTML = html;
 }
@@ -1648,6 +1883,7 @@ function renderRunChartP(d) {
         ]},
         options: {
             responsive: true,
+    maintainAspectRatio: false,
             plugins: {
                 legend: { labels:{ color:'#334155', font:{size:11} } },
                 tooltip: { backgroundColor:'#1e293b', bodyColor:'#cbd5e1',
@@ -1680,13 +1916,13 @@ function renderRunChartP(d) {
                 border-radius:8px;padding:10px 12px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
             <i class="bi ${iconAl}" style="color:${colorAl}"></i>
-            <strong style="color:${colorAl};font-size:13px">
+            <strong style="color:${colorAl};font-size:var(--fs-dense-sm)">
                 ${rc.aleatorio ? 'Variación aleatoria' : 'Patrón no aleatorio'}
             </strong>
         </div>
-        <div style="font-size:12px;color:#374151">${rc.interpretacion}</div>
+        <div style="font-size:var(--fs-dense-xs);color:#374151">${rc.interpretacion}</div>
     </div>
-    <table class="data-table-bordered" style="font-size:12px">
+    <table class="data-table-bordered" style="font-size:var(--fs-dense-xs)">
         <tbody>
             <tr><td style="text-align:left">k lotes</td><td>${rc.n}</td></tr>
             <tr><td style="text-align:left">Mediana p</td><td><strong>${rc.mediana}</strong></td></tr>
@@ -1702,12 +1938,12 @@ function renderRunChartP(d) {
 
     if (rc.tendencias && rc.tendencias.length > 0) {
         html += `<div style="margin-top:8px;padding:6px 10px;background:#fffbeb;
-                     border:1px solid #fde68a;border-radius:6px;font-size:12px;color:#92400e">
+                     border:1px solid #fde68a;border-radius:6px;font-size:var(--fs-dense-xs);color:#92400e">
             <i class="bi bi-arrow-up-right"></i> <strong>Tendencia en proporciones</strong>:
             ${rc.tendencias.map(t => `Lote ${t.pos} (${t.tipo})`).join(', ')}
         </div>`;
     }
-    html += `<p style="font-size:11px;color:#94a3b8;margin-top:8px">${rc.ref}</p>`;
+    html += `<p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:8px">${rc.ref}</p>`;
     document.getElementById('contenido-run-chart-p').innerHTML = html;
 }
 
@@ -1747,6 +1983,7 @@ function renderParetoP(d) {
         ]},
         options: {
             responsive: true,
+    maintainAspectRatio: false,
             plugins: {
                 legend: { labels:{ color:'#334155', font:{size:11} } },
                 tooltip: { backgroundColor:'#1e293b', bodyColor:'#cbd5e1',
@@ -1783,7 +2020,7 @@ function renderParetoP(d) {
     });
 
     // Tabla Pareto
-    let html = `<table class="data-table-bordered" style="font-size:12px">
+    let html = `<table class="data-table-bordered" style="font-size:var(--fs-dense-xs)">
         <thead>
             <tr>
                 <th>Rango</th><th>Lote / Fecha</th>
@@ -1797,7 +2034,7 @@ function renderParetoP(d) {
             const acumColor = p.pct_acumulado <= 80 ? '#16a34a' : '#64748b';
             return `<tr>
                 <td style="text-align:center;font-weight:700">${i+1}</td>
-                <td style="font-size:11px">${p.fecha}</td>
+                <td style="font-size:var(--fs-dense-xs)">${p.fecha}</td>
                 <td style="text-align:center;font-weight:700;color:${color}">${p.no_conformes}</td>
                 <td style="text-align:center;color:${color};font-weight:600">${p.pct_relativo}%</td>
                 <td style="text-align:center;color:${acumColor};font-weight:600">${p.pct_acumulado}%</td>
@@ -1812,7 +2049,7 @@ function renderParetoP(d) {
             </tr>
         </tfoot>
     </table>
-    <p style="font-size:11px;color:#94a3b8;margin-top:8px">
+    <p style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:8px">
         Línea naranja: % acumulado · Regla 80/20: los primeros lotes/turnos
         concentran el mayor % de no conformes.<br>
         <em>Montgomery (2013), Cap.7, p.292</em>
@@ -1830,7 +2067,7 @@ function renderViolaciones(d) {
     if (card) card.style.display = 'block';
     const leyenda = `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;
-                padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:11px">
+                padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:var(--fs-dense-xs)">
         <span style="font-weight:600;color:#374151">Colores en carta X̄:</span>
         <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#ef4444;margin-right:4px"></span>Regla 1 — Fuera ±3σ</span>
         <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#f97316;margin-right:4px"></span>Regla 2 — 9 del mismo lado</span>
@@ -1841,9 +2078,9 @@ function renderViolaciones(d) {
         <div style="display:flex;align-items:center;gap:12px;
                     background:#fef2f2;border-left:3px solid #ef4444;
                     border-radius:0 6px 6px 0;padding:8px 14px;
-                    margin-bottom:6px;font-size:13px;color:#991b1b">
+                    margin-bottom:6px;font-size:var(--fs-dense-sm);color:#991b1b">
             <span class="badge badge-danger">SG ${v.subgrupo}</span>
-            <span class="badge" style="background:#64748b;color:#fff;font-size:11px">Regla ${v.regla}</span>
+            <span class="badge" style="background:#64748b;color:#fff;font-size:var(--fs-dense-xs)">Regla ${v.regla}</span>
             <span><strong>Regla ${v.regla}:</strong> ${v.desc}</span>
         </div>`).join('');
 }
@@ -1906,11 +2143,12 @@ function renderCartaP(d) {
         type: 'line',
         data: { labels, datasets: [
             { label:'p Proporción', data:d.xbars, borderColor:'#7c3aed',
-              backgroundColor:'transparent', pointBackgroundColor:pColors,
-              pointRadius:5, borderWidth:2, tension:0.1 },
+                backgroundColor:'transparent', pointBackgroundColor:pColors,
+                pointRadius:5, borderWidth:2, tension:0.1 },
         ]},
         options: {
             responsive: true,
+    maintainAspectRatio: false,
             interaction: { mode:'index', intersect:false },
             plugins: {
                 legend: { labels: { color:'#334155', font:{ size:11 } } },
@@ -2000,7 +2238,7 @@ function renderQQPlot(d) {
         ]},
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+    maintainAspectRatio: false,
             aspectRatio: 1.6,
             plugins: {
                 legend: { labels: { color:'#334155', font:{ size:11 } } },
@@ -2025,7 +2263,7 @@ function renderQQPlot(d) {
 
     // Resultado AD debajo del Q-Q
     if (ad && ad.ad !== null && resEl) {
-        resEl.innerHTML = `<div style="padding:6px 10px;border-radius:6px;font-size:12px;
+        resEl.innerHTML = `<div style="padding:6px 10px;border-radius:6px;font-size:var(--fs-dense-xs);
             background:${ad.normal?'#f0fdf4':'#fef2f2'};
             border:1px solid ${ad.normal?'#86efac':'#fca5a5'};
             color:${ad.normal?'#15803d':'#dc2626'}">
