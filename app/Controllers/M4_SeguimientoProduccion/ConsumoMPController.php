@@ -115,16 +115,47 @@ class ConsumoMPController extends Controller
         if (!$lote || $lote['estado'] !== 'en_proceso') {
             $this->flash('error', 'No se puede modificar este lote.');
             $this->redirect('/m4');
+            return;
         }
+
+        // Se obtiene el registro ANTES de eliminarlo, para poder armar
+        // un mensaje de trazabilidad útil (después ya no existiría).
+        $consumo = $this->db->fetchOne(
+            "SELECT c.*, i.descripcion AS insumo_nombre
+            FROM consumo_mp_por_lote c
+            JOIN insumos i ON i.id = c.insumo_id
+            WHERE c.id = ?",
+            [(int)$params['id']]
+        );
 
         $ok = $this->modelConsumo->eliminarYDevolverStock((int)$params['id']);
 
         if (!$ok) {
             $this->flash('error', 'No se pudo eliminar el consumo.');
-        } else {
-            $this->flash('success', 'Consumo eliminado y stock devuelto.');
+            $this->redirect("/m4/lote/{$params['codigo']}/mp");
+            return;
         }
 
+        // Hallazgo de auditoría: esta era la única acción de escritura en
+        // los 3 controllers de M4 que no dejaba rastro en trazabilidad —
+        // se podía agregar y luego quitar MP sin que quedara registro de
+        // la reversión, dejando el historial del lote incompleto.
+        if ($consumo) {
+            $this->db->execute(
+                "INSERT INTO trazabilidad_eventos
+                (codigo_lote, tipo_evento, descripcion, tabla_origen, registro_id, usuario_id)
+                VALUES (?,?,?,?,?,?)",
+                [
+                    $lote['codigo_lote'], 'recepcion_mp',
+                    "MP revertida: {$consumo['cantidad_usada']} {$consumo['unidad_medida']} "
+                    . "de {$consumo['insumo_nombre']} (lote proveedor {$consumo['lote_proveedor']}) "
+                    . "— consumo eliminado y stock devuelto.",
+                    'consumo_mp_por_lote', (int)$params['id'], Auth::id()
+                ]
+            );
+        }
+
+        $this->flash('success', 'Consumo eliminado y stock devuelto.');
         $this->redirect("/m4/lote/{$params['codigo']}/mp");
     }
 }

@@ -1,12 +1,13 @@
 <?php
-/** @var array $lote @var bool $canWrite */
+/** @var array $lote
+ *  @var bool  $canWrite */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
 
 <div class="page-header">
     <div class="page-title">
-        📊 Rendimiento — Lote <?= htmlspecialchars($lote['codigo_lote']) ?>
+        <i class="bi bi-bar-chart-fill"></i> Rendimiento — Lote <?= htmlspecialchars($lote['codigo_lote']) ?>
     </div>
     <div class="page-sub">
         <?= htmlspecialchars($lote['producto_nombre']) ?> ·
@@ -26,9 +27,9 @@
         <!-- Rendimiento -->
         <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;
                     padding:14px;margin-bottom:16px">
-            <div style="font-size:12px;font-weight:700;color:#15803d;
+            <div style="font-size:var(--fs-dense-xs);font-weight:700;color:#15803d;
                         margin-bottom:10px;text-transform:uppercase">
-                📊 Unidades producidas
+                <i class="bi bi-bar-chart-fill"></i> Unidades producidas
             </div>
             <div class="form-row cols-2">
                 <div class="form-group" style="margin-bottom:0">
@@ -52,7 +53,7 @@
             </div>
             <div style="margin-top:10px;padding:8px;background:#fff;
                         border-radius:6px;text-align:center">
-                <span style="font-size:12px;color:#64748b">Porcentaje de rendimiento: </span>
+                <span style="font-size:var(--fs-dense-xs);color:#64748b">Porcentaje de rendimiento: </span>
                 <span style="font-size:18px;font-weight:800;color:#15803d"
                     id="pctDisplay">
                     <?= $lote['porcentaje_rendimiento']
@@ -65,9 +66,9 @@
         <!-- Mermas -->
         <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;
                     padding:14px;margin-bottom:16px">
-            <div style="font-size:12px;font-weight:700;color:#dc2626;
+            <div style="font-size:var(--fs-dense-xs);font-weight:700;color:#dc2626;
                         margin-bottom:10px;text-transform:uppercase">
-                ⚠️ Desglose de mermas (kg)
+                <i class="bi bi-exclamation-triangle-fill"></i> Desglose de mermas (kg)
             </div>
             <div class="form-row cols-2">
                 <?php foreach (\App\Models\LoteProduccion::MERMAS as $campo => $info): ?>
@@ -92,12 +93,22 @@
             </div>
         </div>
 
+        <!-- AGREGADO: observaciones existía en la BD y en el modelo, pero
+             ningún formulario tenía un campo para capturarla. -->
+        <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" class="form-control" rows="2"
+                placeholder="Notas de cierre de turno, incidencias, etc..."><?=
+                htmlspecialchars($lote['observaciones'] ?? '')
+            ?></textarea>
+        </div>
+
     </div>
     <div class="card-footer">
         <a href="<?= APP_URL ?>/m4/lote/<?= urlencode($lote['codigo_lote']) ?>"
             class="btn btn-secondary">Cancelar</a>
         <button type="submit" class="btn btn-primary">
-            💾 Guardar rendimiento
+            <i class="bi bi-floppy"></i> Guardar rendimiento
         </button>
     </div>
     </form>

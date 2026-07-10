@@ -17,7 +17,7 @@ class LoteProduccion extends Model
         'merma_panes_quemados_kg','merma_panes_blancos_kg',
         'merma_panes_sobrados_kg','merma_aspecto_no_deseado_kg',
         'fecha_elaboracion','fecha_vencimiento',
-        'estado','observaciones','cronograma_produccion_id','creado_por'
+        'estado','observaciones','creado_por'
     ];
 
     public const ESTADOS = [
@@ -146,6 +146,48 @@ class LoteProduccion extends Model
             . ($correlativo > 1 ? '-'.$correlativo : '');
     }
 
+    // Hallazgo de auditoría: generarCodigo() lee un COUNT(*) y luego el
+    // controller hace el INSERT por separado — si dos personas abren un
+    // lote para la MISMA fecha casi al mismo tiempo, ambas pueden leer el
+    // mismo conteo antes de que cualquiera confirme su INSERT, generando
+    // el mismo codigo_lote (que tiene UNIQUE KEY en la BD). Esto no se
+    // arregla solo con una validación previa (el mismo problema de
+    // "verificar y luego usar") — se necesita reintentar el INSERT con
+    // el siguiente correlativo si choca por duplicado.
+    //
+    // Este método reemplaza el patrón "generarCodigo() + create()" suelto:
+    // genera el código y crea el lote dentro del mismo intento, reintenta
+    // hasta 5 veces con el siguiente correlativo si hay colisión.
+    public function crearConCodigoSeguro(string $fecha, array $data): array
+    {
+        $dia = (int)date('d', strtotime($fecha));
+        $mes = (int)date('m', strtotime($fecha));
+
+        for ($intento = 0; $intento < 5; $intento++) {
+            $countHoy    = (int)$this->db->fetchScalar(
+                "SELECT COUNT(*) FROM lotes_produccion WHERE fecha_produccion = ?",
+                [$fecha]
+            );
+            $correlativo = $countHoy + 1 + $intento;
+            $codigo      = str_pad($dia, 2, '0', STR_PAD_LEFT)
+                . '-' . str_pad($mes, 2, '0', STR_PAD_LEFT)
+                . ($correlativo > 1 ? '-'.$correlativo : '');
+
+            try {
+                $id = $this->create(array_merge($data, ['codigo_lote' => $codigo]));
+                return ['id' => $id, 'codigo' => $codigo];
+            } catch (\PDOException $e) {
+                // 23000 = violación de restricción de integridad (duplicado)
+                if ($e->getCode() !== '23000' || $intento === 4) {
+                    throw $e;
+                }
+                // Colisión — se reintenta con el siguiente correlativo
+            }
+        }
+
+        throw new \RuntimeException('No se pudo generar un código de lote único.');
+    }
+
     // Calcular y actualizar rendimiento del lote
     public function actualizarRendimiento(int $id, array $datos): void
     {
@@ -165,6 +207,14 @@ class LoteProduccion extends Model
 
         foreach (array_keys(self::MERMAS) as $campo) {
             $update[$campo] = $datos[$campo] ?? 0;
+        }
+
+        // AGREGADO: observaciones existía en la BD y en el $fillable del
+        // modelo, pero ningún controller la leía ni la guardaba nunca —
+        // se conserva el valor existente si no se manda uno nuevo, en vez
+        // de borrarlo por accidente.
+        if (array_key_exists('observaciones', $datos)) {
+            $update['observaciones'] = $datos['observaciones'];
         }
 
         $this->update($id, $update);

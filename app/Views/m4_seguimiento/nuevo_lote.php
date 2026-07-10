@@ -1,12 +1,15 @@
 <?php
-/** @var array $productos @var array $supervisores @var array $turnos
- *  @var string $fecha_hoy @var string $codigo_preview */
+/** @var array $productos
+ *  @var array $supervisores
+ *  @var array $turnos
+ *  @var string $fecha_hoy
+ *  @var string $codigo_preview */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
 
 <div class="page-header">
-    <div class="page-title">➕ Abrir Nuevo Lote de Producción</div>
+    <div class="page-title"><i class="bi bi-plus-lg"></i> Abrir Nuevo Lote de Producción</div>
     <div class="page-sub">
         Código generado: <strong id="codigoPreview"><?= $codigo_preview ?></strong>
     </div>
@@ -30,7 +33,8 @@
                     <option value="">Seleccione el producto...</option>
                     <?php foreach ($productos as $p): ?>
                     <option value="<?= $p['id'] ?>"
-                            data-und="<?= $p['unidades_por_receta'] ?>">
+                            data-und="<?= $p['unidades_por_receta'] ?>"
+                            data-vida="<?= $p['vida_util_dias'] ?? 3 ?>">
                         <?= htmlspecialchars($p['nombre']) ?>
                     </option>
                     <?php endforeach ?>
@@ -118,17 +122,30 @@
         <div class="form-group">
             <label class="form-label">Vida útil del producto (días)</label>
             <input type="number" name="vida_util_dias" class="form-control"
-                value="3" min="1" max="30">
+                value="3" min="1" max="365" id="vidaUtilInput">
+            <!-- CORREGIDO: antes quedaba fijo en "3" sin importar el
+                 producto elegido — ahora se autocompleta con la vida
+                 útil configurada en M0 para ESE producto (data-vida en
+                 cada <option>), y el usuario todavía puede corregirla
+                 a mano si hace falta. -->
             <div class="form-hint">
+                <i class="bi bi-info-circle"></i>
+                Se autocompleta según el producto seleccionado; puede corregirla si hace falta.
                 Se usará para calcular la fecha de vencimiento del lote.
             </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" class="form-control" rows="2"
+                placeholder="Notas adicionales sobre la apertura de este lote..."></textarea>
         </div>
 
     </div>
     <div class="card-footer">
         <a href="<?= APP_URL ?>/m4" class="btn btn-secondary">Cancelar</a>
         <button type="submit" class="btn btn-primary">
-            🏭 Abrir lote de producción
+            <i class="bi bi-building-fill-gear"></i> Abrir lote de producción
         </button>
     </div>
     </form>
@@ -139,12 +156,15 @@ const appUrl = '<?= APP_URL ?>';
 
 // Cargar recetas cuando cambia el producto
 document.getElementById('productoSelect').addEventListener('change', function() {
-    const productoId = this.value;
-    const recetaSel  = document.getElementById('recetaSelect');
-    const undPorReceta = this.options[this.selectedIndex]?.dataset?.und || 0;
+    const productoId   = this.value;
+    const recetaSel    = document.getElementById('recetaSelect');
+    const opt          = this.options[this.selectedIndex];
+    const undPorReceta = opt?.dataset?.und  || 0;
+    const vidaUtil     = opt?.dataset?.vida || 3;
 
     recetaSel.innerHTML = '<option value="">Cargando...</option>';
     recalcularTeorico(0);
+    document.getElementById('vidaUtilInput').value = vidaUtil;
 
     if (!productoId) {
         recetaSel.innerHTML = '<option value="">Primero seleccione el producto</option>';
@@ -157,11 +177,10 @@ document.getElementById('productoSelect').addEventListener('change', function() 
             recetaSel.innerHTML = '<option value="">Seleccione la receta...</option>';
             if (data.data && Object.keys(data.data).length > 0) {
                 for (const [id, nombre] of Object.entries(data.data)) {
-                    const opt = document.createElement('option');
-                    opt.value = id;
-                    opt.textContent = nombre;
-                    opt.dataset.und = undPorReceta;
-                    recetaSel.appendChild(opt);
+                    const optEl = document.createElement('option');
+                    optEl.value = id;
+                    optEl.textContent = nombre;
+                    recetaSel.appendChild(optEl);
                 }
             } else {
                 recetaSel.innerHTML =

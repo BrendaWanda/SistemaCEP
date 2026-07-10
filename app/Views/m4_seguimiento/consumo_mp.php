@@ -1,5 +1,8 @@
 <?php
-/** @var array $lote @var array $consumos @var array $insumos @var bool $canWrite */
+/** @var array $lote
+ *  @var array $consumos
+ *  @var array $insumos
+ *  @var bool  $canWrite */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
@@ -7,7 +10,7 @@
 <div class="page-header">
     <div>
         <div class="page-title">
-            📦 MP Consumida — Lote <?= htmlspecialchars($lote['codigo_lote']) ?>
+            <i class="bi bi-box-seam-fill"></i> MP Consumida — Lote <?= htmlspecialchars($lote['codigo_lote']) ?>
         </div>
         <div class="page-sub">
             <?= htmlspecialchars($lote['producto_nombre']) ?> ·
@@ -24,7 +27,7 @@
 <?php if ($canWrite): ?>
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
-        <span class="card-title">➕ Registrar consumo de MP</span>
+        <span class="card-title"><i class="bi bi-plus-lg"></i> Registrar consumo de MP</span>
     </div>
     <form method="POST"
             action="<?= APP_URL ?>/m4/lote/<?= urlencode($lote['codigo_lote']) ?>/mp/agregar">
@@ -66,7 +69,7 @@
     </div>
     <div class="card-footer">
         <button type="submit" class="btn btn-primary">
-            ✅ Registrar consumo
+            <i class="bi bi-check-circle-fill"></i> Registrar consumo
         </button>
     </div>
     </form>
@@ -85,7 +88,7 @@
     </div>
     <?php else: ?>
     <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table" style="font-size:var(--fs-dense-sm)">
             <thead>
                 <tr>
                     <th>Insumo</th>
@@ -100,14 +103,14 @@
             <tr>
                 <td>
                     <strong><?= htmlspecialchars($c['insumo_nombre']) ?></strong>
-                    <div style="font-size:11px;color:#94a3b8">
+                    <div style="font-size:var(--fs-dense-xs);color:#94a3b8">
                         <?= htmlspecialchars($c['insumo_codigo']) ?>
                     </div>
                 </td>
-                <td style="font-size:12px">
+                <td style="font-size:var(--fs-dense-xs)">
                     <?= htmlspecialchars($c['stock_lote']) ?>
                 </td>
-                <td style="text-align:center;font-size:12px">
+                <td style="text-align:center;font-size:var(--fs-dense-xs)">
                     <?= date('d/m/Y', strtotime($c['fecha_vencimiento'])) ?>
                 </td>
                 <td style="text-align:right;font-weight:700">
@@ -123,7 +126,7 @@
                             value="<?= $csrfToken ?>">
                         <button class="btn btn-sm btn-danger"
                                 data-confirm="¿Eliminar este consumo y devolver al stock?">
-                            ✕ Quitar
+                            <i class="bi bi-x-lg"></i> Quitar
                         </button>
                     </form>
                 </td>

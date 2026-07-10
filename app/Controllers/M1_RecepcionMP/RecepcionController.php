@@ -113,16 +113,31 @@ class RecepcionController extends Controller
         if (empty($this->input('lote_proveedor'))) $errores[] = 'El lote del proveedor es requerido.';
         if (empty($this->input('fecha_vencimiento'))) $errores[] = 'La fecha de vencimiento es requerida.';
         if (empty($decision)) $errores[] = 'La decisión es requerida.';
+        // Hallazgo de auditoría: cantidad_recibida y unidad_medida son
+        // NOT NULL en la BD pero solo se validaban con "required" del
+        // HTML — sin respaldo del servidor.
+        if (!$this->inputFloat('cantidad_recibida')) $errores[] = 'La cantidad recibida es requerida.';
+        if (empty($this->input('unidad_medida'))) $errores[] = 'La unidad de medida es requerida.';
 
         if (!empty($errores)) {
             foreach ($errores as $e) $this->flash('error', $e);
             $this->redirect('/m1/nueva');
         }
 
-        // Cantidad aprobada que ingresa al stock
-        $cantRecibida = $this->inputFloat('cantidad_recibida');
-        $stockDisp    = $decision === 'aprobado'
-            ? $this->inputFloat('stock_disponible_kg') ?: $cantRecibida
+        // Cantidad que ingresa al stock (como disponible o reservado
+        // según la decisión — ver más abajo en la transacción).
+        //
+        // Hallazgo de auditoría: antes SOLO "aprobado" generaba stock;
+        // "cuarentena" y "observado" no dejaban ningún registro físico
+        // del insumo, aunque la mercadería sí existe en planta esperando
+        // resolución. Ahora también se reserva stock para esos 2 casos
+        // (estado='reservado', que ya existía en el enum pero nunca se
+        // usaba), y se libera o rechaza cuando se resuelve la decisión
+        // (ver resolverDecision() en el modelo).
+        $cantRecibida  = $this->inputFloat('cantidad_recibida');
+        $requiereStock = in_array($decision, ['aprobado', 'cuarentena', 'observado'], true);
+        $stockDisp     = $requiereStock
+            ? ($this->inputFloat('stock_disponible_kg') ?: $cantRecibida)
             : 0;
 
         $data = [
@@ -142,7 +157,6 @@ class RecepcionController extends Controller
             'presentacion'           => $this->input('presentacion'),
             'envase_primario'        => $this->input('envase_primario'),
             'envase_secundario'      => $this->input('envase_secundario'),
-            'obs_empaque'            => $this->input('obs_empaque'),
             // Organoléptico
             'sabor_olor'             => $this->input('sabor_olor'),
             'conf_sabor_olor'        => $this->input('conf_sabor_olor') ?: null,
@@ -177,8 +191,6 @@ class RecepcionController extends Controller
             'conf_impurezas'         => $this->input('conf_impurezas') ?: null,
             'obs_impurezas'          => $this->input('obs_impurezas'),
             // Conclusión
-            'preparacion_disolucion' => $this->input('preparacion_disolucion'),
-            'dosis_recomendada'      => $this->input('dosis_recomendada'),
             'conclusion'             => $this->input('conclusion'),
             'decision'               => $decision,
             'fecha_decision'         => date('Y-m-d'),
@@ -201,13 +213,21 @@ class RecepcionController extends Controller
             );
             $id = (int)$db->lastInsertId();
 
-            // Si fue aprobado, crear entrada de stock
-            if ($decision === 'aprobado' && $data['stock_disponible_kg'] > 0) {
+            // Si fue aprobado, crear stock disponible de inmediato.
+            // Si quedó pendiente (cuarentena/observado), se reserva el
+            // stock físico — existe en planta pero no se puede usar
+            // hasta que se resuelva la decisión.
+            $estadoStock = match ($decision) {
+                'aprobado' => 'disponible',
+                'cuarentena', 'observado' => 'reservado',
+                default => null,
+            };
+            if ($estadoStock !== null && $data['stock_disponible_kg'] > 0) {
                 $db->execute(
                     "INSERT INTO stock_mp
                      (insumo_id, recepcion_id, lote_proveedor, fecha_vencimiento,
                       cantidad_inicial, cantidad_disponible, unidad_medida, estado)
-                     VALUES (?,?,?,?,?,?,?,'disponible')",
+                     VALUES (?,?,?,?,?,?,?,?)",
                     [
                         $data['insumo_id'],
                         $id,
@@ -216,6 +236,7 @@ class RecepcionController extends Controller
                         $data['stock_disponible_kg'],
                         $data['stock_disponible_kg'],
                         $data['unidad_medida'],
+                        $estadoStock,
                     ]
                 );
             }
@@ -233,6 +254,7 @@ class RecepcionController extends Controller
         if (!$recepcion) {
             $this->flash('error', 'Recepción no encontrada.');
             $this->redirect('/m1');
+            return;
         }
         $this->render('m1_recepcion_mp/ver', [
             'pageTitle'  => 'Recepción '.$recepcion['codigo_recepcion'],
@@ -243,7 +265,66 @@ class RecepcionController extends Controller
             'recepcion'  => $recepcion,
             'decisiones' => RecepcionMP::DECISIONES,
             'conf'       => RecepcionMP::CONF,
+            'canWrite'   => Auth::canWrite('m1_recepcion_mp'),
         ]);
+    }
+
+    // GET /m1/:id/resolver — solo si la recepción está en cuarentena/observado
+    public function resolverForm(array $params): void
+    {
+        Auth::requireWrite('m1_recepcion_mp');
+        $recepcion = $this->model->conDetalle((int)$params['id']);
+        if (!$recepcion) {
+            $this->flash('error', 'Recepción no encontrada.');
+            $this->redirect('/m1');
+            return;
+        }
+        if (!in_array($recepcion['decision'], ['cuarentena', 'observado'], true)) {
+            $this->flash('error', 'Esta recepción ya tiene una decisión final, no se puede resolver de nuevo.');
+            $this->redirect("/m1/{$recepcion['id']}");
+            return;
+        }
+        $this->render('m1_recepcion_mp/resolver', [
+            'pageTitle'  => 'Resolver Recepción '.$recepcion['codigo_recepcion'],
+            'breadcrumb' => [
+                ['label' => 'Recepción MP', 'url' => APP_URL.'/m1'],
+                ['label' => $recepcion['codigo_recepcion'], 'url' => APP_URL.'/m1/'.$recepcion['id']],
+                ['label' => 'Resolver'],
+            ],
+            'recepcion' => $recepcion,
+        ]);
+    }
+
+    // POST /m1/:id/resolver
+    public function resolverGuardar(array $params): void
+    {
+        Auth::requireWrite('m1_recepcion_mp');
+        $this->verifyCsrf();
+        $id = (int)$params['id'];
+
+        $nuevaDecision = $this->input('nueva_decision');
+        $nota          = $this->input('nota_resolucion');
+
+        if (!in_array($nuevaDecision, ['aprobado', 'rechazado'], true)) {
+            $this->flash('error', 'Seleccione la resolución final (aprobado o rechazado).');
+            $this->redirect("/m1/{$id}/resolver");
+            return;
+        }
+        if (empty($nota)) {
+            $this->flash('error', 'Indique el motivo/nota de la resolución.');
+            $this->redirect("/m1/{$id}/resolver");
+            return;
+        }
+
+        $ok = $this->model->resolverDecision($id, $nuevaDecision, $nota, Auth::id());
+        if (!$ok) {
+            $this->flash('error', 'No se pudo resolver — verifique que la recepción siga pendiente.');
+            $this->redirect("/m1/{$id}");
+            return;
+        }
+
+        $this->redirectWithSuccess("/m1/{$id}",
+            'Recepción resuelta como "' . strtoupper($nuevaDecision) . '" correctamente.');
     }
 
     // GET /m1/:id/imprimir

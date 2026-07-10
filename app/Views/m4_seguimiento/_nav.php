@@ -5,8 +5,8 @@ $uri      = ($basePath && str_starts_with($uriRaw, $basePath))
             ? substr($uriRaw, strlen($basePath)) : $uriRaw;
 
 $navItems = [
-    ['url'=>'/m4',           'label'=>'Inicio',      'icon'=>'🏠', 'exacto'=>true],
-    ['url'=>'/m4/nuevo-lote','label'=>'Nuevo lote',  'icon'=>'➕', 'exacto'=>false],
+    ['url'=>'/m4',           'label'=>'Inicio',     'icon'=>'<i class="bi bi-house-fill"></i>', 'exacto'=>true],
+    ['url'=>'/m4/nuevo-lote','label'=>'Nuevo lote', 'icon'=>'<i class="bi bi-plus-lg"></i>',     'exacto'=>false],
 ];
 ?>
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px">

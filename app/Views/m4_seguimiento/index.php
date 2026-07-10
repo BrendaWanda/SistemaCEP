@@ -1,12 +1,16 @@
 <?php
-/** @var array $lotes @var array $stats @var array $filtros
- *  @var array $productos @var array $estados @var bool $canWrite */
+/** @var array $lotes
+ *  @var array $stats
+ *  @var array $filtros
+ *  @var array $productos
+ *  @var array $estados
+ *  @var bool  $canWrite */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 
 <div class="page-header">
     <div>
-        <div class="page-title">🏭 Seguimiento de Producción</div>
+        <div class="page-title"><i class="bi bi-building-fill-gear"></i> Seguimiento de Producción</div>
         <div class="page-sub">
             Control de lotes, rendimiento real vs teórico y mermas.
         </div>
@@ -14,7 +18,7 @@
     <?php if ($canWrite): ?>
     <div class="page-actions">
         <a href="<?= APP_URL ?>/m4/nuevo-lote" class="btn btn-primary">
-            + Abrir nuevo lote
+            <i class="bi bi-plus-lg"></i> Abrir nuevo lote
         </a>
     </div>
     <?php endif ?>
@@ -23,14 +27,14 @@
 <!-- Estadísticas del mes -->
 <div class="stats-grid" style="margin-bottom:16px">
     <div class="stat-card">
-        <div class="stat-icon" style="background:#dbeafe">📋</div>
+        <div class="stat-icon" style="background:#dbeafe"><i class="bi bi-clipboard2-check-fill"></i></div>
         <div>
             <div class="stat-value"><?= $stats['total_lotes'] ?></div>
             <div class="stat-label">Lotes este mes</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#dcfce7">✅</div>
+        <div class="stat-icon" style="background:#dcfce7"><i class="bi bi-check-circle-fill"></i></div>
         <div>
             <div class="stat-value" style="color:#15803d">
                 <?= $stats['liberados'] ?>
@@ -39,7 +43,7 @@
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fff7ed">⚙️</div>
+        <div class="stat-icon" style="background:#fff7ed"><i class="bi bi-gear-fill"></i></div>
         <div>
             <div class="stat-value" style="color:#d97706">
                 <?= $stats['en_proceso'] ?>
@@ -48,7 +52,7 @@
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fef9c3">⚠️</div>
+        <div class="stat-icon" style="background:#fef9c3"><i class="bi bi-exclamation-triangle-fill"></i></div>
         <div>
             <div class="stat-value" style="color:<?= $stats['cuarentena'] > 0 ? '#dc2626' : '#94a3b8' ?>">
                 <?= $stats['cuarentena'] ?>
@@ -57,7 +61,7 @@
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#f0fdf4">📊</div>
+        <div class="stat-icon" style="background:#f0fdf4"><i class="bi bi-bar-chart-fill"></i></div>
         <div>
             <div class="stat-value">
                 <?= number_format($stats['rend_promedio'], 1) ?>%
@@ -69,7 +73,7 @@
 
 <!-- Filtros -->
 <div class="card" style="margin-bottom:14px">
-    <div class="card-header"><span class="card-title">🔍 Filtros</span></div>
+    <div class="card-header"><span class="card-title"><i class="bi bi-funnel"></i> Filtros</span></div>
     <form method="GET" action="<?= APP_URL ?>/m4">
     <div class="card-body">
         <div class="form-row cols-4">
@@ -111,7 +115,7 @@
     </div>
     <div class="card-footer">
         <a href="<?= APP_URL ?>/m4" class="btn btn-secondary">Limpiar</a>
-        <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filtrar</button>
     </div>
     </form>
 </div>
@@ -159,11 +163,11 @@
                     </td>
                     <td>
                         <strong><?= htmlspecialchars($l['producto_nombre']) ?></strong>
-                        <div style="font-size:11px;color:#94a3b8">
+                        <div style="font-size:var(--fs-dense-xs);color:#94a3b8">
                             <?= htmlspecialchars($l['linea_nombre']) ?>
                         </div>
                     </td>
-                    <td style="text-align:center;font-size:12px">
+                    <td style="text-align:center;font-size:var(--fs-dense-xs)">
                         <?= date('d/m/Y', strtotime($l['fecha_produccion'])) ?>
                     </td>
                     <td style="text-align:center">
@@ -185,7 +189,7 @@
                             und
                         </div>
                         <?php else: ?>
-                        <span style="color:#94a3b8;font-size:12px">Sin datos</span>
+                        <span style="color:#94a3b8;font-size:var(--fs-dense-xs)">Sin datos</span>
                         <?php endif ?>
                     </td>
                     <td style="text-align:center">
@@ -197,7 +201,7 @@
                         <a href="<?= APP_URL ?>/m4/lote/<?= urlencode($l['codigo_lote']) ?>"
                             class="btn btn-sm btn-secondary">Ver</a>
                         <a href="<?= APP_URL ?>/m4/lote/<?= urlencode($l['codigo_lote']) ?>/imprimir"
-                            class="btn btn-sm btn-secondary" target="_blank">🖨️</a>
+                            class="btn btn-sm btn-secondary" target="_blank"><i class="bi bi-printer-fill"></i></a>
                     </td>
                 </tr>
                 <?php endforeach ?>

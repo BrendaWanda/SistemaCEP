@@ -130,13 +130,13 @@ table.det td.center { text-align: center; }
     <button onclick="window.print()"
             style="background:#1e3a5f;color:#fff;padding:8px 20px;
                 border:none;border-radius:6px;cursor:pointer;font-size:13px">
-        🖨️ Imprimir
+        <i class="bi bi-printer-fill"></i> Imprimir
     </button>
     <button onclick="window.close()"
             style="background:#f1f5f9;color:#374151;padding:8px 16px;
                 border:1px solid #e2e8f0;border-radius:6px;
                 cursor:pointer;font-size:13px;margin-left:8px">
-        ✕ Cerrar
+        <i class="bi bi-x-lg"></i> Cerrar
     </button>
 </div>
 
@@ -366,6 +366,18 @@ table.det td.center { text-align: center; }
             <?php endforeach ?>
             </tbody>
         </table>
+    </div>
+</div>
+<?php endif ?>
+
+<!-- Observaciones -->
+<?php if (!empty($lote['observaciones'])): ?>
+<div class="seccion">
+    <div class="seccion-titulo">4. Observaciones</div>
+    <div class="seccion-body">
+        <div style="font-size:11px;white-space:pre-line">
+            <?= htmlspecialchars($lote['observaciones']) ?>
+        </div>
     </div>
 </div>
 <?php endif ?>

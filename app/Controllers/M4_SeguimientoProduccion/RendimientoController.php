@@ -62,6 +62,11 @@ class RendimientoController extends Controller
         foreach (array_keys(LoteProduccion::MERMAS) as $campo) {
             $datos[$campo] = $this->inputFloat($campo);
         }
+        // AGREGADO: observaciones nunca se leía en ningún controller —
+        // se agrega aquí como notas de cierre de turno, opcional.
+        if ($this->input('observaciones') !== '') {
+            $datos['observaciones'] = $this->input('observaciones');
+        }
 
         // Validar que el rendimiento real no sea mayor al doble del teórico
         if ($datos['rendimiento_real_total'] > $datos['rendimiento_teorico_total'] * 2) {

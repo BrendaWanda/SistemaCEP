@@ -85,7 +85,8 @@ class LoteController extends Controller
         $turno        = $this->input('turno');
         $supervisorId = $this->inputInt('supervisor_id') ?: Auth::id();
         $nivel        = $this->input('nivel');
-        $vidaUtil     = $this->inputInt('vida_util_dias') ?: 3;
+        $vidaUtilInput = $this->inputInt('vida_util_dias') ?: null;
+        $observaciones = $this->input('observaciones');
 
         $errores = [];
         if (!$productoId)  $errores[] = 'Seleccione el producto.';
@@ -97,18 +98,42 @@ class LoteController extends Controller
         if (!empty($errores)) {
             foreach ($errores as $e) $this->flash('error', $e);
             $this->redirect('/m4/nuevo-lote');
+            return;
         }
 
         // Obtener datos del producto para calcular rendimiento teórico
-        $producto     = $this->modelProducto->find($productoId);
+        $producto = $this->modelProducto->find($productoId);
+        if (!$producto) {
+            $this->flash('error', 'Producto no encontrado.');
+            $this->redirect('/m4/nuevo-lote');
+            return;
+        }
+
+        // Hallazgo de auditoría: nada validaba que la receta elegida
+        // realmente perteneciera al producto elegido — se confiaba solo
+        // en que el JS del formulario filtrara las opciones. Si esa carga
+        // fallaba o alguien mandaba el POST directo, se podía abrir un
+        // lote con receta y producto que no coinciden.
+        $receta = $this->modelReceta->find($recetaId);
+        if (!$receta || (int)$receta['producto_id'] !== $productoId) {
+            $this->flash('error', 'La receta seleccionada no corresponde a este producto.');
+            $this->redirect('/m4/nuevo-lote');
+            return;
+        }
+
         $undPorReceta = (int)($producto['unidades_por_receta'] ?? 0);
         $rendTeorico  = (int)($numRecetas * $undPorReceta);
 
-        $codigo           = $this->model->generarCodigo($fecha);
+        // Hallazgo de auditoría: antes caía a un "3" fijo sin importar el
+        // producto — ahora usa la vida útil configurada en M0 para ESE
+        // producto si el formulario no manda un valor explícito.
+        $vidaUtil         = $vidaUtilInput ?? ((int)($producto['vida_util_dias'] ?? 0) ?: 3);
         $fechaVencimiento = date('Y-m-d', strtotime($fecha . ' +' . $vidaUtil . ' days'));
 
-        $loteId = $this->model->create([
-            'codigo_lote'               => $codigo,
+        // Hallazgo de auditoría: generarCodigo() + create() por separado
+        // tenía una condición de carrera real (ver LoteProduccion.php) —
+        // se usa el método con reintento ante colisión de codigo_lote.
+        $resultado = $this->model->crearConCodigoSeguro($fecha, [
             'producto_id'               => $productoId,
             'receta_id'                 => $recetaId,
             'numero_recetas'            => $numRecetas,
@@ -120,8 +145,11 @@ class LoteController extends Controller
             'fecha_elaboracion'         => $fecha,
             'fecha_vencimiento'         => $fechaVencimiento,
             'estado'                    => 'en_proceso',
+            'observaciones'             => $observaciones,
             'creado_por'                => Auth::id(),
         ]);
+        $loteId = $resultado['id'];
+        $codigo = $resultado['codigo'];
 
         // Registrar evento de trazabilidad
         $this->db->execute(
@@ -149,7 +177,10 @@ class LoteController extends Controller
             $this->redirect('/m4');
         }
 
-        $consumoMP = $this->model->consumoMP($lote['id']);
+        // Hallazgo de auditoría: se consultaba consumoMP() completo (con
+        // todo el detalle por registro) en CADA visita a la ficha del
+        // lote, pero ver_lote.php nunca lo usaba — solo usa el resumen
+        // agrupado por insumo. Se quita la consulta innecesaria.
         $modelConsumo = new \App\Models\ConsumoMP();
         $resumenMP    = $modelConsumo->resumenPorLote($lote['id']);
 
@@ -160,7 +191,6 @@ class LoteController extends Controller
                 ['label' => 'Lote '.$lote['codigo_lote']],
             ],
             'lote'      => $lote,
-            'consumoMP' => $consumoMP,
             'resumenMP' => $resumenMP,
             'estados'   => LoteProduccion::ESTADOS,
             'canWrite'  => Auth::canWrite('m4_seguimiento'),
@@ -182,6 +212,34 @@ class LoteController extends Controller
         if ($lote['estado'] !== 'en_proceso') {
             $this->flash('error', 'Solo se pueden cerrar lotes en proceso.');
             $this->redirect("/m4/lote/{$params['codigo']}");
+            return;
+        }
+
+        // Hallazgo CRÍTICO de auditoría: una vez 'cerrado', un lote nunca
+        // vuelve a 'en_proceso' — no existe ningún método de reapertura
+        // en todo M4. Y RendimientoController::guardar() BLOQUEA la
+        // edición si el estado no es 'en_proceso'. Esto significa que
+        // cerrar un lote sin haber registrado su rendimiento real lo deja
+        // PERMANENTEMENTE sin esos datos, sin ninguna forma de corregirlo
+        // — justo el dato central de tu análisis de rendimiento/mermas.
+        // Se exige una confirmación explícita en ese caso específico,
+        // igual que ya hicimos en M6 con "guardar límites de un proceso
+        // inestable".
+        if ($lote['rendimiento_real_total'] === null && !$this->input('confirmar_sin_rendimiento')) {
+            if ($this->isAjax()) {
+                $this->jsonError(
+                    'Este lote no tiene rendimiento registrado todavía. Una vez cerrado, '
+                    . 'no habrá forma de registrarlo después. ¿Confirma cerrar de todas formas?',
+                    409,
+                    ['requiere_confirmacion' => true]
+                );
+                return;
+            }
+            $this->flash('error',
+                'Este lote no tiene rendimiento registrado. Regístrelo antes de cerrar, '
+                . 'o confirme el cierre sabiendo que no podrá agregarlo después.');
+            $this->redirect("/m4/lote/{$params['codigo']}");
+            return;
         }
 
         $this->model->update($lote['id'], ['estado' => 'cerrado']);

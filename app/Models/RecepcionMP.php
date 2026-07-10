@@ -23,7 +23,6 @@ class RecepcionMP extends Model
         'esp_actividad_agua','res_actividad_agua','conf_actividad_agua',
         'obs_fisicoquimico',
         'esp_impurezas','res_impurezas','conf_impurezas','obs_impurezas',
-        'preparacion_disolucion','dosis_recomendada',
         'conclusion','decision','fecha_decision',
         'responsable_muestreo_id','responsable_analisis_id','visto_bueno_id',
         'obs_generales','stock_disponible_kg'
@@ -174,5 +173,59 @@ class RecepcionMP extends Model
             GROUP BY i.id
             ORDER BY i.tipo, i.descripcion"
         );
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Resolver una recepción que quedó en 'cuarentena' u 'observado'.
+    //
+    // Hallazgo de auditoría: antes NO existía ninguna forma de cambiar
+    // la decisión de una recepción ya guardada — "cuarentena" se
+    // trataba exactamente igual que "rechazado" (cero stock), sin
+    // ninguna manera de aprobarlo después si el resultado pendiente
+    // finalmente salía bien. El enum de stock_mp.estado ya tenía
+    // 'reservado' pensado exactamente para esto, pero nunca se usaba.
+    //
+    // Este método cambia la decisión final, actualiza el estado del
+    // stock reservado a 'disponible' (aprobado) o 'rechazado', y deja
+    // la nota de resolución en obs_generales.
+    // ═══════════════════════════════════════════════════════════
+    public function resolverDecision(
+        int $id, string $nuevaDecision, string $notaResolucion, int $usuarioId
+    ): bool {
+        $recepcion = $this->find($id);
+        if (!$recepcion) return false;
+        if (!in_array($recepcion['decision'], ['cuarentena', 'observado'], true)) {
+            return false; // Solo se resuelven recepciones pendientes
+        }
+        if (!in_array($nuevaDecision, ['aprobado', 'rechazado'], true)) {
+            return false; // La resolución final solo puede ser aprobado/rechazado
+        }
+
+        return (bool)$this->db->transaction(function($db) use (
+            $id, $recepcion, $nuevaDecision, $notaResolucion
+        ) {
+            $notaCompleta = trim(
+                ($recepcion['obs_generales'] ? $recepcion['obs_generales'] . "\n\n" : '')
+                . '[Resolución ' . date('d/m/Y H:i') . '] '
+                . strtoupper($nuevaDecision) . ': ' . $notaResolucion
+            );
+
+            $db->execute(
+                "UPDATE recepciones_mp
+                SET decision = ?, obs_generales = ?
+                WHERE id = ?",
+                [$nuevaDecision, $notaCompleta, $id]
+            );
+
+            // El stock reservado al guardar la recepción (ver guardar())
+            // pasa a disponible si se aprueba, o a rechazado si no.
+            $nuevoEstadoStock = $nuevaDecision === 'aprobado' ? 'disponible' : 'rechazado';
+            $db->execute(
+                "UPDATE stock_mp SET estado = ? WHERE recepcion_id = ? AND estado = 'reservado'",
+                [$nuevoEstadoStock, $id]
+            );
+
+            return true;
+        });
     }
 }

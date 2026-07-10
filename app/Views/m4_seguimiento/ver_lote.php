@@ -1,6 +1,8 @@
 <?php
-/** @var array $lote @var array $consumoMP @var array $resumenMP
- *  @var array $estados @var bool $canWrite */
+/** @var array $lote
+ *  @var array $resumenMP
+ *  @var array $estados
+ *  @var bool  $canWrite */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
@@ -14,7 +16,7 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
 <div class="page-header">
     <div>
         <div class="page-title" style="font-family:monospace;font-size:22px">
-            🏭 Lote <?= htmlspecialchars($lote['codigo_lote']) ?>
+            <i class="bi bi-building-fill-gear"></i> Lote <?= htmlspecialchars($lote['codigo_lote']) ?>
         </div>
         <div class="page-sub">
             <?= htmlspecialchars($lote['producto_nombre']) ?> ·
@@ -26,21 +28,21 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
     <div class="page-actions">
         <?php if ($canWrite && $lote['estado'] === 'en_proceso'): ?>
         <a href="<?= APP_URL ?>/m4/lote/<?= urlencode($lote['codigo_lote']) ?>/rendimiento"
-            class="btn btn-secondary">📊 Rendimiento</a>
+            class="btn btn-secondary"><i class="bi bi-bar-chart-fill"></i> Rendimiento</a>
         <a href="<?= APP_URL ?>/m4/lote/<?= urlencode($lote['codigo_lote']) ?>/mp"
-            class="btn btn-secondary">📦 MP consumida</a>
-        <form method="POST"
+            class="btn btn-secondary"><i class="bi bi-box-seam-fill"></i> MP consumida</a>
+        <form method="POST" id="formCerrarLote"
             action="<?= APP_URL ?>/m4/lote/<?= urlencode($lote['codigo_lote']) ?>/cerrar"
             style="display:inline">
             <input type="hidden" name="_token" value="<?= $csrfToken ?>">
-            <button type="submit" class="btn btn-warning"
-                    data-confirm="¿Cerrar el lote <?= $lote['codigo_lote'] ?>?">
-                🔒 Cerrar lote
+            <input type="hidden" name="confirmar_sin_rendimiento" id="confirmarSinRendimiento" value="">
+            <button type="submit" class="btn btn-warning" id="btnCerrarLote">
+                <i class="bi bi-lock-fill"></i> Cerrar lote
             </button>
         </form>
         <?php endif ?>
         <a href="<?= APP_URL ?>/m4/lote/<?= urlencode($lote['codigo_lote']) ?>/imprimir"
-            class="btn btn-secondary" target="_blank">🖨️</a>
+            class="btn btn-secondary" target="_blank"><i class="bi bi-printer-fill"></i></a>
     </div>
 </div>
 
@@ -48,9 +50,9 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
 
     <div class="card">
-        <div class="card-header"><span class="card-title">📋 Datos del lote</span></div>
+        <div class="card-header"><span class="card-title"><i class="bi bi-clipboard2-check-fill"></i> Datos del lote</span></div>
         <div class="card-body">
-            <table style="width:100%;font-size:13px;border-collapse:collapse">
+            <table style="width:100%;font-size:var(--fs-dense-sm);border-collapse:collapse">
             <?php
             $filas = [
                 ['Código lote',    '<strong style="font-family:monospace;font-size:15px">'
@@ -71,25 +73,37 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
             foreach ($filas as [$label, $valor]):
             ?>
             <tr style="border-bottom:1px solid #f1f5f9">
-                <td style="padding:7px 0;color:#64748b;font-size:12px;width:45%">
+                <td style="padding:7px 0;color:#64748b;font-size:var(--fs-dense-xs);width:45%">
                     <?= $label ?>
                 </td>
                 <td style="padding:7px 0;font-weight:500"><?= $valor ?></td>
             </tr>
             <?php endforeach ?>
             </table>
+            <!-- AGREGADO: observaciones existía en la BD pero nunca se
+                 mostraba en ningún lado — ahora se ve aquí si tiene valor. -->
+            <?php if (!empty($lote['observaciones'])): ?>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid #f1f5f9">
+                <div style="font-size:var(--fs-dense-xs);color:#64748b;font-weight:600;margin-bottom:4px">
+                    Observaciones
+                </div>
+                <div style="font-size:var(--fs-dense-sm);color:#374151;white-space:pre-line">
+                    <?= htmlspecialchars($lote['observaciones']) ?>
+                </div>
+            </div>
+            <?php endif ?>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-header"><span class="card-title">📊 Rendimiento</span></div>
+        <div class="card-header"><span class="card-title"><i class="bi bi-bar-chart-fill"></i> Rendimiento</span></div>
         <div class="card-body">
 
             <!-- Barra de rendimiento -->
             <div style="margin-bottom:16px">
                 <div style="display:flex;justify-content:space-between;
                             margin-bottom:6px">
-                    <span style="font-size:12px;color:#64748b">Rendimiento real</span>
+                    <span style="font-size:var(--fs-dense-xs);color:#64748b">Rendimiento real</span>
                     <span style="font-size:20px;font-weight:800;color:<?= $colorR ?>">
                         <?= $pct > 0 ? number_format($pct,1).'%' : 'Sin datos' ?>
                     </span>
@@ -109,7 +123,7 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
                         gap:10px;margin-bottom:16px">
                 <div style="text-align:center;padding:10px;background:#f8fafc;
                             border-radius:8px">
-                    <div style="font-size:11px;color:#64748b;margin-bottom:4px">Teórico</div>
+                    <div style="font-size:var(--fs-dense-xs);color:#64748b;margin-bottom:4px">Teórico</div>
                     <div style="font-size:18px;font-weight:700">
                         <?= number_format($lote['rendimiento_teorico_total'] ?? 0) ?>
                     </div>
@@ -118,7 +132,7 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
                 <div style="text-align:center;padding:10px;
                             background:<?= $pct > 0 ? '#f0fdf4' : '#f8fafc' ?>;
                             border-radius:8px">
-                    <div style="font-size:11px;color:#64748b;margin-bottom:4px">Real</div>
+                    <div style="font-size:var(--fs-dense-xs);color:#64748b;margin-bottom:4px">Real</div>
                     <div style="font-size:18px;font-weight:700;color:<?= $colorR ?>">
                         <?= number_format($lote['rendimiento_real_total'] ?? 0) ?>
                     </div>
@@ -126,7 +140,7 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
                 </div>
                 <div style="text-align:center;padding:10px;background:#f8fafc;
                             border-radius:8px">
-                    <div style="font-size:11px;color:#64748b;margin-bottom:4px">
+                    <div style="font-size:var(--fs-dense-xs);color:#64748b;margin-bottom:4px">
                         Diferencia
                     </div>
                     <div style="font-size:18px;font-weight:700;
@@ -140,7 +154,7 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
             </div>
 
             <!-- Mermas -->
-            <div style="font-size:11px;font-weight:700;color:#475569;
+            <div style="font-size:var(--fs-dense-xs);font-weight:700;color:#475569;
                         text-transform:uppercase;letter-spacing:.05em;
                         margin-bottom:8px">Desglose de mermas (kg)</div>
             <?php
@@ -163,8 +177,8 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
             <div style="display:flex;justify-content:space-between;
                         align-items:center;margin-bottom:4px;
                         padding:4px 8px;background:#f8fafc;border-radius:4px">
-                <span style="font-size:12px;color:#374151"><?= htmlspecialchars($info['label']) ?></span>
-                <span style="font-size:12px;font-weight:700;color:<?= $color ?>">
+                <span style="font-size:var(--fs-dense-xs);color:#374151"><?= htmlspecialchars($info['label']) ?></span>
+                <span style="font-size:var(--fs-dense-xs);font-weight:700;color:<?= $color ?>">
                     <?= number_format($val,3) ?> kg
                 </span>
             </div>
@@ -173,13 +187,13 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
             <div style="display:flex;justify-content:space-between;
                         padding:6px 8px;border-top:1px solid #e2e8f0;
                         margin-top:4px;font-weight:700">
-                <span style="font-size:12px">Total merma</span>
+                <span style="font-size:var(--fs-dense-xs)">Total merma</span>
                 <span style="color:#dc2626">
                     <?= number_format($totalMerma,3) ?> kg
                 </span>
             </div>
             <?php elseif ($lote['estado'] === 'en_proceso'): ?>
-            <div style="font-size:12px;color:#94a3b8;text-align:center;
+            <div style="font-size:var(--fs-dense-xs);color:#94a3b8;text-align:center;
                         padding:8px">
                 Sin mermas registradas aún
             </div>
@@ -189,7 +203,9 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
             <div style="margin-top:12px">
                 <a href="<?= APP_URL ?>/m4/lote/<?= urlencode($lote['codigo_lote']) ?>/rendimiento"
                     class="btn btn-primary btn-full">
-                    <?= $pct > 0 ? '✏️ Actualizar rendimiento' : '📊 Registrar rendimiento' ?>
+                    <?= $pct > 0
+                        ? '<i class="bi bi-pencil"></i> Actualizar rendimiento'
+                        : '<i class="bi bi-bar-chart-fill"></i> Registrar rendimiento' ?>
                 </a>
             </div>
             <?php endif ?>
@@ -200,14 +216,14 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
 <!-- MP Consumida -->
 <div class="card">
     <div class="card-header">
-        <span class="card-title">📦 Materia Prima consumida</span>
+        <span class="card-title"><i class="bi bi-box-seam-fill"></i> Materia Prima consumida</span>
         <div style="display:flex;gap:8px;align-items:center">
             <span class="badge badge-info">
                 <?= count($resumenMP) ?> insumos
             </span>
             <?php if ($canWrite && $lote['estado'] === 'en_proceso'): ?>
             <a href="<?= APP_URL ?>/m4/lote/<?= urlencode($lote['codigo_lote']) ?>/mp"
-                class="btn btn-sm btn-primary">+ Agregar MP</a>
+                class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Agregar MP</a>
             <?php endif ?>
         </div>
     </div>
@@ -223,7 +239,7 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
     </div>
     <?php else: ?>
     <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table" style="font-size:var(--fs-dense-sm)">
             <thead>
                 <tr>
                     <th>Código</th>
@@ -237,7 +253,7 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
             <tr>
                 <td>
                     <code style="background:#f1f5f9;padding:2px 6px;
-                            border-radius:4px;font-size:11px">
+                            border-radius:4px;font-size:var(--fs-dense-xs)">
                         <?= htmlspecialchars($r['codigo']) ?>
                     </code>
                 </td>
@@ -262,5 +278,35 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
 <div style="margin-top:8px">
     <a href="<?= APP_URL ?>/m4" class="btn btn-secondary">← Volver</a>
     <a href="<?= APP_URL ?>/m5/lote/<?= urlencode($lote['codigo_lote']) ?>"
-        class="btn btn-secondary">🔗 Ver trazabilidad</a>
+        class="btn btn-secondary"><i class="bi bi-diagram-3-fill"></i> Ver trazabilidad</a>
 </div>
+
+<?php if ($canWrite && $lote['estado'] === 'en_proceso'): ?>
+<script>
+// Confirmación reforzada: cerrar un lote sin rendimiento registrado lo
+// deja así para siempre (no existe forma de reabrirlo). Se confirma
+// explícitamente en ese caso, con una advertencia clara del motivo.
+const tieneRendimiento = <?= $lote['rendimiento_real_total'] !== null ? 'true' : 'false' ?>;
+
+document.getElementById('formCerrarLote').addEventListener('submit', function (e) {
+    if (tieneRendimiento) {
+        if (!confirm('¿Cerrar el lote <?= $lote['codigo_lote'] ?>?')) {
+            e.preventDefault();
+        }
+        return;
+    }
+
+    const confirmado = confirm(
+        'Este lote NO tiene rendimiento registrado todavía.\n\n'
+        + 'Una vez cerrado, no existe forma de volver a registrarlo — '
+        + 'quedará sin ese dato para siempre.\n\n'
+        + '¿Confirma cerrar de todas formas?'
+    );
+    if (!confirmado) {
+        e.preventDefault();
+        return;
+    }
+    document.getElementById('confirmarSinRendimiento').value = '1';
+});
+</script>
+<?php endif ?>
