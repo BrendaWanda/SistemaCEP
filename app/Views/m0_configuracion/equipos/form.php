@@ -129,10 +129,10 @@
                     <label for="reqCalibr"
                             style="font-weight:600;cursor:pointer;
                                     display:flex;align-items:center;gap:7px;
-                                    color:#0f172a;font-size:14px">
+                                    color:#0f172a;font-size:var(--fs-dense-md)">
                         <i class="bi bi-search" style="color:#4f8ef7"></i>
                         Este equipo requiere calibración periódica
-                        <span style="font-size:11px;font-weight:400;color:#64748b">
+                        <span style="font-size:var(--fs-dense-xs);font-weight:400;color:#64748b">
                             (verificable por SIREMU)
                         </span>
                     </label>

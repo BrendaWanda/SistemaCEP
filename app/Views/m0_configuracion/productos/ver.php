@@ -17,7 +17,7 @@
             </span>
             <?php endif ?>
             <code style="background:#f1f5f9;padding:2px 8px;border-radius:5px;
-                        font-size:12px;color:#090e22;font-weight:700">
+                        font-size:var(--fs-dense-xs);color:#090e22;font-weight:700">
                 <?= htmlspecialchars($producto['codigo']) ?>
             </code>
         </div>
@@ -51,9 +51,11 @@
             </span>
         </div>
         <div class="card-body" style="padding:0">
-            <table class="data-table-bordered" style="font-size:13px">
+            <table class="data-table-bordered" style="font-size:var(--fs-dense-sm)">
                 <tbody>
                 <?php
+                // AGREGADO: unidades_por_caja y peso_caja_kg — antes no
+                // se mostraban en ningún lado pese a existir en la BD.
                 $filas = [
                     ['Peso nominal',    'peso_nominal_g',          'g'],
                     ['Tolerancia',      'tolerancia_pct',          '%'],
@@ -63,6 +65,8 @@
                     ['Und. por receta', 'unidades_por_receta',     'und'],
                     ['Und. por bolsa',  'unidades_por_bolsa',      'und'],
                     ['Bolsas por caja', 'bolsas_por_caja',         'bolsas'],
+                    ['Und. por caja',   'unidades_por_caja',       'und'],
+                    ['Peso de caja',    'peso_caja_kg',            'kg'],
                     ['T° conserv. mín', 'temperatura_conserv_min', '°C'],
                     ['T° conserv. máx', 'temperatura_conserv_max', '°C'],
                     ['T° entrega máx',  'temperatura_entrega_max', '°C'],
@@ -71,7 +75,7 @@
                     if ($producto[$campo] === null) continue;
                 ?>
                 <tr>
-                    <td style="text-align:left;color:#64748b;font-size:12px;
+                    <td style="text-align:left;color:#64748b;font-size:var(--fs-dense-xs);
                             font-weight:600;width:50%">
                         <?= $label ?>
                     </td>
@@ -104,7 +108,7 @@
             </span>
         </div>
         <div class="card-body" style="padding:0">
-            <table class="data-table-bordered" style="font-size:13px">
+            <table class="data-table-bordered" style="font-size:var(--fs-dense-sm)">
                 <tbody>
                 <?php
                 $org = [
@@ -118,7 +122,7 @@
                     if (!$producto[$campo]) continue;
                 ?>
                 <tr>
-                    <td style="text-align:left;color:#64748b;font-size:12px;
+                    <td style="text-align:left;color:#64748b;font-size:var(--fs-dense-xs);
                             font-weight:600;width:40%">
                         <?= $label ?>
                     </td>
@@ -129,7 +133,7 @@
                 <?php endforeach ?>
                 <?php if ($producto['ref_humedad_max_pct']): ?>
                 <tr>
-                    <td style="text-align:left;color:#64748b;font-size:12px;font-weight:600">
+                    <td style="text-align:left;color:#64748b;font-size:var(--fs-dense-xs);font-weight:600">
                         Humedad máx
                     </td>
                     <td style="text-align:left;font-weight:500">
@@ -139,7 +143,7 @@
                 <?php endif ?>
                 <?php if ($producto['ref_ph_min'] && $producto['ref_ph_max']): ?>
                 <tr>
-                    <td style="text-align:left;color:#64748b;font-size:12px;font-weight:600">
+                    <td style="text-align:left;color:#64748b;font-size:var(--fs-dense-xs);font-weight:600">
                         pH
                     </td>
                     <td style="text-align:left;font-weight:500">
@@ -199,7 +203,7 @@
         <div style="padding:8px 20px;background:#f0f2f8;
                     display:flex;align-items:center;gap:8px">
             <i class="bi bi-chevron-right" style="font-size:11px;color:#64748b"></i>
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;
+            <span style="font-size:var(--fs-dense-xs);font-weight:700;text-transform:uppercase;
                         letter-spacing:.06em;color:#475569">
                 <?= $etapaNombre ?>
             </span>
@@ -208,7 +212,7 @@
             </span>
         </div>
         <div class="table-wrap">
-            <table class="data-table-bordered" style="font-size:13px">
+            <table class="data-table-bordered" style="font-size:var(--fs-dense-sm)">
                 <thead>
                     <tr>
                         <th style="text-align:left">Parámetro</th>
@@ -238,7 +242,7 @@
                         <?= $param['valor_nominal'] !== null
                             ? number_format($param['valor_nominal'],3) : '—' ?>
                     </td>
-                    <td style="text-align:center;font-size:12px">
+                    <td style="text-align:center;font-size:var(--fs-dense-xs)">
                         <?php if ($param['valor_min'] !== null || $param['valor_max'] !== null): ?>
                         <span style="color:#dc2626;font-weight:600">
                             <?= $param['valor_min'] !== null

@@ -1,11 +1,12 @@
 <?php
-/** @var array $alertas @var bool $canWrite */
+/** @var array $alertas
+ *  @var bool  $canWrite */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 
 <div class="page-header">
     <div>
-        <div class="page-title">⚠️ Alertas de Mantenimiento</div>
+        <div class="page-title"><i class="bi bi-exclamation-triangle-fill"></i> Alertas de Mantenimiento</div>
         <div class="page-sub">
             Equipos con mantenimiento vencido o próximo en los siguientes 30 días.
         </div>
@@ -22,7 +23,7 @@
 <?php if (empty($alertas)): ?>
 <div class="card">
     <div class="card-body text-center" style="padding:60px;color:#94a3b8">
-        <div style="font-size:48px;margin-bottom:12px">✅</div>
+        <div style="font-size:48px;margin-bottom:12px"><i class="bi bi-check-circle-fill"></i></div>
         <div style="font-size:16px;font-weight:600;margin-bottom:6px;
                     color:#15803d">
             Sin alertas de mantenimiento
@@ -41,7 +42,7 @@ $proximos = array_filter($alertas, fn($a) => (int)$a['dias_restantes'] >= 0);
 
 <div class="stats-grid" style="margin-bottom:16px">
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fee2e2">⛔</div>
+        <div class="stat-icon" style="background:#fee2e2"><i class="bi bi-x-circle-fill"></i></div>
         <div>
             <div class="stat-value" style="color:#dc2626">
                 <?= count($vencidos) ?>
@@ -50,7 +51,7 @@ $proximos = array_filter($alertas, fn($a) => (int)$a['dias_restantes'] >= 0);
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fff7ed">⚠️</div>
+        <div class="stat-icon" style="background:#fff7ed"><i class="bi bi-exclamation-triangle-fill"></i></div>
         <div>
             <div class="stat-value" style="color:#d97706">
                 <?= count($proximos) ?>

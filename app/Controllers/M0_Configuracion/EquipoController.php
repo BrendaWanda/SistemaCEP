@@ -68,7 +68,6 @@ class EquipoController extends Controller
         $this->redirectWithSuccess('/m0/equipos',
             "Equipo '{$data['nombre']}' creado correctamente.");
     }
-
     public function editar(array $params): void
     {
         Auth::requireWrite('m0_configuracion');
@@ -97,13 +96,33 @@ class EquipoController extends Controller
         $this->verifyCsrf();
         $id      = (int)$params['id'];
         $data    = $this->buildData();
-        $errores = $this->validar($data);
+        $errores = $this->validar($data, $id);
         if (!empty($errores)) {
             foreach ($errores as $e) $this->flash('error', $e);
             $this->redirect("/m0/equipos/{$id}/editar");
         }
         $this->model->update($id, $data);
         $this->redirectWithSuccess('/m0/equipos', 'Equipo actualizado correctamente.');
+    }
+
+    // POST /m0/equipos/:id/toggle ← NUEVO
+    // Faltaba: eliminar() bloquea el borrado si el equipo tiene
+    // mantenimientos registrados y sugiere "desactívelo en su lugar" —
+    // pero esa función no existía en ningún lado, dejando atrapado para
+    // siempre a cualquier equipo con historial de uso real.
+    public function toggleActivo(array $params): void
+    {
+        Auth::requireWrite('m0_configuracion');
+        $this->verifyCsrf();
+        $id     = (int)$params['id'];
+        $equipo = $this->model->find($id);
+        if (!$equipo) $this->jsonError('No encontrado', 404);
+
+        $nuevoEstado = $equipo['activo'] ? 0 : 1;
+        $this->model->update($id, ['activo' => $nuevoEstado]);
+        $msg = $nuevoEstado ? 'Equipo activado.' : 'Equipo desactivado.';
+        if ($this->isAjax()) $this->jsonSuccess(['activo' => $nuevoEstado], $msg);
+        $this->redirectWithSuccess('/m0/equipos', $msg);
     }
 
     // POST /m0/equipos/:id/eliminar ← NUEVO
@@ -153,13 +172,16 @@ class EquipoController extends Controller
         ];
     }
 
-    private function validar(array $data): array
+    private function validar(array $data, ?int $exceptoId = null): array
     {
         $errores = [];
         if (!$data['linea_id'])     $errores[] = 'Seleccione la línea de producción.';
         if (empty($data['codigo'])) $errores[] = 'El código es requerido.';
         if (empty($data['nombre'])) $errores[] = 'El nombre es requerido.';
         if (empty($data['tipo']))   $errores[] = 'Seleccione el tipo de equipo.';
+        if (!empty($data['codigo']) && $this->model->codigoExiste($data['codigo'], $exceptoId)) {
+            $errores[] = "El código '{$data['codigo']}' ya existe.";
+        }
         return $errores;
     }
 }

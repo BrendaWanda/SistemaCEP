@@ -1,6 +1,12 @@
 <?php
-/** @var array|null $mantenimiento @var array $equipos @var array $usuarios
- *  @var array $tipos @var array $resultados @var string $fecha_hoy @var string $accion */
+/** @var array|null $mantenimiento
+ *  @var array $equipos
+ *  @var array $usuarios
+ *  @var array $lotes
+ *  @var array $tipos
+ *  @var array $resultados
+ *  @var string $fecha_hoy
+ *  @var string $accion */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
@@ -9,7 +15,7 @@
 
 <div class="page-header">
     <div class="page-title">
-        <?= $esEditar ? '✏️ Editar Mantenimiento' : '➕ Nuevo Mantenimiento' ?>
+        <?= $esEditar ? '<i class="bi bi-pencil"></i> Editar Mantenimiento' : '<i class="bi bi-plus-lg"></i> Nuevo Mantenimiento' ?>
     </div>
 </div>
 
@@ -90,9 +96,11 @@
 
         <div class="form-row cols-2">
             <div class="form-group">
-                <label class="form-label">Fecha y hora inicio</label>
+                <label class="form-label">
+                    Fecha y hora inicio <span class="form-required">*</span>
+                </label>
                 <input type="datetime-local" name="fecha_inicio"
-                        class="form-control" id="fechaInicio"
+                        class="form-control" id="fechaInicio" required
                         value="<?= $v('fecha_inicio') ?>">
             </div>
             <div class="form-group">
@@ -127,7 +135,7 @@
                         border-radius:8px;padding:14px;margin-bottom:16px">
                 <div style="font-size:12px;font-weight:700;color:#dc2626;
                             margin-bottom:10px">
-                    ⚠️ Datos de falla (mantenimiento correctivo)
+                    <i class="bi bi-exclamation-triangle-fill"></i> Datos de falla (mantenimiento correctivo)
                 </div>
                 <div class="form-group">
                     <label class="form-label">Falla detectada</label>
@@ -164,6 +172,27 @@
                         <input type="number" name="tiempo_paro_min"
                                 class="form-control"
                                 value="<?= $v('tiempo_paro_min') ?>" min="0">
+                    </div>
+                </div>
+                <!-- AGREGADO: lote_afectado_id existía en la BD y en el
+                     $fillable del modelo, pero nunca hubo un selector en
+                     este formulario — quedaba siempre en NULL, sin
+                     ninguna forma de vincular la falla al lote afectado. -->
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Lote en curso durante el paro</label>
+                    <select name="lote_afectado_id" class="form-control">
+                        <option value="">— Ninguno / no aplica —</option>
+                        <?php foreach ($lotes as $loteId => $loteLabel): ?>
+                        <option value="<?= $loteId ?>"
+                                <?= ($mantenimiento['lote_afectado_id'] ?? '') == $loteId
+                                    ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($loteLabel) ?>
+                        </option>
+                        <?php endforeach ?>
+                    </select>
+                    <div class="form-hint">
+                        <i class="bi bi-info-circle"></i>
+                        Vincula esta falla con el lote de producción afectado (trazabilidad)
                     </div>
                 </div>
             </div>
@@ -217,7 +246,7 @@
     <div class="card-footer">
         <a href="<?= APP_URL ?>/m3" class="btn btn-secondary">Cancelar</a>
         <button type="submit" class="btn btn-primary">
-            <?= $esEditar ? '💾 Guardar cambios' : '✅ Registrar mantenimiento' ?>
+            <?= $esEditar ? '<i class="bi bi-floppy"></i> Guardar cambios' : '<i class="bi bi-check-circle-fill"></i> Registrar mantenimiento' ?>
         </button>
     </div>
     </form>

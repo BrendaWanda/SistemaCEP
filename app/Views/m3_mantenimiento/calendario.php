@@ -1,11 +1,28 @@
 <?php
-/** @var array $programados @var array $tipos @var bool $canWrite */
+/** @var array $programados
+ *  @var array $tipos
+ *  @var bool  $canWrite */
+
+// Nombres de mes en español — date('F Y') de PHP no traduce solo, y
+// strftime() (usado antes para esto) está obsoleto desde PHP 8.1 y
+// generaba warnings de depreciación sin que su resultado se usara en
+// ningún lado (el título real ya usaba date('F Y'), mostrando el
+// calendario en inglés). Se reemplazan ambos problemas con esta tabla.
+const MESES_ES = [
+    '01'=>'Enero','02'=>'Febrero','03'=>'Marzo','04'=>'Abril',
+    '05'=>'Mayo','06'=>'Junio','07'=>'Julio','08'=>'Agosto',
+    '09'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre',
+];
+function mesEsAnio(string $fechaYm): string {
+    [$anio, $mes] = explode('-', $fechaYm);
+    return (MESES_ES[$mes] ?? $mes) . ' ' . $anio;
+}
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 
 <div class="page-header">
     <div>
-        <div class="page-title">📅 Calendario de Mantenimientos</div>
+        <div class="page-title"><i class="bi bi-calendar3-week-fill"></i> Calendario de Mantenimientos</div>
         <div class="page-sub">
             Mantenimientos programados y en proceso.
         </div>
@@ -22,7 +39,7 @@
 <?php if (empty($programados)): ?>
 <div class="card">
     <div class="card-body text-center" style="padding:60px;color:#94a3b8">
-        <div style="font-size:48px;margin-bottom:12px">📅</div>
+        <div style="font-size:48px;margin-bottom:12px"><i class="bi bi-calendar3-week-fill"></i></div>
         <div style="font-size:16px;font-weight:600;margin-bottom:6px">
             No hay mantenimientos programados
         </div>
@@ -43,7 +60,7 @@
 <?php
 $porMes = [];
 foreach ($programados as $m) {
-    $fecha = $m['fecha_programada'] ?? $m['fecha_ejecucion'] ?? date('Y-m-d');
+    $fecha = $m['fecha_programada'] ?? date('Y-m-d');
     $mes   = date('Y-m', strtotime($fecha));
     $porMes[$mes][] = $m;
 }
@@ -52,8 +69,6 @@ ksort($porMes);
 
 <?php foreach ($porMes as $mes => $items): ?>
 <?php
-$nombreMes = strftime('%B %Y', strtotime($mes.'-01'))
-    ?: date('F Y', strtotime($mes.'-01'));
 $dt        = new DateTime($mes.'-01');
 $diasMes   = (int)$dt->format('t');
 $primerDia = (int)date('N', strtotime($mes.'-01')); // 1=lun, 7=dom
@@ -63,7 +78,7 @@ $primerDia = (int)date('N', strtotime($mes.'-01')); // 1=lun, 7=dom
     <div class="card-header"
             style="background:#1e3a5f;color:#fff">
         <span class="card-title" style="color:#fff;font-size:15px">
-            📅 <?= ucfirst(date('F Y', strtotime($mes.'-01'))) ?>
+            <i class="bi bi-calendar3-week-fill"></i> <?= mesEsAnio($mes) ?>
         </span>
         <span class="badge"
                 style="background:rgba(255,255,255,.2);color:#fff">
@@ -94,7 +109,7 @@ $primerDia = (int)date('N', strtotime($mes.'-01')); // 1=lun, 7=dom
                 $fechaDia  = $mes.'-'.str_pad($dia, 2, '0', STR_PAD_LEFT);
                 $hoy       = date('Y-m-d') === $fechaDia;
                 $eventosDay= array_filter($items, function($m) use ($fechaDia) {
-                    $f = $m['fecha_programada'] ?? $m['fecha_ejecucion'] ?? '';
+                    $f = $m['fecha_programada'] ?? '';
                     return substr($f, 0, 10) === $fechaDia;
                 });
             ?>
@@ -136,7 +151,7 @@ $primerDia = (int)date('N', strtotime($mes.'-01')); // 1=lun, 7=dom
             <div style="display:flex;flex-direction:column;gap:6px">
             <?php foreach ($items as $m):
                 $tipo    = $tipos[$m['tipo']] ?? ['label'=>$m['tipo'],'badge'=>'badge-muted'];
-                $fecha   = $m['fecha_programada'] ?? $m['fecha_ejecucion'] ?? '—';
+                $fecha   = $m['fecha_programada'] ?? '—';
                 $diasArr = $fecha !== '—'
                     ? (int)((strtotime($fecha) - strtotime(date('Y-m-d'))) / 86400)
                     : null;

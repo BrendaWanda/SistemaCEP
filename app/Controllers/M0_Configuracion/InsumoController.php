@@ -186,6 +186,7 @@ class InsumoController extends Controller
             'esp_densidad_max'       => $this->inputFloat('esp_densidad_max') ?: null,
             'esp_ph_min'             => $this->inputFloat('esp_ph_min') ?: null,
             'esp_ph_max'             => $this->inputFloat('esp_ph_max') ?: null,
+            'esp_brix_max'           => $this->inputFloat('esp_brix_max') ?: null,
             'esp_gluten_min'         => $this->inputFloat('esp_gluten_min') ?: null,
             'esp_impurezas_max'      => $this->inputFloat('esp_impurezas_max') ?: null,
             'vida_util_referencia'   => $this->input('vida_util_referencia'),

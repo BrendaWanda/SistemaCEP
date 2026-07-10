@@ -257,8 +257,13 @@ class SpcController extends Controller
         if ($fechaDesde) { $cond .= ' AND s.fecha >= ?'; $params[] = $fechaDesde; }
         if ($fechaHasta) { $cond .= ' AND s.fecha <= ?'; $params[] = $fechaHasta; }
 
-        if ($estrato === 'proceso')    $cond .= " AND pp.etapa != 'producto_terminado'";
-        if ($estrato === 'terminado')  $cond .= " AND pp.etapa = 'producto_terminado'";
+        // Se filtra por clasificacion_control (decisión explícita por
+        // parámetro en M0), NO por etapa — un parámetro de la etapa
+        // "envasado" puede funcionar como criterio de producto terminado
+        // (ej. "peso envasado") y no debe clasificarse por el nombre de
+        // su etapa.
+        if ($estrato === 'proceso')   $cond .= " AND pp.clasificacion_control = 'proceso'";
+        if ($estrato === 'terminado') $cond .= " AND pp.clasificacion_control = 'terminado'";
 
         if ($tipo === 'atributo') {
             // Atributos (carta p): eventos = no conformes, oportunidades = inspeccionado

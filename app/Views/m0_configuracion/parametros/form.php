@@ -1,5 +1,6 @@
 <?php
-/** @var array $producto @var array|null $parametro @var array $etapas @var array $tipos @var string $accion */
+/** @var array $producto @var array|null $parametro @var array $etapas @var array $tipos
+ *  @var array $clasificaciones @var string $accion */
 ?>
 <?php require __DIR__ . '/../_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
@@ -79,6 +80,30 @@ $successUrl = APP_URL . '/m0/productos/' . $producto['id'] . '/parametros';
                         </option>
                         <?php endforeach ?>
                     </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">
+                        Clasificación de control <span class="form-required">*</span>
+                    </label>
+                    <select name="clasificacion_control" class="form-control" required>
+                        <?php foreach ($clasificaciones as $key => $label): ?>
+                        <option value="<?= $key ?>"
+                                <?= $v('clasificacion_control','proceso') === $key ? 'selected' : '' ?>>
+                            <?= $label ?>
+                        </option>
+                        <?php endforeach ?>
+                    </select>
+                    <div class="form-hint">
+                        <i class="bi bi-info-circle"></i>
+                        Es independiente de la etapa — ej. "Peso envasado" puede estar en
+                        la etapa <strong>Envasado</strong> pero clasificarse como
+                        <strong>Producto terminado</strong> si funciona como criterio de
+                        liberación final, no de control en planta. Se usa para el Pareto
+                        de parámetros críticos en M6.
+                    </div>
                 </div>
             </div>
 
@@ -163,7 +188,7 @@ $successUrl = APP_URL . '/m0/productos/' . $producto['id'] . '/parametros';
                             <?= ($parametro['es_variable_spc'] ?? false) ? 'checked' : '' ?>
                             style="width:16px;height:16px;accent-color:#4f8ef7;cursor:pointer">
                     <label for="esSPC"
-                            style="font-weight:600;font-size:14px;cursor:pointer;
+                            style="font-weight:600;font-size:var(--fs-dense-md);cursor:pointer;
                                 display:flex;align-items:center;gap:7px;color:#0f172a">
                         <i class="bi bi-graph-up-arrow" style="color:#4f8ef7"></i>
                         Esta variable se grafica en el SPC
@@ -171,7 +196,7 @@ $successUrl = APP_URL . '/m0/productos/' . $producto['id'] . '/parametros';
                             background:<?= $esAtributo ? '#dcfce7' : '#dbeafe' ?>;
                             color:<?= $esAtributo ? '#14532d' : '#1e40af' ?>;
                             padding:2px 8px;border-radius:6px;
-                            font-size:12px;font-weight:700">
+                            font-size:var(--fs-dense-xs);font-weight:700">
                             <?= $esAtributo ? 'Carta p' : 'X̄-R / X-MR' ?>
                         </span>
                     </label>
@@ -219,7 +244,7 @@ $successUrl = APP_URL . '/m0/productos/' . $producto['id'] . '/parametros';
                     <input type="checkbox" name="obligatorio"
                             <?= ($parametro['obligatorio'] ?? 1) ? 'checked' : '' ?>
                             style="width:16px;height:16px;accent-color:#4f8ef7">
-                    <span style="font-weight:500;font-size:14px">
+                    <span style="font-weight:500;font-size:var(--fs-dense-md)">
                         Campo obligatorio en el formulario de registro de proceso
                     </span>
                 </label>
@@ -274,15 +299,17 @@ document.getElementById('esSPC').addEventListener('change', function () {
 // ═══════════════════════════════════════════════════════════
 // Envío del formulario vía fetch() — independiente del <form>
 // ═══════════════════════════════════════════════════════════
-// Se usa el evento 'click' del botón (siempre se dispara, sin
-// importar si el navegador asoció correctamente el <button
-// type="submit"> con el <form>). Se recolectan manualmente
-// todos los campos con [name] dentro de #camposParametro y se
-// envían por POST vía fetch a la URL calculada en PHP.
+// CORREGIDO (hallazgo crítico de auditoría): la versión anterior usaba
+// redirect:'manual' y en el .then() SIEMPRE navegaba a SUCCESS_URL sin
+// importar la respuesta real del servidor — un error de validación
+// (etapa vacía, valor_min >= valor_max, clasificación inválida, etc.)
+// se guardaba como mensaje flash pero el usuario terminaba en la
+// pantalla de "éxito" sin saber que en realidad NADA se guardó, y sin
+// poder corregir el dato porque ya no estaba en el formulario.
 //
-// redirect:'manual' evita que fetch siga el 302 de éxito —
-// así el mensaje flash (guardado en sesión por PHP) sigue
-// disponible cuando el navegador navega de verdad a successUrl.
+// Ahora el controller responde JSON explícito ({success, message})
+// cuando detecta un header AJAX (igual que en M2/M6), y aquí se revisa
+// esa respuesta de verdad antes de decidir a dónde ir.
 // ═══════════════════════════════════════════════════════════
 const ACTION_URL  = <?= json_encode($actionUrl, JSON_UNESCAPED_SLASHES) ?>;
 const SUCCESS_URL = <?= json_encode($successUrl, JSON_UNESCAPED_SLASHES) ?>;
@@ -315,9 +342,20 @@ document.getElementById('btnGuardarParametro').addEventListener('click', functio
         }
     });
 
-    fetch(ACTION_URL, { method: 'POST', body: formData, redirect: 'manual' })
-        .then(function () {
-            window.location.href = SUCCESS_URL;
+    fetch(ACTION_URL, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+        .then(function (res) { return res.json(); })
+        .then(function (resp) {
+            if (resp.success) {
+                window.location.href = SUCCESS_URL;
+            } else {
+                btn.disabled  = false;
+                btn.innerHTML = textoOriginal;
+                alert(resp.message || 'No se pudo guardar el parámetro.');
+            }
         })
         .catch(function (err) {
             btn.disabled  = false;

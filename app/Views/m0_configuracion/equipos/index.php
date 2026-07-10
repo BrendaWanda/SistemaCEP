@@ -30,7 +30,7 @@
         <?= count($alertas) ?> equipo(s) requieren atención en calibración
     </div>
     <?php foreach ($alertas as $a): ?>
-    <div style="font-size:13px;color:#78350f;margin-bottom:4px;
+    <div style="font-size:var(--fs-dense-sm);color:#78350f;margin-bottom:4px;
                 display:flex;align-items:center;gap:6px">
         <i class="bi bi-dot"></i>
         <strong><?= htmlspecialchars($a['codigo']) ?></strong>
@@ -123,7 +123,7 @@
             <tr>
                 <td>
                     <code style="background:#f1f5f9;padding:3px 8px;border-radius:5px;
-                                font-size:12px;color:#090e22;font-weight:700">
+                                font-size:var(--fs-dense-xs);color:#090e22;font-weight:700">
                         <?= htmlspecialchars($e['codigo']) ?>
                     </code>
                 </td>
@@ -132,7 +132,7 @@
                         <?= htmlspecialchars($e['nombre']) ?>
                     </div>
                     <?php if ($e['marca']): ?>
-                    <div style="font-size:12px;color:#94a3b8;margin-top:2px">
+                    <div style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:2px">
                         <i class="bi bi-tag" style="font-size:10px"></i>
                         <?= htmlspecialchars($e['marca']) ?>
                         <?= $e['modelo'] ? ' · '.htmlspecialchars($e['modelo']) : '' ?>
@@ -144,7 +144,7 @@
                         <?= $tipos[$e['tipo']] ?? $e['tipo'] ?>
                     </span>
                 </td>
-                <td style="text-align:left;font-size:13px;color:#475569">
+                <td style="text-align:left;font-size:var(--fs-dense-sm);color:#475569">
                     <?= htmlspecialchars($e['linea_nombre']) ?>
                 </td>
                 <td style="text-align:center">
@@ -154,7 +154,7 @@
                         <?= $calibBadge[1] ?>
                     </span>
                     <?php if ($e['fecha_prox_calibr'] && $e['requiere_calibracion']): ?>
-                    <div style="font-size:11px;color:#94a3b8;margin-top:3px">
+                    <div style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:3px">
                         <?= date('d/m/Y', strtotime($e['fecha_prox_calibr'])) ?>
                     </div>
                     <?php endif ?>
@@ -166,7 +166,7 @@
                         <?= $mantBadge[1] ?>
                     </span>
                     <?php if ($e['fecha_prox_mant']): ?>
-                    <div style="font-size:11px;color:#94a3b8;margin-top:3px">
+                    <div style="font-size:var(--fs-dense-xs);color:#94a3b8;margin-top:3px">
                         <?= date('d/m/Y', strtotime($e['fecha_prox_mant'])) ?>
                     </div>
                     <?php endif ?>
@@ -184,6 +184,20 @@
                             class="btn btn-sm btn-secondary" title="Editar">
                             <i class="bi bi-pencil"></i>
                         </a>
+                        <!-- Activar / Desactivar -->
+                        <form method="POST"
+                                action="<?= APP_URL ?>/m0/equipos/<?= $e['id'] ?>/toggle"
+                                style="display:inline">
+                            <input type="hidden" name="_token" value="<?= $csrfToken ?>">
+                            <button type="submit"
+                                    class="btn btn-sm <?= $e['activo'] ? 'btn-warning' : 'btn-success' ?>"
+                                    title="<?= $e['activo'] ? 'Desactivar' : 'Activar' ?>"
+                                    data-confirm="<?= $e['activo']
+                                        ? '¿Desactivar este equipo?'
+                                        : '¿Activar este equipo?' ?>">
+                                <i class="bi <?= $e['activo'] ? 'bi-pause-fill' : 'bi-play-fill' ?>"></i>
+                            </button>
+                        </form>
                         <!-- Eliminar -->
                         <form method="POST"
                                 action="<?= APP_URL ?>/m0/equipos/<?= $e['id'] ?>/eliminar"

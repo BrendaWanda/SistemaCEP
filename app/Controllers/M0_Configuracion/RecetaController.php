@@ -96,30 +96,42 @@ class RecetaController extends Controller
         }
 
         $version  = $this->model->siguienteVersion($productoId);
-        $recetaId = $this->model->create([
-            'producto_id' => $productoId,
-            'version'     => $version,
-            'nombre'      => $nombre,
-            'descripcion' => $desc,
-            'vigente'     => 1,
-            'creado_por'  => Auth::id(),
-        ]);
 
-        foreach ($insumoIds as $i => $insumoId) {
-            if (empty($insumoId) || empty($cantidades[$i])) continue;
-            $this->db->execute(
-                "INSERT INTO receta_insumos
-                (receta_id, insumo_id, cantidad, unidad_medida, es_critico)
-                VALUES (?, ?, ?, ?, ?)",
-                [
-                    $recetaId,
-                    (int)$insumoId,
-                    (float)str_replace(',', '.', $cantidades[$i]),
-                    $unidades[$i] ?? 'kg',
-                    isset($criticos[$i]) ? 1 : 0,
-                ]
-            );
-        }
+        // Hallazgo de auditoría: antes la receta se creaba y los
+        // ingredientes se insertaban en un loop suelto, sin transacción.
+        // Si un ingrediente fallaba a mitad del loop (ej. insumo_id
+        // inválido), quedaba una receta guardada con una lista de
+        // ingredientes incompleta y sin ningún aviso.
+        $recetaId = $this->db->transaction(function($db) use (
+            $productoId, $version, $nombre, $desc, $insumoIds, $cantidades, $unidades, $criticos
+        ) {
+            $recetaId = $this->model->create([
+                'producto_id' => $productoId,
+                'version'     => $version,
+                'nombre'      => $nombre,
+                'descripcion' => $desc,
+                'vigente'     => 1,
+                'creado_por'  => Auth::id(),
+            ]);
+
+            foreach ($insumoIds as $i => $insumoId) {
+                if (empty($insumoId) || empty($cantidades[$i])) continue;
+                $db->execute(
+                    "INSERT INTO receta_insumos
+                    (receta_id, insumo_id, cantidad, unidad_medida, es_critico)
+                    VALUES (?, ?, ?, ?, ?)",
+                    [
+                        $recetaId,
+                        (int)$insumoId,
+                        (float)str_replace(',', '.', $cantidades[$i]),
+                        $unidades[$i] ?? 'kg',
+                        isset($criticos[$i]) ? 1 : 0,
+                    ]
+                );
+            }
+
+            return $recetaId;
+        });
 
         $this->redirectWithSuccess("/m0/recetas/{$recetaId}",
             "Receta '{$nombre}' v{$version} creada correctamente.");
@@ -133,6 +145,29 @@ class RecetaController extends Controller
             $this->flash('error','Receta no encontrada.');
             $this->redirect('/m0/recetas');
         }
+
+        // Hallazgo de auditoría: Insumo::paraSelect() solo trae insumos
+        // activos. Si un ingrediente de ESTA receta usa un insumo que
+        // luego fue desactivado, su <option> no existía en la lista y el
+        // <select> quedaba sin selección — al guardar sin darse cuenta,
+        // ese ingrediente se borraba silenciosamente (ver RecetaController
+        // ::actualizar(), que descarta filas con insumo_id vacío). Se
+        // agregan aquí, marcados como "(INACTIVO)", los insumos ya usados
+        // en la receta aunque estén desactivados — para NUEVOS
+        // ingredientes solo se puede elegir entre los activos, que es lo
+        // correcto.
+        $insumos = $this->modelInsumo->paraSelect();
+        foreach ($receta['ingredientes'] as $ing) {
+            $insId = (int)$ing['insumo_id'];
+            if (!isset($insumos[$insId])) {
+                $insInactivo = $this->modelInsumo->find($insId);
+                if ($insInactivo) {
+                    $insumos[$insId] = $insInactivo['codigo'] . ' — '
+                        . $insInactivo['descripcion'] . ' (INACTIVO)';
+                }
+            }
+        }
+
         $this->render('m0_configuracion/recetas/form', [
             'pageTitle'  => 'Editar: '.$receta['nombre'],
             'breadcrumb' => [
@@ -142,7 +177,7 @@ class RecetaController extends Controller
             ],
             'receta'    => $receta,
             'productos' => $this->modelProducto->todosConLinea(),
-            'insumos'   => $this->modelInsumo->paraSelect(),
+            'insumos'   => $insumos,
             'accion'    => 'editar',
         ]);
     }
@@ -153,33 +188,43 @@ class RecetaController extends Controller
         $this->verifyCsrf();
         $id = (int)$params['id'];
 
-        $this->model->update($id, [
-            'nombre'      => $this->input('nombre'),
-            'descripcion' => $this->input('descripcion'),
-            'vigente'     => isset($_POST['vigente']) ? 1 : 0,
-        ]);
-
-        $this->db->execute("DELETE FROM receta_insumos WHERE receta_id = ?", [$id]);
         $insumoIds  = $_POST['insumo_id']  ?? [];
         $cantidades = $_POST['cantidad']   ?? [];
         $unidades   = $_POST['unidad']     ?? [];
         $criticos   = $_POST['es_critico'] ?? [];
 
-        foreach ($insumoIds as $i => $insumoId) {
-            if (empty($insumoId) || empty($cantidades[$i])) continue;
-            $this->db->execute(
-                "INSERT INTO receta_insumos
-                (receta_id, insumo_id, cantidad, unidad_medida, es_critico)
-                VALUES (?, ?, ?, ?, ?)",
-                [
-                    $id,
-                    (int)$insumoId,
-                    (float)str_replace(',', '.', $cantidades[$i]),
-                    $unidades[$i] ?? 'kg',
-                    isset($criticos[$i]) ? 1 : 0,
-                ]
-            );
-        }
+        // Hallazgo de auditoría: "borrar todo y reinsertar" (patrón para
+        // reemplazar la lista completa de ingredientes) es exactamente el
+        // caso donde la falta de transacción es más peligrosa — si el
+        // DELETE tenía éxito pero un INSERT posterior fallaba, la receta
+        // quedaba con CERO ingredientes en vez de la lista original.
+        $this->db->transaction(function($db) use (
+            $id, $insumoIds, $cantidades, $unidades, $criticos
+        ) {
+            $this->model->update($id, [
+                'nombre'      => $this->input('nombre'),
+                'descripcion' => $this->input('descripcion'),
+                'vigente'     => isset($_POST['vigente']) ? 1 : 0,
+            ]);
+
+            $db->execute("DELETE FROM receta_insumos WHERE receta_id = ?", [$id]);
+
+            foreach ($insumoIds as $i => $insumoId) {
+                if (empty($insumoId) || empty($cantidades[$i])) continue;
+                $db->execute(
+                    "INSERT INTO receta_insumos
+                    (receta_id, insumo_id, cantidad, unidad_medida, es_critico)
+                    VALUES (?, ?, ?, ?, ?)",
+                    [
+                        $id,
+                        (int)$insumoId,
+                        (float)str_replace(',', '.', $cantidades[$i]),
+                        $unidades[$i] ?? 'kg',
+                        isset($criticos[$i]) ? 1 : 0,
+                    ]
+                );
+            }
+        });
 
         $this->redirectWithSuccess("/m0/recetas/{$id}", 'Receta actualizada correctamente.');
     }
@@ -208,9 +253,10 @@ class RecetaController extends Controller
         }
 
         $nombre = $receta['nombre'];
-        // Eliminar ingredientes primero
-        $this->db->execute("DELETE FROM receta_insumos WHERE receta_id = ?", [$id]);
-        $this->model->delete($id);
+        $this->db->transaction(function($db) use ($id) {
+            $db->execute("DELETE FROM receta_insumos WHERE receta_id = ?", [$id]);
+            $this->model->delete($id);
+        });
         $this->redirectWithSuccess('/m0/recetas',
             "Receta '{$nombre}' eliminada correctamente.");
     }

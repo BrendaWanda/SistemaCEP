@@ -1,5 +1,8 @@
 <?php
-/** @var array $mant @var array $tipos @var array $estados @var bool $canWrite */
+/** @var array $mant
+ *  @var array $tipos
+ *  @var array $estados
+ *  @var bool  $canWrite */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 
@@ -14,7 +17,7 @@ $durFmt = $durMin >= 60
 
 <div class="page-header">
     <div>
-        <div class="page-title">🔧 <?= htmlspecialchars($mant['equipo_nombre']) ?></div>
+        <div class="page-title"><i class="bi bi-wrench-adjustable-circle-fill"></i> <?= htmlspecialchars($mant['equipo_nombre']) ?></div>
         <div class="page-sub">
             <?= htmlspecialchars($mant['equipo_codigo']) ?> ·
             <span class="badge <?= $tipo['badge'] ?>"><?= $tipo['label'] ?></span> ·
@@ -24,14 +27,14 @@ $durFmt = $durMin >= 60
     <?php if ($canWrite): ?>
     <div class="page-actions">
         <a href="<?= APP_URL ?>/m3/<?= $mant['id'] ?>/editar"
-            class="btn btn-secondary">✏️ Editar</a>
+            class="btn btn-secondary"><i class="bi bi-pencil"></i> Editar</a>
     </div>
     <?php endif ?>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div class="card">
-        <div class="card-header"><span class="card-title">⚙️ Equipo</span></div>
+        <div class="card-header"><span class="card-title"><i class="bi bi-gear-fill"></i> Equipo</span></div>
         <div class="card-body">
             <table style="width:100%;font-size:13px;border-collapse:collapse">
             <?php foreach ([
@@ -52,7 +55,7 @@ $durFmt = $durMin >= 60
     </div>
 
     <div class="card">
-        <div class="card-header"><span class="card-title">📋 Registro</span></div>
+        <div class="card-header"><span class="card-title"><i class="bi bi-clipboard2-check-fill"></i> Registro</span></div>
         <div class="card-body">
             <table style="width:100%;font-size:13px;border-collapse:collapse">
             <?php foreach ([
@@ -65,7 +68,8 @@ $durFmt = $durMin >= 60
                 ['Ejecutado por', htmlspecialchars($mant['ejecutado_nombre'] ?? '—')],
                 ['Supervisado por',htmlspecialchars($mant['supervisado_nombre'] ?? '—')],
                 ['Costo est.',    $mant['costo_estimado'] ? 'Bs. '.number_format($mant['costo_estimado'],2) : '—'],
-                ['Paro producción',$mant['paro_produccion'] ? '⚠️ Sí — '.($mant['tiempo_paro_min'] ?? 0).' min' : 'No'],
+                ['Paro producción',$mant['paro_produccion'] ? '<i class="bi bi-exclamation-triangle-fill"></i> Sí — '.($mant['tiempo_paro_min'] ?? 0).' min' : 'No'],
+                ['Lote afectado',  $mant['lote_afectado_codigo'] ?? ($mant['lote_afectado_id'] ? '#'.$mant['lote_afectado_id'] : '—')],
             ] as [$l,$v]): ?>
             <tr style="border-bottom:1px solid #f1f5f9">
                 <td style="padding:7px 0;color:#64748b;font-size:12px;width:45%"><?= $l ?></td>
@@ -78,12 +82,12 @@ $durFmt = $durMin >= 60
 </div>
 
 <?php foreach ([
-    ['📝 Descripción del trabajo', 'descripcion_trabajo'],
-    ['🔍 Falla detectada',         'falla_detectada'],
-    ['🎯 Causa raíz',              'causa_raiz'],
-    ['✅ Acción correctiva',        'accion_correctiva'],
-    ['🔩 Componentes cambiados',    'componentes_cambiados'],
-    ['💬 Observaciones',           'observaciones'],
+    ['<i class="bi bi-file-earmark-text-fill"></i> Descripción del trabajo', 'descripcion_trabajo'],
+    ['<i class="bi bi-funnel"></i> Falla detectada',         'falla_detectada'],
+    ['<i class="bi bi-bullseye"></i> Causa raíz',              'causa_raiz'],
+    ['<i class="bi bi-check-circle-fill"></i> Acción correctiva',        'accion_correctiva'],
+    ['<i class="bi bi-gear-fill"></i> Componentes cambiados',    'componentes_cambiados'],
+    ['<i class="bi bi-chat-left-text-fill"></i> Observaciones',           'observaciones'],
 ] as [$titulo, $campo]): ?>
 <?php if ($mant[$campo] ?? null): ?>
 <div class="card" style="margin-top:14px">

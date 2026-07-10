@@ -5,10 +5,10 @@ $uri      = ($basePath && str_starts_with($uriRaw, $basePath))
             ? substr($uriRaw, strlen($basePath)) : $uriRaw;
 
 $navItems = [
-    ['url'=>'/m3',           'label'=>'Registros',  'icon'=>'🔧', 'exacto'=>true],
-    ['url'=>'/m3/nuevo',     'label'=>'Nuevo',       'icon'=>'➕', 'exacto'=>false],
-    ['url'=>'/m3/alertas',   'label'=>'Alertas',     'icon'=>'⚠️', 'exacto'=>false],
-    ['url'=>'/m3/calendario','label'=>'Calendario',  'icon'=>'📅', 'exacto'=>false],
+    ['url'=>'/m3',           'label'=>'Registros',  'icon'=>'<i class="bi bi-wrench-adjustable-circle-fill"></i>', 'exacto'=>true],
+    ['url'=>'/m3/nuevo',     'label'=>'Nuevo',       'icon'=>'<i class="bi bi-plus-lg"></i>', 'exacto'=>false],
+    ['url'=>'/m3/alertas',   'label'=>'Alertas',     'icon'=>'<i class="bi bi-exclamation-triangle-fill"></i>', 'exacto'=>false],
+    ['url'=>'/m3/calendario','label'=>'Calendario',  'icon'=>'<i class="bi bi-calendar3-week-fill"></i>', 'exacto'=>false],
 ];
 ?>
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px">

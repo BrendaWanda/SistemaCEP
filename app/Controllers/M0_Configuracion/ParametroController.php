@@ -56,6 +56,7 @@ class ParametroController extends Controller
             'producto'  => $producto,
             'parametro' => null,
             'etapas'    => ParametroProceso::ETAPAS,
+            'clasificaciones' => ParametroProceso::CLASIFICACIONES_CONTROL,
             'tipos'     => ParametroProceso::TIPOS,
             'accion'    => 'crear',
         ]);
@@ -69,34 +70,63 @@ class ParametroController extends Controller
 
         $etapa = $this->input('etapa');
         $data  = [
-            'producto_id'      => $productoId,
-            'etapa'            => $etapa,
-            'nombre'           => $this->input('nombre'),
-            'unidad'           => $this->input('unidad'),
-            'tipo_dato'        => $this->input('tipo_dato'),
-            'valor_nominal'    => $this->floatOrNull('valor_nominal'),
-            'valor_min'        => $this->floatOrNull('valor_min'),
-            'valor_max'        => $this->floatOrNull('valor_max'),
-            'es_variable_spc'  => isset($_POST['es_variable_spc']) ? 1 : 0,
-            'tamanio_subgrupo' => $this->resolverTamanioSubgrupo(),
-            'opciones_json'    => $this->input('opciones_json') ?: null,
-            'obligatorio'      => isset($_POST['obligatorio']) ? 1 : 0,
-            'orden_display'    => $this->model->siguienteOrden($productoId, $etapa),
-            'activo'           => 1,
-            'creado_por'       => Auth::id(),
+            'producto_id'           => $productoId,
+            'etapa'                 => $etapa,
+            'clasificacion_control' => $this->input('clasificacion_control') ?: 'proceso',
+            'nombre'                => $this->input('nombre'),
+            'unidad'                => $this->input('unidad'),
+            'tipo_dato'             => $this->input('tipo_dato'),
+            'valor_nominal'         => $this->floatOrNull('valor_nominal'),
+            'valor_min'             => $this->floatOrNull('valor_min'),
+            'valor_max'             => $this->floatOrNull('valor_max'),
+            'es_variable_spc'       => isset($_POST['es_variable_spc']) ? 1 : 0,
+            'tamanio_subgrupo'      => $this->resolverTamanioSubgrupo(),
+            'opciones_json'         => $this->input('opciones_json') ?: null,
+            'obligatorio'           => isset($_POST['obligatorio']) ? 1 : 0,
+            'orden_display'         => $this->model->siguienteOrden($productoId, $etapa),
+            'activo'                => 1,
+            'creado_por'            => Auth::id(),
         ];
 
         $errores = [];
         if (empty($data['etapa']))  $errores[] = 'Seleccione la etapa.';
         if (empty($data['nombre'])) $errores[] = 'El nombre es requerido.';
         if (empty($data['unidad'])) $errores[] = 'La unidad es requerida.';
+        if (!in_array($data['clasificacion_control'], ['proceso','terminado'], true)) {
+            $errores[] = 'Seleccione la clasificación de control (en proceso o producto terminado).';
+        }
+        if (!in_array($data['tipo_dato'], array_keys(ParametroProceso::TIPOS), true)) {
+            $errores[] = 'Tipo de dato inválido.';
+        }
+        if ($data['valor_min'] !== null && $data['valor_max'] !== null
+            && $data['valor_min'] >= $data['valor_max']) {
+            $errores[] = 'El valor mínimo debe ser menor al valor máximo.';
+        }
 
+        // Hallazgo de auditoría CRÍTICO: el formulario envía por fetch() con
+        // redirect:'manual' y el JS anterior redirigía SIEMPRE a la lista de
+        // éxito sin importar la respuesta — así que un error de validación
+        // aquí (incluida esta misma validación nueva) quedaba invisible para
+        // el usuario: el parámetro no se guardaba, pero la pantalla se veía
+        // como si hubiera funcionado. Se responde JSON explícito cuando la
+        // petición es AJAX, igual que en M2/M6, para que el JS sepa
+        // realmente si falló y pueda quedarse en el formulario.
         if (!empty($errores)) {
+            if ($this->isAjax()) {
+                $this->jsonError(implode(' ', $errores), 422);
+                return;
+            }
             foreach ($errores as $e) $this->flash('error', $e);
             $this->redirect("/m0/productos/{$productoId}/parametros/nuevo");
+            return;
         }
 
         $this->model->create($data);
+
+        if ($this->isAjax()) {
+            $this->jsonSuccess(null, 'Parámetro creado correctamente.');
+            return;
+        }
         $this->redirectWithSuccess("/m0/productos/{$productoId}/parametros",
             'Parámetro creado correctamente.');
     }
@@ -118,6 +148,7 @@ class ParametroController extends Controller
             'producto'  => $producto,
             'parametro' => $parametro,
             'etapas'    => ParametroProceso::ETAPAS,
+            'clasificaciones' => ParametroProceso::CLASIFICACIONES_CONTROL,
             'tipos'     => ParametroProceso::TIPOS,
             'accion'    => 'editar',
         ]);
@@ -131,20 +162,55 @@ class ParametroController extends Controller
         $parametro = $this->model->find($id);
         if (!$parametro) { $this->flash('error','No encontrado.'); $this->redirect('/m0/productos'); }
 
-        $this->model->update($id, [
-            'etapa'            => $this->input('etapa'),
-            'nombre'           => $this->input('nombre'),
-            'unidad'           => $this->input('unidad'),
-            'tipo_dato'        => $this->input('tipo_dato'),
-            'valor_nominal'    => $this->floatOrNull('valor_nominal'),
-            'valor_min'        => $this->floatOrNull('valor_min'),
-            'valor_max'        => $this->floatOrNull('valor_max'),
-            'es_variable_spc'  => isset($_POST['es_variable_spc']) ? 1 : 0,
-            'tamanio_subgrupo' => $this->resolverTamanioSubgrupo(),
-            'opciones_json'    => $this->input('opciones_json') ?: null,
-            'obligatorio'      => isset($_POST['obligatorio']) ? 1 : 0,
-        ]);
+        $data = [
+            'etapa'                 => $this->input('etapa'),
+            'clasificacion_control' => $this->input('clasificacion_control') ?: 'proceso',
+            'nombre'                => $this->input('nombre'),
+            'unidad'                => $this->input('unidad'),
+            'tipo_dato'             => $this->input('tipo_dato'),
+            'valor_nominal'         => $this->floatOrNull('valor_nominal'),
+            'valor_min'             => $this->floatOrNull('valor_min'),
+            'valor_max'             => $this->floatOrNull('valor_max'),
+            'es_variable_spc'       => isset($_POST['es_variable_spc']) ? 1 : 0,
+            'tamanio_subgrupo'      => $this->resolverTamanioSubgrupo(),
+            'opciones_json'         => $this->input('opciones_json') ?: null,
+            'obligatorio'           => isset($_POST['obligatorio']) ? 1 : 0,
+        ];
 
+        // NOTA: antes esta acción no validaba nada (a diferencia de crear()),
+        // así que se podía guardar un parámetro editado con nombre/unidad
+        // vacíos. Se empareja aquí con las mismas reglas de crear().
+        $errores = [];
+        if (empty($data['etapa']))  $errores[] = 'Seleccione la etapa.';
+        if (empty($data['nombre'])) $errores[] = 'El nombre es requerido.';
+        if (empty($data['unidad'])) $errores[] = 'La unidad es requerida.';
+        if (!in_array($data['clasificacion_control'], ['proceso','terminado'], true)) {
+            $errores[] = 'Seleccione la clasificación de control (en proceso o producto terminado).';
+        }
+        if (!in_array($data['tipo_dato'], array_keys(ParametroProceso::TIPOS), true)) {
+            $errores[] = 'Tipo de dato inválido.';
+        }
+        if ($data['valor_min'] !== null && $data['valor_max'] !== null
+            && $data['valor_min'] >= $data['valor_max']) {
+            $errores[] = 'El valor mínimo debe ser menor al valor máximo.';
+        }
+
+        if (!empty($errores)) {
+            if ($this->isAjax()) {
+                $this->jsonError(implode(' ', $errores), 422);
+                return;
+            }
+            foreach ($errores as $e) $this->flash('error', $e);
+            $this->redirect("/m0/parametros/{$id}/editar");
+            return;
+        }
+
+        $this->model->update($id, $data);
+
+        if ($this->isAjax()) {
+            $this->jsonSuccess(null, 'Parámetro actualizado correctamente.');
+            return;
+        }
         $this->redirectWithSuccess(
             "/m0/productos/{$parametro['producto_id']}/parametros",
             'Parámetro actualizado correctamente.'

@@ -13,7 +13,7 @@ class ParametroProceso extends Model
     protected string $table    = 'parametros_proceso';
     protected string $pk       = 'id';
     protected array  $fillable = [
-        'producto_id','etapa','nombre','unidad','tipo_dato',
+        'producto_id','etapa','clasificacion_control','nombre','unidad','tipo_dato',
         'valor_nominal','valor_min','valor_max',
         'es_variable_spc','tamanio_subgrupo',
         'opciones_json','obligatorio','orden_display','activo','creado_por'
@@ -27,6 +27,17 @@ class ParametroProceso extends Model
         'horneado'           => 'Horneado',
         'envasado'           => 'Envasado',
         'producto_terminado' => 'Producto Terminado',
+    ];
+
+    // Clasificación de control — INDEPENDIENTE de la etapa. La etapa dice
+    // DÓNDE se mide; esto dice PARA QUÉ sirve el dato. Ej.: "peso envasado"
+    // tiene etapa='envasado' pero clasificacion_control='terminado', porque
+    // es un criterio de liberación/aceptación final, no de control en
+    // planta durante el envasado. Se usa para estratificar el Pareto de M6
+    // (Kume, Statistical Methods for Quality Improvement, Cap.5).
+    public const CLASIFICACIONES_CONTROL = [
+        'proceso'   => 'En proceso (control en planta / detección temprana)',
+        'terminado' => 'Producto terminado (criterio de liberación / aceptación final)',
     ];
 
     // NOTA: la clave 'si_no' (antes 'booleano') debe coincidir EXACTAMENTE
@@ -75,10 +86,10 @@ class ParametroProceso extends Model
         $rows = $this->query(
             "SELECT pp.*,
                     p.peso_nominal_g, p.lse_g, p.lie_g, p.tolerancia_pct
-             FROM parametros_proceso pp
-             JOIN productos p ON p.id = pp.producto_id
-             WHERE pp.producto_id = ? AND pp.activo = 1
-             ORDER BY pp.etapa, pp.orden_display",
+            FROM parametros_proceso pp
+            JOIN productos p ON p.id = pp.producto_id
+            WHERE pp.producto_id = ? AND pp.activo = 1
+            ORDER BY pp.etapa, pp.orden_display",
             [$productoId]
         );
 
@@ -95,7 +106,7 @@ class ParametroProceso extends Model
     {
         $max = $this->db->fetchScalar(
             "SELECT MAX(orden_display) FROM parametros_proceso
-             WHERE producto_id = ? AND etapa = ?",
+            WHERE producto_id = ? AND etapa = ?",
             [$productoId, $etapa]
         );
         return ($max ?? 0) + 10;

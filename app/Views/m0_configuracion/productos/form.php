@@ -154,6 +154,28 @@
                         value="<?= $v('vida_util_dias') ?>" min="0">
             </div>
         </div>
+        <!-- AGREGADO: unidades_por_caja y peso_caja_kg — existían en la
+             tabla y el controller ya las leía del POST, pero nunca hubo
+             campos en el formulario para cargarlas; quedaban siempre en
+             NULL sin ninguna forma de completarlas. -->
+        <div class="form-row cols-4">
+            <div class="form-group">
+                <label class="form-label">Und. por caja</label>
+                <input type="number" name="unidades_por_caja" class="form-control"
+                        value="<?= $v('unidades_por_caja') ?>" min="0"
+                        placeholder="Ej: 240">
+                <div class="form-hint">
+                    <i class="bi bi-info-circle"></i>
+                    Bolsas por caja × und. por bolsa (referencia)
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Peso de caja (kg)</label>
+                <input type="number" name="peso_caja_kg" class="form-control"
+                        value="<?= $v('peso_caja_kg') ?>" step="0.01" min="0"
+                        placeholder="Ej: 19.20">
+            </div>
+        </div>
         <div class="form-row cols-3">
             <div class="form-group">
                 <label class="form-label">T° conserv. mín (°C)</label>

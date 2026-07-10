@@ -83,6 +83,17 @@ class Equipo extends Model
         return array_column($rows, 'label', 'id');
     }
 
+    // Verificar que el código no esté duplicado — equipos.codigo tiene
+    // UNIQUE KEY en la BD; sin este chequeo previo, un código repetido
+    // rompía con una excepción de PDO cruda en vez de un mensaje amigable.
+    public function codigoExiste(string $codigo, ?int $exceptoId = null): bool
+    {
+        if ($exceptoId) {
+            return $this->exists('codigo = ? AND id != ?', [$codigo, $exceptoId]);
+        }
+        return $this->exists('codigo = ?', [$codigo]);
+    }
+
     // Recalcular próximas fechas al registrar mantenimiento o calibración
     public function actualizarFechaProxMant(int $id, string $fechaEjecutado): void
     {

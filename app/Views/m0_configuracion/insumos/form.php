@@ -166,6 +166,19 @@
                 <input type="number" name="esp_ph_max" class="form-control"
                         value="<?= $v('esp_ph_max') ?>" step="0.01">
             </div>
+            <!-- AGREGADO: esp_brix_max existía en la BD y en el $fillable
+                 del modelo, pero nunca en el controller ni en este
+                 formulario — quedaba siempre en NULL sin poder cargarse. -->
+            <div class="form-group">
+                <label class="form-label">Brix máx (°Bx)</label>
+                <input type="number" name="esp_brix_max" class="form-control"
+                        value="<?= $v('esp_brix_max') ?>" step="0.01"
+                        placeholder="Ej: 18.5">
+                <div class="form-hint">
+                    <i class="bi bi-info-circle"></i>
+                    Relevante en insumos con azúcar/fruta
+                </div>
+            </div>
             <div class="form-group">
                 <label class="form-label">Gluten mín (%)</label>
                 <input type="number" name="esp_gluten_min" class="form-control"

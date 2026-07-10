@@ -1,12 +1,17 @@
 <?php
-/** @var array $mantenimientos @var array $stats @var array $alertas
- *  @var array $filtros @var array $tipos @var array $estados @var bool $canWrite */
+/** @var array $mantenimientos
+ *  @var array $stats
+ *  @var array $alertas
+ *  @var array $filtros
+ *  @var array $tipos
+ *  @var array $estados
+ *  @var bool  $canWrite */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 
 <div class="page-header">
     <div>
-        <div class="page-title">🔧 Mantenimiento</div>
+        <div class="page-title"><i class="bi bi-wrench-adjustable-circle-fill"></i> Mantenimiento</div>
         <div class="page-sub">
             Preventivo, correctivo y calibraciones.
         </div>
@@ -21,14 +26,14 @@
 <!-- Estadísticas -->
 <div class="stats-grid" style="margin-bottom:16px">
     <div class="stat-card">
-        <div class="stat-icon" style="background:#dbeafe">🔧</div>
+        <div class="stat-icon" style="background:#dbeafe"><i class="bi bi-wrench-adjustable-circle-fill"></i></div>
         <div>
             <div class="stat-value"><?= $stats['total'] ?></div>
             <div class="stat-label">Registros este mes</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#dcfce7">✅</div>
+        <div class="stat-icon" style="background:#dcfce7"><i class="bi bi-check-circle-fill"></i></div>
         <div>
             <div class="stat-value" style="color:#15803d"><?= $stats['completados'] ?></div>
             <div class="stat-label">Completados</div>
@@ -44,7 +49,7 @@
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fff7ed">⚠️</div>
+        <div class="stat-icon" style="background:#fff7ed"><i class="bi bi-exclamation-triangle-fill"></i></div>
         <div>
             <div class="stat-value"
                     style="color:<?= $stats['alertas'] > 0 ? '#d97706' : '#15803d' ?>">
@@ -60,7 +65,7 @@
 <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;
             padding:12px 16px;margin-bottom:16px">
     <div style="font-weight:700;color:#c2410c;margin-bottom:8px">
-        ⚠️ Equipos con mantenimiento vencido o próximo (15 días)
+        <i class="bi bi-exclamation-triangle-fill"></i> Equipos con mantenimiento vencido o próximo (15 días)
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
     <?php foreach (array_slice($alertas, 0, 6) as $a):
@@ -73,8 +78,8 @@
         — <?= htmlspecialchars($a['equipo_nombre']) ?><br>
         <span style="color:<?= $color ?>">
             <?= $dias < 0
-                ? '⛔ Vencido hace '.abs($dias).'d'
-                : '⏰ Vence en '.$dias.'d ('.date('d/m/Y',strtotime($a['fecha_prox_mant'])).')' ?>
+                ? '<i class="bi bi-x-circle-fill"></i> Vencido hace '.abs($dias).'d'
+                : '<i class="bi bi-alarm-fill"></i> Vence en '.$dias.'d ('.date('d/m/Y',strtotime($a['fecha_prox_mant'])).')' ?>
         </span>
     </div>
     <?php endforeach ?>
@@ -90,7 +95,7 @@
 
 <!-- Filtros -->
 <div class="card" style="margin-bottom:14px">
-    <div class="card-header"><span class="card-title">🔍 Filtros</span></div>
+    <div class="card-header"><span class="card-title"><i class="bi bi-funnel"></i> Filtros</span></div>
     <form method="GET" action="<?= APP_URL ?>/m3">
     <div class="card-body">
         <div class="form-row cols-4">
@@ -132,7 +137,7 @@
     </div>
     <div class="card-footer">
         <a href="<?= APP_URL ?>/m3" class="btn btn-secondary">Limpiar</a>
-        <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filtrar</button>
     </div>
     </form>
 </div>
@@ -194,7 +199,7 @@
                         <?= $m['fecha_inicio']
                             ? date('d/m/Y H:i', strtotime($m['fecha_inicio']))
                             : ($m['fecha_programada']
-                                ? '📅 '.date('d/m/Y', strtotime($m['fecha_programada']))
+                                ? '<i class="bi bi-calendar3-week-fill"></i> '.date('d/m/Y', strtotime($m['fecha_programada']))
                                 : '—') ?>
                     </td>
                     <td style="text-align:center">

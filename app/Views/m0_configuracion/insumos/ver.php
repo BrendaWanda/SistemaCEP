@@ -8,7 +8,7 @@
         <div class="page-title"><?= htmlspecialchars($insumo['descripcion']) ?></div>
         <div class="page-sub" style="display:flex;align-items:center;gap:8px">
             <code style="background:#f1f5f9;padding:2px 8px;border-radius:5px;
-                        font-size:12px;color:#090e22;font-weight:700">
+                        font-size:var(--fs-dense-xs);color:#090e22;font-weight:700">
                 <?= htmlspecialchars($insumo['codigo']) ?>
             </code>
             <span class="badge badge-info">
@@ -40,7 +40,7 @@
             </span>
         </div>
         <div class="card-body" style="padding:0">
-            <table class="data-table-bordered" style="font-size:13px">
+            <table class="data-table-bordered" style="font-size:var(--fs-dense-sm)">
                 <tbody>
                 <?php foreach ([
                     ['Código',       htmlspecialchars($insumo['codigo'])],
@@ -49,7 +49,7 @@
                     ['Vida útil ref',htmlspecialchars($insumo['vida_util_referencia'] ?? '—')],
                 ] as [$lbl,$val]): ?>
                 <tr>
-                    <td style="text-align:left;color:#64748b;font-size:12px;
+                    <td style="text-align:left;color:#64748b;font-size:var(--fs-dense-xs);
                                 font-weight:600;width:45%"><?= $lbl ?></td>
                     <td style="text-align:left;font-weight:600"><?= $val ?></td>
                 </tr>
@@ -68,7 +68,7 @@
             </span>
         </div>
         <div class="card-body" style="padding:0">
-            <table class="data-table-bordered" style="font-size:13px">
+            <table class="data-table-bordered" style="font-size:var(--fs-dense-sm)">
                 <tbody>
                 <?php foreach ([
                     ['Sabor / Olor', $insumo['esp_sabor_olor'] ?? '—'],
@@ -76,7 +76,7 @@
                     ['Descripción',  $insumo['esp_descripcion_fisica'] ?? '—'],
                 ] as [$lbl,$val]): ?>
                 <tr>
-                    <td style="text-align:left;color:#64748b;font-size:12px;
+                    <td style="text-align:left;color:#64748b;font-size:var(--fs-dense-xs);
                                 font-weight:600;width:40%"><?= $lbl ?></td>
                     <td style="text-align:left"><?= htmlspecialchars($val) ?></td>
                 </tr>
@@ -88,7 +88,7 @@
 </div>
 
 <!-- Fisicoquímicas -->
-<?php if ($insumo['esp_humedad_max'] || $insumo['esp_ph_min']): ?>
+<?php if ($insumo['esp_humedad_max'] || $insumo['esp_ph_min'] || $insumo['esp_brix_max']): ?>
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
         <span class="card-title">
@@ -97,7 +97,7 @@
         </span>
     </div>
     <div class="card-body" style="padding:0">
-        <table class="data-table-bordered" style="font-size:13px">
+        <table class="data-table-bordered" style="font-size:var(--fs-dense-sm)">
             <thead>
                 <tr>
                     <th>Parámetro</th>
@@ -111,13 +111,14 @@
                 ['Densidad máx',  $insumo['esp_densidad_max'],  ''],
                 ['pH mín',        $insumo['esp_ph_min'],        ''],
                 ['pH máx',        $insumo['esp_ph_max'],        ''],
+                ['Brix máx',      $insumo['esp_brix_max'],      '°Bx'],
                 ['Gluten mín',    $insumo['esp_gluten_min'],    '%'],
                 ['Impurezas máx', $insumo['esp_impurezas_max'], '%'],
             ] as [$lbl,$val,$uni]):
                 if ($val === null) continue;
             ?>
             <tr>
-                <td style="text-align:left;color:#64748b;font-size:12px;font-weight:600">
+                <td style="text-align:left;color:#64748b;font-size:var(--fs-dense-xs);font-weight:600">
                     <?= $lbl ?>
                 </td>
                 <td style="text-align:center;font-weight:700">
@@ -148,7 +149,7 @@
     </div>
     <?php else: ?>
     <div class="table-wrap">
-        <table class="data-table-bordered">
+        <table class="data-table-bordered" style="font-size:var(--fs-dense-sm)">
             <thead>
                 <tr>
                     <th style="text-align:left">Código recepción</th>
@@ -167,17 +168,17 @@
                     : ($dias < 0 ? '#dc2626' : ($dias < 30 ? '#d97706' : '#16a34a'));
             ?>
             <tr>
-                <td style="text-align:left;font-family:monospace;font-size:12px;font-weight:700">
+                <td style="text-align:left;font-family:monospace;font-size:var(--fs-dense-xs);font-weight:700">
                     <?= htmlspecialchars($s['codigo_recepcion'] ?? '—') ?>
                 </td>
-                <td style="text-align:left;font-size:13px">
+                <td style="text-align:left;font-size:var(--fs-dense-sm)">
                     <?= htmlspecialchars($s['proveedor_nombre'] ?? '—') ?>
                 </td>
                 <td style="text-align:center;font-weight:700;color:#16a34a">
                     <?= number_format($s['cantidad_disponible'],3) ?>
                     <?= htmlspecialchars($insumo['unidad_medida']) ?>
                 </td>
-                <td style="text-align:center;font-size:12px">
+                <td style="text-align:center;font-size:var(--fs-dense-xs)">
                     <?php if ($s['fecha_vencimiento']): ?>
                     <span style="color:<?= $color ?>;font-weight:600">
                         <?= date('d/m/Y', strtotime($s['fecha_vencimiento'])) ?>
