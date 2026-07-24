@@ -133,49 +133,50 @@ $showConf = function(?string $val) use ($conf): string {
     </div>
 </div>
 
-<!-- Análisis fisicoquímico -->
+<!-- AGREGADO: reemplaza la tabla fija de 7 parámetros — ahora muestra
+     solo los que realmente se configuraron y capturaron para este
+     insumo específico, vía recepcion_resultados. -->
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
-        <span class="card-title"><i class="bi bi-droplet-fill"></i> Análisis fisicoquímico</span>
+        <span class="card-title"><i class="bi bi-droplet-fill"></i> Parámetros del insumo</span>
     </div>
+    <?php if (empty($recepcion['resultados'])): ?>
+    <div class="card-body text-center" style="padding:24px;color:#94a3b8;font-size:var(--fs-dense-sm)">
+        Este insumo no tenía parámetros configurados al momento de la recepción.
+    </div>
+    <?php else: ?>
     <div class="card-body" style="padding:0">
         <table class="data-table">
             <thead>
                 <tr>
                     <th>Parámetro</th>
-                    <th style="text-align:center">Especificación</th>
+                    <th style="text-align:center">Rango esperado</th>
                     <th style="text-align:center">Resultado</th>
                     <th style="text-align:center">Conformidad</th>
                 </tr>
             </thead>
             <tbody>
-            <?php
-            $fisicoRows = [
-                ['Humedad (%)',     $recepcion['esp_humedad'],        $recepcion['res_humedad'],        $recepcion['conf_humedad']],
-                ['pH',             $recepcion['esp_ph'],             $recepcion['res_ph'],             $recepcion['conf_ph']],
-                ['Densidad',       $recepcion['esp_densidad'],       $recepcion['res_densidad'],       $recepcion['conf_densidad']],
-                ['Gluten (%)',     $recepcion['esp_gluten'],         $recepcion['res_gluten'],         $recepcion['conf_gluten']],
-                ['Brix (°)',       $recepcion['esp_brix'],           $recepcion['res_brix'],           $recepcion['conf_brix']],
-                ['Activ. agua',    $recepcion['esp_actividad_agua'], $recepcion['res_actividad_agua'], $recepcion['conf_actividad_agua']],
-                ['Impurezas (%)',  $recepcion['esp_impurezas'],      $recepcion['res_impurezas'],      $recepcion['conf_impurezas']],
-            ];
-            foreach ($fisicoRows as [$label, $esp, $res, $conf_val]):
-                if (!$esp && !$res) continue;
+            <?php foreach ($recepcion['resultados'] as $r):
+                $rango = ($r['valor_min'] !== null || $r['valor_max'] !== null)
+                    ? ($r['valor_min'] ?? '—') . ' a ' . ($r['valor_max'] ?? '—') . ' ' . $r['unidad']
+                    : '—';
             ?>
             <tr>
-                <td style="font-weight:500"><?= $label ?></td>
+                <td style="font-weight:500"><?= htmlspecialchars($r['parametro_nombre']) ?></td>
                 <td style="text-align:center;font-size:var(--fs-dense-xs)">
-                    <?= htmlspecialchars($esp ?? '—') ?>
+                    <?= htmlspecialchars($rango) ?>
                 </td>
                 <td style="text-align:center;font-weight:600">
-                    <?= $res !== null ? number_format((float)$res,4) : '—' ?>
+                    <?= $r['resultado'] !== null && $r['resultado'] !== ''
+                        ? htmlspecialchars($r['resultado']) : '—' ?>
                 </td>
-                <td style="text-align:center"><?= $showConf($conf_val) ?></td>
+                <td style="text-align:center"><?= $showConf($r['conformidad']) ?></td>
             </tr>
             <?php endforeach ?>
             </tbody>
         </table>
     </div>
+    <?php endif ?>
 </div>
 
 <!-- Conclusión -->

@@ -164,57 +164,22 @@
     </div>
 </div>
 
-<!-- SECCIÓN 3: Análisis fisicoquímico -->
+<!-- SECCIÓN 3: Parámetros del insumo (dinámico) -->
+<!-- AGREGADO: reemplaza la tabla fija de 7 parámetros fisicoquímicos
+     que se pedía a TODOS los insumos por igual (ej. gluten a un
+     empaque). Ahora se cargan según lo que esté configurado en M0
+     para el insumo elegido — puede ser 0, 3, o 10 parámetros, lo que
+     corresponda a ESE insumo específico. -->
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
-        <span class="card-title"><i class="bi bi-droplet-fill"></i> 3. Análisis fisicoquímico</span>
+        <span class="card-title"><i class="bi bi-droplet-fill"></i> 3. Parámetros del insumo</span>
     </div>
     <div class="card-body">
-        <!-- Encabezado de columnas -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;
-                    gap:8px;margin-bottom:6px;padding:0 4px">
-            <div style="font-size:11px;font-weight:700;color:#64748b">Parámetro</div>
-            <div style="font-size:11px;font-weight:700;color:#64748b">Especificación</div>
-            <div style="font-size:11px;font-weight:700;color:#64748b">Resultado</div>
-            <div style="font-size:11px;font-weight:700;color:#64748b">Conformidad</div>
-        </div>
-        <?php
-        $fisicoFields = [
-            ['Humedad (%)',       'esp_humedad',        'res_humedad',        'conf_humedad'],
-            ['pH',               'esp_ph',             'res_ph',             'conf_ph'],
-            ['Densidad',         'esp_densidad',       'res_densidad',       'conf_densidad'],
-            ['Gluten (%)',       'esp_gluten',         'res_gluten',         'conf_gluten'],
-            ['Brix (°)',         'esp_brix',           'res_brix',           'conf_brix'],
-            ['Actividad agua',   'esp_actividad_agua', 'res_actividad_agua', 'conf_actividad_agua'],
-            ['Impurezas (%)',    'esp_impurezas',      'res_impurezas',      'conf_impurezas'],
-        ];
-        foreach ($fisicoFields as [$label, $espCampo, $resCampo, $confCampo]):
-        ?>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;
-                    gap:8px;margin-bottom:8px;align-items:center">
-            <div style="font-size:13px;font-weight:500;color:#374151">
-                <?= $label ?>
-            </div>
-            <div>
-                <input type="text" name="<?= $espCampo ?>" class="form-control"
-                        placeholder="Especif. de referencia"
-                        style="font-size:12px">
-            </div>
-            <div>
-                <input type="number" name="<?= $resCampo ?>" class="form-control"
-                        step="0.0001" placeholder="Resultado"
-                        style="font-size:12px">
-            </div>
-            <div>
-                <select name="<?= $confCampo ?>" class="form-control" style="font-size:12px">
-                    <option value="">—</option>
-                    <?php foreach ($conf_opciones as $val => $info): ?>
-                    <option value="<?= $val ?>"><?= $info['label'] ?></option>
-                    <?php endforeach ?>
-                </select>
+        <div id="parametrosContainer">
+            <div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px">
+                Seleccione un insumo para ver sus parámetros configurados.
             </div>
         </div>
-        <?php endforeach ?>
         <div class="form-group" style="margin-top:8px">
             <label class="form-label">Observaciones fisicoquímicas</label>
             <textarea name="obs_fisicoquimico" class="form-control" rows="2"
@@ -323,4 +288,84 @@ document.getElementById('decisionSelect').addEventListener('change', function() 
 // Inicializar deshabilitado
 document.getElementById('stockInput').disabled = true;
 document.getElementById('stockInput').style.background = '#f8fafc';
+
+// AGREGADO: cargar los parámetros configurados para el insumo elegido
+// (M0 → Insumos → Parámetros) y armar dinámicamente sus campos de
+// captura — reemplaza la tabla fija que antes pedía gluten a todo.
+const appUrl = '<?= APP_URL ?>';
+const confOpciones = <?= json_encode($conf_opciones, JSON_UNESCAPED_UNICODE) ?>;
+
+document.getElementById('insumoSelect').addEventListener('change', function() {
+    const insumoId = this.value;
+    const cont = document.getElementById('parametrosContainer');
+
+    if (!insumoId) {
+        cont.innerHTML = '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px">'
+            + 'Seleccione un insumo para ver sus parámetros configurados.</div>';
+        return;
+    }
+
+    cont.innerHTML = '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px">Cargando...</div>';
+
+    fetch(`${appUrl}/api/parametros-insumo?insumo_id=${insumoId}`)
+        .then(r => r.json())
+        .then(resp => {
+            const params = resp.data || [];
+            if (params.length === 0) {
+                cont.innerHTML = '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px">'
+                    + 'Este insumo no tiene parámetros configurados en M0.</div>';
+                return;
+            }
+
+            let html = '<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;'
+                + 'gap:8px;margin-bottom:6px;padding:0 4px">'
+                + '<div style="font-size:11px;font-weight:700;color:#64748b">Parámetro</div>'
+                + '<div style="font-size:11px;font-weight:700;color:#64748b">Resultado</div>'
+                + '<div style="font-size:11px;font-weight:700;color:#64748b">Conformidad</div></div>';
+
+            for (const p of params) {
+                const rango = (p.valor_min !== null || p.valor_max !== null)
+                    ? ` (${p.valor_min ?? '—'} a ${p.valor_max ?? '—'} ${p.unidad || ''})`
+                    : (p.unidad ? ` (${p.unidad})` : '');
+                const requerido = p.obligatorio == 1 ? ' required' : '';
+
+                let inputResultado;
+                if (p.tipo_dato === 'numerico') {
+                    inputResultado = `<input type="number" name="resultado[]" class="form-control"
+                        step="0.0001" placeholder="Resultado" style="font-size:12px"${requerido}>`;
+                } else if (p.tipo_dato === 'si_no') {
+                    inputResultado = `<select name="resultado[]" class="form-control" style="font-size:12px"${requerido}>
+                        <option value="">—</option><option value="si">Sí</option><option value="no">No</option></select>`;
+                } else if (p.tipo_dato === 'seleccion' && p.opciones) {
+                    let opts = '<option value="">—</option>';
+                    for (const o of p.opciones) opts += `<option value="${o}">${o}</option>`;
+                    inputResultado = `<select name="resultado[]" class="form-control" style="font-size:12px"${requerido}>${opts}</select>`;
+                } else {
+                    inputResultado = `<input type="text" name="resultado[]" class="form-control"
+                        placeholder="Resultado" style="font-size:12px"${requerido}>`;
+                }
+
+                let optsConf = '<option value="">—</option>';
+                for (const [val, info] of Object.entries(confOpciones)) {
+                    optsConf += `<option value="${val}">${info.label}</option>`;
+                }
+
+                html += `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;
+                        gap:8px;margin-bottom:8px;align-items:center">
+                    <div style="font-size:13px;font-weight:500;color:#374151">
+                        ${p.nombre}${rango}${p.obligatorio == 1 ? ' <span class="form-required">*</span>' : ''}
+                    </div>
+                    <div>${inputResultado}</div>
+                    <div><select name="conformidad[]" class="form-control" style="font-size:12px">${optsConf}</select></div>
+                    <input type="hidden" name="parametro_insumo_id[]" value="${p.id}">
+                </div>`;
+            }
+
+            cont.innerHTML = html;
+        })
+        .catch(() => {
+            cont.innerHTML = '<div style="color:#dc2626;font-size:13px;text-align:center;padding:16px">'
+                + 'Error al cargar los parámetros de este insumo.</div>';
+        });
+});
 </script>

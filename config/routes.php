@@ -87,6 +87,8 @@ $router->post('/m0/parametros-insumo/:id/editar',   'M0_Configuracion\ParametroI
 $router->post('/m0/parametros-insumo/:id/eliminar', 'M0_Configuracion\ParametroInsumoController@eliminar');
 $router->get( '/api/parametros-insumo',             'M0_Configuracion\ParametroInsumoController@porInsumo');
 
+$router->get('/api/parametros-insumo', 'M0_Configuracion\ParametroInsumoController@porInsumo');
+
 // ── M1 — RECEPCIÓN DE MATERIA PRIMA ──────────────────────────────────────────
 // Fijas antes que :id
 $router->get( '/m1',                     'M1_RecepcionMP\RecepcionController@index');

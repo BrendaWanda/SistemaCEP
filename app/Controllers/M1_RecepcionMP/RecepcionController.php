@@ -185,31 +185,12 @@ class RecepcionController extends Controller
             'descripcion_fisica'     => $this->input('descripcion_fisica'),
             'conf_descripcion_fisica'=> $this->input('conf_descripcion_fisica') ?: null,
             'obs_organoleptico'      => $this->input('obs_organoleptico'),
-            // Fisicoquímico
-            'esp_humedad'            => $this->input('esp_humedad'),
-            'res_humedad'            => $this->inputFloat('res_humedad') ?: null,
-            'conf_humedad'           => $this->input('conf_humedad') ?: null,
-            'esp_ph'                 => $this->input('esp_ph'),
-            'res_ph'                 => $this->inputFloat('res_ph') ?: null,
-            'conf_ph'                => $this->input('conf_ph') ?: null,
-            'esp_densidad'           => $this->input('esp_densidad'),
-            'res_densidad'           => $this->inputFloat('res_densidad') ?: null,
-            'conf_densidad'          => $this->input('conf_densidad') ?: null,
-            'esp_gluten'             => $this->input('esp_gluten'),
-            'res_gluten'             => $this->inputFloat('res_gluten') ?: null,
-            'conf_gluten'            => $this->input('conf_gluten') ?: null,
-            'esp_brix'               => $this->input('esp_brix'),
-            'res_brix'               => $this->inputFloat('res_brix') ?: null,
-            'conf_brix'              => $this->input('conf_brix') ?: null,
-            'esp_actividad_agua'     => $this->input('esp_actividad_agua'),
-            'res_actividad_agua'     => $this->inputFloat('res_actividad_agua') ?: null,
-            'conf_actividad_agua'    => $this->input('conf_actividad_agua') ?: null,
+            // AGREGADO: reemplaza los 21 campos fijos fisicoquímicos
+            // (esp_humedad/res_humedad/conf_humedad, etc.) — ahora los
+            // parámetros vienen de parametros_insumo (configurados por
+            // insumo en M0) y sus resultados se capturan dinámicamente
+            // más abajo, guardándose en recepcion_resultados.
             'obs_fisicoquimico'      => $this->input('obs_fisicoquimico'),
-            // Impurezas
-            'esp_impurezas'          => $this->input('esp_impurezas'),
-            'res_impurezas'          => $this->inputFloat('res_impurezas') ?: null,
-            'conf_impurezas'         => $this->input('conf_impurezas') ?: null,
-            'obs_impurezas'          => $this->input('obs_impurezas'),
             // Conclusión
             'conclusion'             => $this->input('conclusion'),
             'decision'               => $decision,
@@ -223,6 +204,22 @@ class RecepcionController extends Controller
             'stock_disponible_kg'    => $stockDisp,
         ];
 
+        // Resultados dinámicos: el formulario manda 3 arrays paralelos
+        // (parametro_insumo_id[], resultado[], conformidad[]), uno por
+        // cada parámetro configurado para el insumo elegido.
+        $paramIds     = $_POST['parametro_insumo_id'] ?? [];
+        $resultados   = $_POST['resultado']           ?? [];
+        $conformidades= $_POST['conformidad']         ?? [];
+        $resultadosDinamicos = [];
+        foreach ($paramIds as $i => $pid) {
+            if (empty($pid)) continue;
+            $resultadosDinamicos[] = [
+                'parametro_insumo_id' => (int)$pid,
+                'resultado'           => trim($resultados[$i] ?? ''),
+                'conformidad'         => $conformidades[$i] ?: null,
+            ];
+        }
+
         // Hallazgo CRÍTICO de auditoría: antes se confiaba en el código
         // generado al abrir el formulario (minutos atrás) vía un campo
         // oculto. Ahora se genera FRESCO justo antes de cada intento de
@@ -234,7 +231,9 @@ class RecepcionController extends Controller
         for ($intento = 0; $intento < 5; $intento++) {
             $codigo = $this->model->generarCodigo($intento);
             try {
-                $recepcionId = $this->db->transaction(function($db) use ($data, $decision, $codigo) {
+                $recepcionId = $this->db->transaction(function($db) use (
+                    $data, $decision, $codigo, $resultadosDinamicos
+                ) {
                     $dataConCodigo = array_merge($data, ['codigo_recepcion' => $codigo]);
 
                     // Insertar recepción
@@ -244,6 +243,12 @@ class RecepcionController extends Controller
                         array_values($dataConCodigo)
                     );
                     $id = (int)$db->lastInsertId();
+
+                    // Guardar los resultados dinámicos de esta recepción,
+                    // dentro de la misma transacción — si algo falla, ni
+                    // la recepción ni sus resultados quedan a medias.
+                    $modelResultado = new \App\Models\RecepcionResultado();
+                    $modelResultado->guardarLote($id, $resultadosDinamicos);
 
                     // Si fue aprobado, crear stock disponible de inmediato.
                     // Si quedó pendiente (cuarentena/observado), se reserva

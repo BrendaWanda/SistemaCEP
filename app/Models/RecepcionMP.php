@@ -12,17 +12,9 @@ class RecepcionMP extends Model
         'fecha_fabricacion','fecha_vencimiento','fecha_muestreo','fecha_analisis',
         'cantidad_recibida','unidad_medida','tamanio_muestra',
         'nro_registro_sanitario','presentacion','envase_primario','envase_secundario',
-        'obs_empaque',
         'sabor_olor','conf_sabor_olor','color','conf_color',
         'descripcion_fisica','conf_descripcion_fisica','obs_organoleptico',
-        'esp_humedad','res_humedad','conf_humedad',
-        'esp_densidad','res_densidad','conf_densidad',
-        'esp_ph','res_ph','conf_ph',
-        'esp_brix','res_brix','conf_brix',
-        'esp_gluten','res_gluten','conf_gluten',
-        'esp_actividad_agua','res_actividad_agua','conf_actividad_agua',
         'obs_fisicoquimico',
-        'esp_impurezas','res_impurezas','conf_impurezas','obs_impurezas',
         'conclusion','decision','fecha_decision',
         'responsable_muestreo_id','responsable_analisis_id','visto_bueno_id',
         'obs_generales','stock_disponible_kg'
@@ -115,7 +107,7 @@ class RecepcionMP extends Model
     // Recepción completa con todos los datos para vista detalle e impresión
     public function conDetalle(int $id): array|false
     {
-        return $this->db->fetchOne(
+        $recepcion = $this->db->fetchOne(
             "SELECT r.*,
                     i.descripcion AS insumo_nombre, i.codigo AS insumo_codigo,
                     i.tipo AS insumo_tipo, i.unidad_medida AS insumo_unidad,
@@ -132,6 +124,16 @@ class RecepcionMP extends Model
             WHERE r.id = ?",
             [$id]
         );
+        if (!$recepcion) return false;
+
+        // AGREGADO: reemplaza los 21 campos fijos fisicoquímicos que
+        // antes venían directo en la fila (esp_humedad/res_humedad/...)
+        // — ahora se cargan dinámicamente desde recepcion_resultados,
+        // según los parámetros configurados para este insumo en M0.
+        $modelResultado = new RecepcionResultado();
+        $recepcion['resultados'] = $modelResultado->porRecepcion($id);
+
+        return $recepcion;
     }
 
     // Generar código único de recepción: REC-YYYYMMDD-NNN
@@ -180,7 +182,10 @@ class RecepcionMP extends Model
         );
     }
 
-    // Stock disponible por insumo
+    // Stock disponible por insumo — excluye vencidos (ver hallazgo en
+    // StockMP::paraSelect(): nada marca estado='vencido' automáticamente,
+    // así que sin este filtro por fecha el total mostraría cantidad
+    // vencida como si fuera utilizable).
     public function stockDisponible(): array
     {
         return $this->db->fetchAll(
@@ -190,6 +195,7 @@ class RecepcionMP extends Model
                     MIN(s.fecha_vencimiento) AS proximo_vencimiento
             FROM insumos i
             LEFT JOIN stock_mp s ON s.insumo_id = i.id AND s.estado = 'disponible'
+                AND s.fecha_vencimiento >= CURDATE()
             WHERE i.activo = 1
             GROUP BY i.id
             ORDER BY i.tipo, i.descripcion"

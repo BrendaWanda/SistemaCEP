@@ -143,13 +143,13 @@ table.analisis td.left { text-align: left; }
     <button onclick="window.print()"
             style="background:#1e3a5f;color:#fff;padding:8px 20px;
                     border:none;border-radius:6px;cursor:pointer;font-size:13px">
-        🖨️ Imprimir
+        <i class="bi bi-printer-fill"></i> Imprimir
     </button>
     <button onclick="window.close()"
             style="background:#f1f5f9;color:#374151;padding:8px 16px;
                     border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;
                     font-size:13px;margin-left:8px">
-        ✕ Cerrar
+        <i class="bi bi-x-lg"></i> Cerrar
     </button>
 </div>
 
@@ -284,38 +284,33 @@ table.analisis td.left { text-align: left; }
     </div>
 </div>
 
-<!-- Análisis fisicoquímico -->
+<!-- AGREGADO: reemplaza la tabla fija de 7 parámetros — ahora imprime
+     solo los que se configuraron y capturaron para este insumo. -->
+<?php if (!empty($recepcion['resultados'])): ?>
 <div class="seccion">
-    <div class="seccion-titulo">3. Análisis fisicoquímico</div>
+    <div class="seccion-titulo">3. Parámetros del insumo</div>
     <div class="seccion-body">
         <table class="analisis">
             <thead>
                 <tr>
-                    <th style="text-align:left;width:20%">Parámetro</th>
-                    <th style="width:25%">Especificación</th>
+                    <th style="text-align:left;width:25%">Parámetro</th>
+                    <th style="width:25%">Rango esperado</th>
                     <th style="width:25%">Resultado</th>
-                    <th style="width:30%">Conformidad</th>
+                    <th style="width:25%">Conformidad</th>
                 </tr>
             </thead>
             <tbody>
-            <?php
-            $fisicoRows = [
-                ['Humedad (%)',   $recepcion['esp_humedad'],        $recepcion['res_humedad'],        $recepcion['conf_humedad']],
-                ['pH',           $recepcion['esp_ph'],             $recepcion['res_ph'],             $recepcion['conf_ph']],
-                ['Densidad',     $recepcion['esp_densidad'],       $recepcion['res_densidad'],       $recepcion['conf_densidad']],
-                ['Gluten (%)',   $recepcion['esp_gluten'],         $recepcion['res_gluten'],         $recepcion['conf_gluten']],
-                ['Brix (°)',     $recepcion['esp_brix'],           $recepcion['res_brix'],           $recepcion['conf_brix']],
-                ['Activ. agua',  $recepcion['esp_actividad_agua'], $recepcion['res_actividad_agua'], $recepcion['conf_actividad_agua']],
-                ['Impurezas (%)',$recepcion['esp_impurezas'],      $recepcion['res_impurezas'],      $recepcion['conf_impurezas']],
-            ];
-            foreach ($fisicoRows as [$label, $esp, $res, $confVal]):
-                if (!$esp && !$res) continue;
-                $confInfo = $conf[$confVal] ?? ['label'=>'—'];
+            <?php foreach ($recepcion['resultados'] as $r):
+                $rango = ($r['valor_min'] !== null || $r['valor_max'] !== null)
+                    ? ($r['valor_min'] ?? '—') . ' a ' . ($r['valor_max'] ?? '—') . ' ' . $r['unidad']
+                    : '—';
+                $confInfo = $conf[$r['conformidad']] ?? ['label'=>'—'];
             ?>
             <tr>
-                <td class="left"><strong><?= $label ?></strong></td>
-                <td><?= htmlspecialchars($esp ?? '—') ?></td>
-                <td><?= $res !== null ? number_format((float)$res, 4) : '—' ?></td>
+                <td class="left"><strong><?= htmlspecialchars($r['parametro_nombre']) ?></strong></td>
+                <td><?= htmlspecialchars($rango) ?></td>
+                <td><?= $r['resultado'] !== null && $r['resultado'] !== ''
+                        ? htmlspecialchars($r['resultado']) : '—' ?></td>
                 <td><?= $confInfo['label'] ?></td>
             </tr>
             <?php endforeach ?>
@@ -323,6 +318,7 @@ table.analisis td.left { text-align: left; }
         </table>
     </div>
 </div>
+<?php endif ?>
 
 <!-- Conclusión y decisión -->
 <div class="seccion">
