@@ -1,11 +1,15 @@
 <?php
-/** @var array $resultado @var array $filtros @var array $insumos
- *  @var array $proveedores @var array $decisiones @var bool $canWrite */
+/** @var array $resultado
+ *  @var array $filtros
+ *  @var array $insumos
+ *  @var array $proveedores
+ *  @var array $decisiones
+ *  @var bool  $canWrite */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 
 <div class="page-header">
-    <div class="page-title">📋 Historial de Recepciones</div>
+    <div class="page-title"><i class="bi bi-clipboard2-check-fill"></i> Historial de Recepciones</div>
     <div class="page-sub">
         <?= $resultado['total'] ?> registros encontrados
     </div>
@@ -13,7 +17,7 @@
 
 <!-- Filtros -->
 <div class="card" style="margin-bottom:14px">
-    <div class="card-header"><span class="card-title">🔍 Filtros</span></div>
+    <div class="card-header"><span class="card-title"><i class="bi bi-funnel"></i> Filtros</span></div>
     <form method="GET" action="<?= APP_URL ?>/m1/historial">
     <div class="card-body">
         <div class="form-row cols-3">
@@ -69,7 +73,7 @@
     </div>
     <div class="card-footer">
         <a href="<?= APP_URL ?>/m1/historial" class="btn btn-secondary">Limpiar</a>
-        <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filtrar</button>
     </div>
     </form>
 </div>
@@ -145,8 +149,12 @@
                     <td>
                         <a href="<?= APP_URL ?>/m1/<?= $r['id'] ?>"
                             class="btn btn-sm btn-secondary">Ver</a>
+                        <?php if ($canWrite && in_array($r['decision'], ['cuarentena', 'observado'], true)): ?>
+                        <a href="<?= APP_URL ?>/m1/<?= $r['id'] ?>/resolver"
+                            class="btn btn-sm btn-warning">Resolver</a>
+                        <?php endif ?>
                         <a href="<?= APP_URL ?>/m1/<?= $r['id'] ?>/imprimir"
-                            class="btn btn-sm btn-secondary" target="_blank">🖨️</a>
+                            class="btn btn-sm btn-secondary" target="_blank"><i class="bi bi-printer-fill"></i></a>
                     </td>
                 </tr>
                 <?php endforeach ?>

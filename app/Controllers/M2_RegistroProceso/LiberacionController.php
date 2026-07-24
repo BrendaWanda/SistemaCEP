@@ -66,18 +66,19 @@ class LiberacionController extends Controller
         $data['jefe_produccion_id']     = $this->inputInt('jefe_produccion_id')
                                             ?: null;
 
+        // Hallazgo de auditoría: el cierre de la sesión (estado
+        // 'completo' + hora_fin_registro) se hacía con una llamada
+        // separada DESPUÉS de esta transacción — si esa segunda llamada
+        // fallaba, el lote quedaba liberado/cuarentena pero la sesión
+        // seguía editable para siempre. Ahora sesionId se pasa al
+        // modelo y el cierre ocurre dentro de la misma transacción.
         $this->model->liberarYActualizarLote(
             $data,
             $lote['id'],
             $lote['codigo_lote'],
+            $sesionId,
             Auth::id()
         );
-
-        // Marcar sesión como completa
-        $this->modelSesion->update($sesionId, [
-            'estado'            => 'completo',
-            'hora_fin_registro' => date('Y-m-d H:i:s'),
-        ]);
 
         $msg = $decision === 'liberado'
             ? 'Producto LIBERADO correctamente.'

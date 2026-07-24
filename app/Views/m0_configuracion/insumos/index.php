@@ -1,5 +1,7 @@
 <?php
-/** @var array $insumos @var array $tipos @var bool $canWrite */
+/** @var array $insumos
+ *  @var array $tipos
+ *  @var bool  $canWrite */
 ?>
 <?php require __DIR__ . '/../_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
@@ -63,8 +65,11 @@
                     <th style="text-align:center;width:140px">Stock disponible</th>
                     <th style="text-align:center;width:140px">Próx. vencimiento</th>
                     <th style="text-align:center;width:80px">Lotes</th>
+                    <!-- AGREGADO: indicador de parámetros dinámicos
+                         configurados, mismo patrón que Producto -->
+                    <th style="text-align:center;width:100px">Parámetros</th>
                     <?php if ($canWrite): ?>
-                    <th style="text-align:center;width:150px">Acciones</th>
+                    <th style="text-align:center;width:170px">Acciones</th>
                     <?php endif ?>
                 </tr>
             </thead>
@@ -90,7 +95,10 @@
                     </code>
                 </td>
                 <td style="text-align:left">
-                    <strong><?= htmlspecialchars($ins['descripcion']) ?></strong>
+                    <a href="<?= APP_URL ?>/m0/insumos/<?= $ins['id'] ?>"
+                        style="font-weight:600;color:#4f8ef7;text-decoration:none">
+                        <?= htmlspecialchars($ins['descripcion']) ?>
+                    </a>
                     <?php if ($ins['vida_util_referencia']): ?>
                     <div style="font-size:11px;color:#94a3b8;margin-top:2px">
                         <i class="bi bi-clock" style="font-size:10px"></i>
@@ -150,6 +158,12 @@
                         <?= (int)$ins['lotes_en_stock'] ?>
                     </span>
                 </td>
+                <td style="text-align:center">
+                    <span class="badge <?= $ins['total_parametros'] > 0
+                        ? 'badge-success' : 'badge-muted' ?>">
+                        <?= (int)$ins['total_parametros'] ?>
+                    </span>
+                </td>
                 <?php if ($canWrite): ?>
                 <td style="text-align:center">
                     <div style="display:flex;gap:4px;justify-content:center">
@@ -162,6 +176,11 @@
                         <a href="<?= APP_URL ?>/m0/insumos/<?= $ins['id'] ?>/editar"
                             class="btn btn-sm btn-secondary" title="Editar">
                             <i class="bi bi-pencil"></i>
+                        </a>
+                        <!-- Parámetros -->
+                        <a href="<?= APP_URL ?>/m0/insumos/<?= $ins['id'] ?>/parametros"
+                            class="btn btn-sm btn-secondary" title="Parámetros">
+                            <i class="bi bi-sliders"></i>
                         </a>
                         <!-- Eliminar -->
                         <form method="POST"
@@ -181,7 +200,7 @@
             <?php endforeach ?>
             <?php if (!$hayResultados): ?>
             <tr>
-                <td colspan="<?= $canWrite ? 8 : 7 ?>"
+                <td colspan="<?= $canWrite ? 9 : 8 ?>"
                     style="text-align:center;padding:48px;color:#94a3b8">
                     <i class="bi bi-basket" style="font-size:32px;display:block;
                                 margin-bottom:10px;color:#e2e8f0"></i>

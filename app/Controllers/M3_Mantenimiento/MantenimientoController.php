@@ -68,7 +68,7 @@ class MantenimientoController extends Controller
                 ? ['equipo_id' => $equipoPreseleccionado]
                 : null,
             'equipos'       => $this->modelEquipo->todosConEstado(),
-            'usuarios'      => $modelUsuario->toSelectList('id','nombre'),
+            'usuarios'      => $modelUsuario->toSelectList('id','nombre','activo = 1'),
             'lotes'         => $this->getLotesParaSelect(),
             'tipos'         => Mantenimiento::TIPOS,
             'resultados'    => Mantenimiento::RESULTADOS,
@@ -201,7 +201,7 @@ class MantenimientoController extends Controller
             ],
             'mantenimiento' => $mant,
             'equipos'       => $this->modelEquipo->todosConEstado(),
-            'usuarios'      => $modelUsuario->toSelectList('id','nombre'),
+            'usuarios'      => $modelUsuario->toSelectList('id','nombre','activo = 1'),
             'lotes'         => $this->getLotesParaSelect($mant['lote_afectado_id'] ?? null),
             'tipos'         => Mantenimiento::TIPOS,
             'resultados'    => Mantenimiento::RESULTADOS,

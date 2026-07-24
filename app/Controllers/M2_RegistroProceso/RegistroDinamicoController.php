@@ -342,7 +342,7 @@ class RegistroDinamicoController extends Controller
         $registro['valores'] = json_decode($registro['valores'], true);
 
         $mensaje = $registro['fuera_de_control']
-            ? '⚠️ SEÑAL DETECTADA: ' . $registro['regla_violada']
+            ? 'ATENCIÓN — SEÑAL DETECTADA: ' . $registro['regla_violada']
             : 'Subgrupo registrado correctamente.';
 
         if ($this->isAjax()) {
@@ -499,6 +499,17 @@ class RegistroDinamicoController extends Controller
                      $this->extraerNumeroRegla($stats['regla']), $senalExistente['id']]
                 );
             } else {
+                // CORREGIDO: aquí se insertaba $subgrupo['parametro_id']
+                // en la columna producto_id — reg_subgrupos_spc no tiene
+                // ninguna columna producto_id, así que esto guardaba el
+                // ID de un PARÁMETRO en la columna del PRODUCTO. Se
+                // deriva el producto_id real desde el lote, igual que ya
+                // se hace correctamente en el flujo de creación
+                // (guardarSubgrupo()).
+                $productoIdReal = (int)$this->db->fetchScalar(
+                    "SELECT producto_id FROM lotes_produccion WHERE id = ?",
+                    [$sesion['lote_id']]
+                );
                 $this->db->execute(
                     "INSERT INTO spc_senales_detectadas
                         (lote_id, sesion_id, registro_peso_id, producto_id,
@@ -507,7 +518,7 @@ class RegistroDinamicoController extends Controller
                     VALUES (?,?,?,?, 'xbar',?,?,?, 'nueva')",
                     [
                         $sesion['lote_id'], $sesionId, $subgrupoId,
-                        $subgrupo['parametro_id'],
+                        $productoIdReal,
                         $this->extraerNumeroRegla($stats['regla']),
                         $stats['regla'] ?? 'Señal detectada',
                         $stats['xbar'],
@@ -529,7 +540,7 @@ class RegistroDinamicoController extends Controller
         }
 
         $mensaje = $stats['fuera_control']
-            ? '⚠️ Registro actualizado. SEÑAL: ' . $stats['regla']
+            ? 'ATENCIÓN — Registro actualizado. SEÑAL: ' . $stats['regla']
             : 'Registro actualizado correctamente.';
 
         if ($this->isAjax()) {

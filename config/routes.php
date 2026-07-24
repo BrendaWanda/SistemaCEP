@@ -68,6 +68,7 @@ $router->get( '/m0/equipos/nuevo',      'M0_Configuracion\EquipoController@nuevo
 $router->post('/m0/equipos/nuevo',      'M0_Configuracion\EquipoController@crear');
 $router->get( '/m0/equipos/:id/editar', 'M0_Configuracion\EquipoController@editar');
 $router->post('/m0/equipos/:id/editar', 'M0_Configuracion\EquipoController@actualizar');
+$router->post('/m0/equipos/:id/toggle', 'M0_Configuracion\EquipoController@toggleActivo');
 
 // Recetas — fijas antes que :id
 $router->get( '/m0/recetas',            'M0_Configuracion\RecetaController@index');
@@ -76,6 +77,15 @@ $router->post('/m0/recetas/nueva',      'M0_Configuracion\RecetaController@crear
 $router->get( '/m0/recetas/:id/editar', 'M0_Configuracion\RecetaController@editar');
 $router->post('/m0/recetas/:id/editar', 'M0_Configuracion\RecetaController@actualizar');
 $router->get( '/m0/recetas/:id',        'M0_Configuracion\RecetaController@ver');
+
+
+$router->get( '/m0/insumos/:id/parametros',        'M0_Configuracion\ParametroInsumoController@index');
+$router->get( '/m0/insumos/:id/parametros/nuevo',   'M0_Configuracion\ParametroInsumoController@nuevo');
+$router->post('/m0/insumos/:id/parametros/nuevo',   'M0_Configuracion\ParametroInsumoController@crear');
+$router->get( '/m0/parametros-insumo/:id/editar',   'M0_Configuracion\ParametroInsumoController@editar');
+$router->post('/m0/parametros-insumo/:id/editar',   'M0_Configuracion\ParametroInsumoController@actualizar');
+$router->post('/m0/parametros-insumo/:id/eliminar', 'M0_Configuracion\ParametroInsumoController@eliminar');
+$router->get( '/api/parametros-insumo',             'M0_Configuracion\ParametroInsumoController@porInsumo');
 
 // ── M1 — RECEPCIÓN DE MATERIA PRIMA ──────────────────────────────────────────
 // Fijas antes que :id
@@ -90,9 +100,12 @@ $router->get( '/m1/proveedores/nuevo',         'M1_RecepcionMP\ProveedorControll
 $router->post('/m1/proveedores/nuevo',         'M1_RecepcionMP\ProveedorController@crear');
 $router->get( '/m1/proveedores/:id/editar',    'M1_RecepcionMP\ProveedorController@editar');
 $router->post('/m1/proveedores/:id/editar',    'M1_RecepcionMP\ProveedorController@actualizar');
+$router->post('/m1/proveedores/:id/toggle',    'M1_RecepcionMP\ProveedorController@toggleActivo');
 // :id al final
-$router->get( '/m1/:id',         'M1_RecepcionMP\RecepcionController@ver');
-$router->get( '/m1/:id/imprimir','M1_RecepcionMP\RecepcionController@imprimir');
+$router->get( '/m1/:id',           'M1_RecepcionMP\RecepcionController@ver');
+$router->get( '/m1/:id/imprimir',  'M1_RecepcionMP\RecepcionController@imprimir');
+$router->get( '/m1/:id/resolver',  'M1_RecepcionMP\RecepcionController@resolverForm');
+$router->post('/m1/:id/resolver',  'M1_RecepcionMP\RecepcionController@resolverGuardar');
 
 // ── M2 — REGISTRO DE PROCESO ─────────────────────────────────────────────────
 // Fijas antes que :id

@@ -15,8 +15,6 @@ class Insumo extends Model
     protected array  $fillable = [
         'codigo','tipo','descripcion','unidad_medida',
         'esp_sabor_olor','esp_color','esp_descripcion_fisica',
-        'esp_humedad_max','esp_densidad_min','esp_densidad_max',
-        'esp_ph_min','esp_ph_max','esp_brix_max','esp_gluten_min','esp_impurezas_max',
         'vida_util_referencia','activo','creado_por'
     ];
 
@@ -27,15 +25,21 @@ class Insumo extends Model
         'otro'             => 'Otro',
     ];
 
+    // Todos los insumos con stock y conteo de parámetros dinámicos
+    // configurados — igual que Producto::todosConLinea() ya muestra
+    // cuántos parámetros de proceso tiene cada producto.
     public function todosConStock(): array
     {
         return $this->query(
             "SELECT i.*,
                     COALESCE(SUM(s.cantidad_disponible), 0) AS stock_total,
-                    COUNT(s.id) AS lotes_en_stock,
-                    MIN(s.fecha_vencimiento) AS proximo_vencimiento
+                    COUNT(DISTINCT s.id) AS lotes_en_stock,
+                    MIN(s.fecha_vencimiento) AS proximo_vencimiento,
+                    COUNT(DISTINCT pi.id) AS total_parametros
             FROM insumos i
             LEFT JOIN stock_mp s ON s.insumo_id = i.id AND s.estado = 'disponible'
+                AND s.fecha_vencimiento >= CURDATE()
+            LEFT JOIN parametros_insumo pi ON pi.insumo_id = i.id AND pi.activo = 1
             WHERE i.activo = 1
             GROUP BY i.id
             ORDER BY i.tipo, i.descripcion"

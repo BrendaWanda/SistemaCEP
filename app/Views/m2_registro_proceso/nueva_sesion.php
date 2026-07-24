@@ -1,12 +1,15 @@
 <?php
-/** @var array $lotes @var array $supervisores @var array $turnos
- *  @var string $fecha_hoy @var string $hora_ahora */
+/** @var array $lotes
+ *  @var array $supervisores
+ *  @var array $turnos
+ *  @var string $fecha_hoy
+ *  @var string $hora_ahora */
 ?>
 <?php require __DIR__ . '/_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
 
 <div class="page-header">
-    <div class="page-title">➕ Nueva Sesión de Registro</div>
+    <div class="page-title"><i class="bi bi-plus-lg"></i> Nueva Sesión de Registro</div>
     <div class="page-sub">
         Vincula la sesión a un lote activo de producción.
     </div>
@@ -40,7 +43,7 @@
             </select>
             <?php if (empty($lotes)): ?>
             <div class="form-hint" style="color:#dc2626">
-                ⚠️ No hay lotes en proceso.
+                <i class="bi bi-exclamation-triangle-fill"></i> No hay lotes en proceso.
                 <a href="<?= APP_URL ?>/m4/nuevo-lote">Abrir un lote primero</a>
             </div>
             <?php endif ?>
@@ -57,6 +60,12 @@
                     <option value="<?= $val ?>"><?= $label ?></option>
                     <?php endforeach ?>
                 </select>
+                <!-- AGREGADO: hora_ahora llegaba desde el controller pero
+                    nunca se mostraba en ningún lado — se usa aquí como
+                    referencia para ayudar a elegir el turno correcto. -->
+                <div class="form-hint">
+                    Hora actual: <?= htmlspecialchars($hora_ahora) ?>
+                </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Fecha</label>
@@ -90,7 +99,7 @@
         <a href="<?= APP_URL ?>/m2" class="btn btn-secondary">Cancelar</a>
         <button type="submit" class="btn btn-primary"
                 <?= empty($lotes) ? 'disabled' : '' ?>>
-            📋 Crear sesión de registro
+            <i class="bi bi-clipboard2-check-fill"></i> Crear sesión de registro
         </button>
     </div>
     </form>

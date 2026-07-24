@@ -21,7 +21,7 @@ class EquipoController extends Controller
 
     public function index(): void
     {
-        $equipos = $this->model->todosConEstado();
+        $equipos = $this->model->todosConEstadoGestion();
         $alertas = $this->model->alertasCalibración();
         $this->render('m0_configuracion/equipos/index', [
             'pageTitle'  => 'Equipos y Maquinaria',

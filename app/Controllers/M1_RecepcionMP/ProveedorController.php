@@ -18,7 +18,7 @@ class ProveedorController extends Controller
 
     public function index(): void
     {
-        $proveedores = $this->model->todosActivos();
+        $proveedores = $this->model->todosConEstado();
         $this->render('m1_recepcion_mp/proveedores/index', [
             'pageTitle'  => 'Proveedores',
             'breadcrumb' => [
@@ -124,5 +124,25 @@ class ProveedorController extends Controller
 
         $this->redirectWithSuccess('/m1/proveedores',
             'Proveedor actualizado correctamente.');
+    }
+
+    // POST /m1/proveedores/:id/toggle ← NUEVO
+    // Hallazgo de auditoría: proveedores.activo existe (default 1),
+    // Proveedor::todosActivos() ya filtra por él, e index.php ya
+    // muestra el badge "Activo/Inactivo" — pero no existía ningún
+    // método para cambiar el estado. Mismo hallazgo que Equipo en M0.
+    public function toggleActivo(array $params): void
+    {
+        Auth::requireWrite('m1_recepcion_mp');
+        $this->verifyCsrf();
+        $id        = (int)$params['id'];
+        $proveedor = $this->model->find($id);
+        if (!$proveedor) $this->jsonError('No encontrado', 404);
+
+        $nuevoEstado = $proveedor['activo'] ? 0 : 1;
+        $this->model->update($id, ['activo' => $nuevoEstado]);
+        $msg = $nuevoEstado ? 'Proveedor activado.' : 'Proveedor desactivado.';
+        if ($this->isAjax()) $this->jsonSuccess(['activo' => $nuevoEstado], $msg);
+        $this->redirectWithSuccess('/m1/proveedores', $msg);
     }
 }

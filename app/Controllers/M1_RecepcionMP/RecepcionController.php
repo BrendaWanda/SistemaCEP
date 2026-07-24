@@ -61,9 +61,30 @@ class RecepcionController extends Controller
                  WHERE estado = 'disponible'
                    AND fecha_vencimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)"
             ),
+            // Hallazgo de auditoría: se construyó el flujo de "resolver
+            // decisión" (cuarentena/observado -> aprobado/rechazado) pero
+            // no existía ninguna forma visible de saber que hay
+            // recepciones esperando esa resolución — a diferencia de las
+            // alertas de vencimiento, que sí tienen su propio banner.
+            'pendientes'  => (int)$this->db->fetchScalar(
+                "SELECT COUNT(*) FROM recepciones_mp
+                 WHERE decision IN ('cuarentena', 'observado')"
+            ),
         ];
 
         $alertas = $this->model->alertasVencimiento(30);
+
+        $pendientesResolucion = $this->db->fetchAll(
+            "SELECT r.id, r.codigo_recepcion, r.decision, r.fecha_analisis,
+                    i.descripcion AS insumo_nombre, i.codigo AS insumo_codigo,
+                    p.nombre AS proveedor_nombre
+             FROM recepciones_mp r
+             JOIN insumos i ON i.id = r.insumo_id
+             JOIN proveedores p ON p.id = r.proveedor_id
+             WHERE r.decision IN ('cuarentena', 'observado')
+             ORDER BY r.fecha_analisis ASC
+             LIMIT 6"
+        );
 
         $this->render('m1_recepcion_mp/index', [
             'pageTitle'  => 'Recepción de Materia Prima',
@@ -71,6 +92,7 @@ class RecepcionController extends Controller
             'ultimas'    => $ultimas,
             'stats'      => $stats,
             'alertas'    => $alertas,
+            'pendientesResolucion' => $pendientesResolucion,
             'decisiones' => RecepcionMP::DECISIONES,
             'canWrite'   => Auth::canWrite('m1_recepcion_mp'),
         ]);
@@ -90,7 +112,7 @@ class RecepcionController extends Controller
             ],
             'insumos'       => $this->modelInsumo->paraSelect(),
             'proveedores'   => $this->modelProveedor->paraSelect(),
-            'usuarios'      => $modelUsuario->toSelectList('id', 'nombre'),
+            'usuarios'      => $modelUsuario->toSelectList('id', 'nombre', 'activo = 1'),
             'codigo'        => $this->model->generarCodigo(),
             'fecha_hoy'     => date('Y-m-d'),
             'conf_opciones' => RecepcionMP::CONF,
@@ -143,8 +165,6 @@ class RecepcionController extends Controller
         $data = [
             'insumo_id'              => $this->inputInt('insumo_id'),
             'proveedor_id'           => $this->inputInt('proveedor_id'),
-            'codigo_recepcion'       => $this->input('codigo_recepcion')
-                                        ?: $this->model->generarCodigo(),
             'lote_proveedor'         => $this->input('lote_proveedor'),
             'fecha_fabricacion'      => $this->input('fecha_fabricacion') ?: null,
             'fecha_vencimiento'      => $this->input('fecha_vencimiento'),
@@ -203,48 +223,70 @@ class RecepcionController extends Controller
             'stock_disponible_kg'    => $stockDisp,
         ];
 
-        // Usar transacción para guardar recepción y stock juntos
-        $recepcionId = $this->db->transaction(function($db) use ($data, $decision) {
-            // Insertar recepción
-            $db->execute(
-                "INSERT INTO recepciones_mp (" . implode(',', array_keys($data)) . ")
-                 VALUES (" . implode(',', array_fill(0, count($data), '?')) . ")",
-                array_values($data)
-            );
-            $id = (int)$db->lastInsertId();
+        // Hallazgo CRÍTICO de auditoría: antes se confiaba en el código
+        // generado al abrir el formulario (minutos atrás) vía un campo
+        // oculto. Ahora se genera FRESCO justo antes de cada intento de
+        // guardar, y si choca por colisión (dos personas guardando casi
+        // al mismo tiempo), se reintenta con el siguiente correlativo —
+        // igual que ya corregimos para codigo_lote en M4.
+        $recepcionId = null;
+        $codigoFinal = null;
+        for ($intento = 0; $intento < 5; $intento++) {
+            $codigo = $this->model->generarCodigo($intento);
+            try {
+                $recepcionId = $this->db->transaction(function($db) use ($data, $decision, $codigo) {
+                    $dataConCodigo = array_merge($data, ['codigo_recepcion' => $codigo]);
 
-            // Si fue aprobado, crear stock disponible de inmediato.
-            // Si quedó pendiente (cuarentena/observado), se reserva el
-            // stock físico — existe en planta pero no se puede usar
-            // hasta que se resuelva la decisión.
-            $estadoStock = match ($decision) {
-                'aprobado' => 'disponible',
-                'cuarentena', 'observado' => 'reservado',
-                default => null,
-            };
-            if ($estadoStock !== null && $data['stock_disponible_kg'] > 0) {
-                $db->execute(
-                    "INSERT INTO stock_mp
-                     (insumo_id, recepcion_id, lote_proveedor, fecha_vencimiento,
-                      cantidad_inicial, cantidad_disponible, unidad_medida, estado)
-                     VALUES (?,?,?,?,?,?,?,?)",
-                    [
-                        $data['insumo_id'],
-                        $id,
-                        $data['lote_proveedor'],
-                        $data['fecha_vencimiento'],
-                        $data['stock_disponible_kg'],
-                        $data['stock_disponible_kg'],
-                        $data['unidad_medida'],
-                        $estadoStock,
-                    ]
-                );
+                    // Insertar recepción
+                    $db->execute(
+                        "INSERT INTO recepciones_mp (" . implode(',', array_keys($dataConCodigo)) . ")
+                         VALUES (" . implode(',', array_fill(0, count($dataConCodigo), '?')) . ")",
+                        array_values($dataConCodigo)
+                    );
+                    $id = (int)$db->lastInsertId();
+
+                    // Si fue aprobado, crear stock disponible de inmediato.
+                    // Si quedó pendiente (cuarentena/observado), se reserva
+                    // el stock físico — existe en planta pero no se puede
+                    // usar hasta que se resuelva la decisión.
+                    $estadoStock = match ($decision) {
+                        'aprobado' => 'disponible',
+                        'cuarentena', 'observado' => 'reservado',
+                        default => null,
+                    };
+                    if ($estadoStock !== null && $dataConCodigo['stock_disponible_kg'] > 0) {
+                        $db->execute(
+                            "INSERT INTO stock_mp
+                             (insumo_id, recepcion_id, lote_proveedor, fecha_vencimiento,
+                              cantidad_inicial, cantidad_disponible, unidad_medida, estado)
+                             VALUES (?,?,?,?,?,?,?,?)",
+                            [
+                                $dataConCodigo['insumo_id'],
+                                $id,
+                                $dataConCodigo['lote_proveedor'],
+                                $dataConCodigo['fecha_vencimiento'],
+                                $dataConCodigo['stock_disponible_kg'],
+                                $dataConCodigo['stock_disponible_kg'],
+                                $dataConCodigo['unidad_medida'],
+                                $estadoStock,
+                            ]
+                        );
+                    }
+                    return $id;
+                });
+                $codigoFinal = $codigo;
+                break; // éxito, no hace falta reintentar
+            } catch (\PDOException $e) {
+                if ($e->getCode() !== '23000' || $intento === 4) {
+                    throw $e;
+                }
+                // Colisión de codigo_recepcion — se reintenta con el
+                // siguiente correlativo
             }
-            return $id;
-        });
+        }
 
         $this->redirectWithSuccess("/m1/{$recepcionId}",
-            "Recepción {$data['codigo_recepcion']} registrada correctamente.");
+            "Recepción {$codigoFinal} registrada correctamente.");
     }
 
     // GET /m1/:id

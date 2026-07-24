@@ -7,7 +7,7 @@
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
 
 <div class="page-header">
-    <div class="page-title">➕ Nueva Recepción de Materia Prima</div>
+    <div class="page-title"><i class="bi bi-plus-lg"></i> Nueva Recepción de Materia Prima</div>
     <div class="page-sub">Código: <strong><?= $codigo ?></strong> · Fecha: <?= date('d/m/Y') ?></div>
 </div>
 
@@ -18,7 +18,7 @@
 <!-- SECCIÓN 1: Datos generales -->
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
-        <span class="card-title">📋 1. Datos generales</span>
+        <span class="card-title"><i class="bi bi-clipboard2-check-fill"></i> 1. Datos generales</span>
     </div>
     <div class="card-body">
         <div class="form-row cols-2">
@@ -128,7 +128,7 @@
 <!-- SECCIÓN 2: Análisis organoléptico -->
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
-        <span class="card-title">👁️ 2. Análisis organoléptico</span>
+        <span class="card-title"><i class="bi bi-eye-fill"></i> 2. Análisis organoléptico</span>
     </div>
     <div class="card-body">
         <?php
@@ -167,7 +167,7 @@
 <!-- SECCIÓN 3: Análisis fisicoquímico -->
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
-        <span class="card-title">🧪 3. Análisis fisicoquímico</span>
+        <span class="card-title"><i class="bi bi-droplet-fill"></i> 3. Análisis fisicoquímico</span>
     </div>
     <div class="card-body">
         <!-- Encabezado de columnas -->
@@ -226,10 +226,10 @@
 <!-- SECCIÓN 4: Conclusión y decisión -->
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
-        <span class="card-title">✅ 4. Conclusión y decisión final</span>
+        <span class="card-title"><i class="bi bi-check-circle-fill"></i> 4. Conclusión y decisión final</span>
     </div>
     <div class="card-body">
-        <div class="form-row cols-2">
+        <div class="form-row cols-3">
             <div class="form-group">
                 <label class="form-label">Responsable de muestreo</label>
                 <select name="responsable_muestreo_id" class="form-control">
@@ -249,6 +249,21 @@
                             <?= $id == \App\Core\Auth::id() ? 'selected' : '' ?>>
                         <?= htmlspecialchars($nombre) ?>
                     </option>
+                    <?php endforeach ?>
+                </select>
+            </div>
+            <!-- AGREGADO: visto_bueno_id existía en el modelo y se
+                 mostraba en ver.php/imprimir.php (con su propia línea de
+                 firma en el documento impreso), pero nunca hubo forma de
+                 asignarlo — quedaba siempre en NULL. Es opcional a
+                 propósito (no toda recepción requiere un tercer visto
+                 bueno de inmediato). -->
+            <div class="form-group">
+                <label class="form-label">Visto bueno (opcional)</label>
+                <select name="visto_bueno_id" class="form-control">
+                    <option value="">— Sin visto bueno —</option>
+                    <?php foreach ($usuarios as $id => $nombre): ?>
+                    <option value="<?= $id ?>"><?= htmlspecialchars($nombre) ?></option>
                     <?php endforeach ?>
                 </select>
             </div>
@@ -291,7 +306,7 @@
 
 <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:24px">
     <a href="<?= APP_URL ?>/m1" class="btn btn-secondary">Cancelar</a>
-    <button type="submit" class="btn btn-primary">✅ Registrar recepción</button>
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle-fill"></i> Registrar recepción</button>
 </div>
 
 </form>

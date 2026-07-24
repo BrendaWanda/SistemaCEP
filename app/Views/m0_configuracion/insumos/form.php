@@ -1,5 +1,7 @@
 <?php
-/** @var array|null $insumo @var array $tipos @var string $accion */
+/** @var array|null $insumo
+ *  @var array $tipos
+ *  @var string $accion */
 ?>
 <?php require __DIR__ . '/../_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
@@ -12,7 +14,9 @@
             <?= $esEditar ? 'Editar Insumo' : 'Nuevo Insumo' ?>
         </div>
         <div class="page-sub">
-            Las especificaciones son referencia para el control de recepción (M1).
+            Las especificaciones organolépticas son referencia para el control de recepción (M1).
+            Los parámetros fisicoquímicos (humedad, pH, gluten, etc.) se configuran aparte,
+            solo para los insumos donde aplican.
         </div>
     </div>
     <div class="page-actions">
@@ -131,67 +135,40 @@
     </div>
 </div>
 
-<!-- Fisicoquímicas -->
-<div class="card" style="margin-bottom:16px">
-    <div class="card-header">
-        <span class="card-title">
-            <i class="bi bi-droplet-fill" style="color:#4f8ef7;margin-right:6px"></i>
-            Especificaciones fisicoquímicas de referencia
-        </span>
-    </div>
-    <div class="card-body">
-        <div class="form-row cols-4">
-            <div class="form-group">
-                <label class="form-label">Humedad máx (%)</label>
-                <input type="number" name="esp_humedad_max" class="form-control"
-                        value="<?= $v('esp_humedad_max') ?>" step="0.01">
+<!-- AGREGADO: antes aquí iba una sección fija de "Especificaciones
+     fisicoquímicas" (humedad, densidad, pH, Brix, gluten, impurezas)
+     que se pedía a TODOS los insumos por igual — un saborizante o un
+     empaque terminaban mostrando "Gluten mín" sin que aplicara nunca.
+     Ahora esos parámetros se configuran por insumo, después de
+     crearlo, en su propia sección — mismo patrón que Productos usa
+     para sus parámetros de proceso. -->
+<?php if ($esEditar): ?>
+<div class="card" style="margin-bottom:16px;background:#f8fafc">
+    <div class="card-body" style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+            <div style="font-weight:600;color:#0f172a;display:flex;align-items:center;gap:8px">
+                <i class="bi bi-sliders" style="color:#4f8ef7"></i>
+                Parámetros fisicoquímicos
             </div>
-            <div class="form-group">
-                <label class="form-label">Densidad mín</label>
-                <input type="number" name="esp_densidad_min" class="form-control"
-                        value="<?= $v('esp_densidad_min') ?>" step="0.0001">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Densidad máx</label>
-                <input type="number" name="esp_densidad_max" class="form-control"
-                        value="<?= $v('esp_densidad_max') ?>" step="0.0001">
-            </div>
-            <div class="form-group">
-                <label class="form-label">pH mín</label>
-                <input type="number" name="esp_ph_min" class="form-control"
-                        value="<?= $v('esp_ph_min') ?>" step="0.01">
-            </div>
-            <div class="form-group">
-                <label class="form-label">pH máx</label>
-                <input type="number" name="esp_ph_max" class="form-control"
-                        value="<?= $v('esp_ph_max') ?>" step="0.01">
-            </div>
-            <!-- AGREGADO: esp_brix_max existía en la BD y en el $fillable
-                 del modelo, pero nunca en el controller ni en este
-                 formulario — quedaba siempre en NULL sin poder cargarse. -->
-            <div class="form-group">
-                <label class="form-label">Brix máx (°Bx)</label>
-                <input type="number" name="esp_brix_max" class="form-control"
-                        value="<?= $v('esp_brix_max') ?>" step="0.01"
-                        placeholder="Ej: 18.5">
-                <div class="form-hint">
-                    <i class="bi bi-info-circle"></i>
-                    Relevante en insumos con azúcar/fruta
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Gluten mín (%)</label>
-                <input type="number" name="esp_gluten_min" class="form-control"
-                        value="<?= $v('esp_gluten_min') ?>" step="0.01">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Impurezas máx (%)</label>
-                <input type="number" name="esp_impurezas_max" class="form-control"
-                        value="<?= $v('esp_impurezas_max') ?>" step="0.001">
+            <div style="font-size:var(--fs-dense-sm);color:#64748b;margin-top:4px">
+                Humedad, pH, densidad, Brix, gluten, impurezas — solo los que apliquen a este insumo.
             </div>
         </div>
+        <a href="<?= APP_URL ?>/m0/insumos/<?= $insumo['id'] ?>/parametros"
+            class="btn btn-secondary">
+            <i class="bi bi-sliders"></i> Configurar parámetros
+        </a>
     </div>
 </div>
+<?php else: ?>
+<div class="card" style="margin-bottom:16px;background:#f8fafc">
+    <div class="card-body" style="color:#64748b;font-size:var(--fs-dense-sm)">
+        <i class="bi bi-info-circle"></i>
+        Los parámetros fisicoquímicos (humedad, pH, gluten, etc.) se configuran
+        después de crear el insumo, desde su ficha de detalle.
+    </div>
+</div>
+<?php endif ?>
 
 <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:24px">
     <a href="<?= APP_URL ?>/m0/insumos" class="btn btn-secondary">

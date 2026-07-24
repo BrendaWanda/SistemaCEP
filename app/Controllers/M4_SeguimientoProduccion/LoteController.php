@@ -65,7 +65,7 @@ class LoteController extends Controller
                 ['label' => 'Nuevo lote'],
             ],
             'productos'  => $productos,
-            'supervisores'=> $modelUsuario->toSelectList('id','nombre'),
+            'supervisores'=> $modelUsuario->toSelectList('id','nombre','activo = 1'),
             'turnos'     => LoteProduccion::TURNOS,
             'fecha_hoy'  => $fechaHoy,
             'codigo_preview' => $this->model->generarCodigo($fechaHoy),

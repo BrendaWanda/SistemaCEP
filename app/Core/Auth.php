@@ -17,7 +17,7 @@ class Auth
         'm0_configuracion'     => [self::ROL_ADMIN => 'rw', self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => null, self::ROL_CALIDAD => null],
         'usuarios'             => [self::ROL_ADMIN => 'rw', self::ROL_GERENTE => null, self::ROL_PRODUCCION => null, self::ROL_CALIDAD => null],
         'm1_recepcion_mp'      => [self::ROL_ADMIN => 'r',  self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'rw', self::ROL_CALIDAD => 'rw'],
-        'm2_registro_proceso'  => [self::ROL_ADMIN => 'r',  self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => null, self::ROL_CALIDAD => 'rw'],
+        'm2_registro_proceso'  => [self::ROL_ADMIN => 'r',  self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'rw', self::ROL_CALIDAD => 'rw'],
         'm3_mantenimiento'     => [self::ROL_ADMIN => 'rw', self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'rw', self::ROL_CALIDAD => 'r'],
         'm4_seguimiento'       => [self::ROL_ADMIN => 'rw', self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'rw', self::ROL_CALIDAD => 'r'],
         'm5_trazabilidad'      => [self::ROL_ADMIN => 'r',  self::ROL_GERENTE => 'r',  self::ROL_PRODUCCION => 'r',  self::ROL_CALIDAD => 'r'],

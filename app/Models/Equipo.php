@@ -57,6 +57,39 @@ class Equipo extends Model
         );
     }
 
+    // Hallazgo de auditoría: EquipoController::index() (la lista de
+    // gestión de M0) usaba todosConEstado() — que filtra activo=1 —
+    // igual que MantenimientoController (M3), que SÍ necesita ese
+    // filtro para no ofrecer equipos dados de baja al registrar un
+    // mantenimiento nuevo. Como ambos comparten el mismo método,
+    // agregar toggleActivo() a Equipo hacía que un equipo desactivado
+    // desapareciera de la lista de gestión PARA SIEMPRE, sin ninguna
+    // forma de volver a verlo para reactivarlo. Este método nuevo es
+    // solo para la lista de gestión — sin filtrar por activo.
+    public function todosConEstadoGestion(): array
+    {
+        return $this->query(
+            "SELECT e.*, l.nombre AS linea_nombre,
+                    CASE
+                        WHEN e.requiere_calibracion = 0 THEN 'no_aplica'
+                        WHEN e.fecha_prox_calibr IS NULL THEN 'sin_registro'
+                        WHEN e.fecha_prox_calibr < CURDATE() THEN 'vencida'
+                        WHEN e.fecha_prox_calibr <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'proxima'
+                        ELSE 'vigente'
+                    END AS estado_calibracion,
+                    DATEDIFF(e.fecha_prox_calibr, CURDATE()) AS dias_para_calibr,
+                    CASE
+                        WHEN e.fecha_prox_mant IS NULL THEN 'sin_registro'
+                        WHEN e.fecha_prox_mant < CURDATE() THEN 'vencido'
+                        WHEN e.fecha_prox_mant <= DATE_ADD(CURDATE(), INTERVAL 15 DAY) THEN 'proximo'
+                        ELSE 'vigente'
+                    END AS estado_mantenimiento
+             FROM equipos e
+             JOIN lineas_produccion l ON l.id = e.linea_id
+             ORDER BY e.activo DESC, l.nombre, e.tipo, e.nombre"
+        );
+    }
+
     // Equipos que necesitan calibración urgente (vencida o próxima en 30 días)
     public function alertasCalibración(): array
     {

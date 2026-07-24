@@ -84,7 +84,7 @@ class SesionRegistroController extends Controller
                 ['label' => 'Nueva sesión'],
             ],
             'lotes'       => $lotes,
-            'supervisores'=> $modelUsuario->toSelectList('id','nombre'),
+            'supervisores'=> $modelUsuario->toSelectList('id','nombre','activo = 1'),
             'turnos'      => \App\Models\LoteProduccion::TURNOS,
             'fecha_hoy'   => date('Y-m-d'),
             'hora_ahora'  => date('H:i'),
@@ -225,7 +225,7 @@ class SesionRegistroController extends Controller
                 ['label' => 'Editar'],
             ],
             'sesion'      => $sesion,
-            'supervisores'=> $modelUsuario->toSelectList('id','nombre'),
+            'supervisores'=> $modelUsuario->toSelectList('id','nombre','activo = 1'),
             'turnos'      => \App\Models\LoteProduccion::TURNOS,
         ]);
     }
@@ -241,17 +241,41 @@ class SesionRegistroController extends Controller
         if (!$sesion) {
             $this->flash('error', 'Sesión no encontrada.');
             $this->redirect('/m2');
+            return;
         }
 
         $turno = $this->input('turno') ?: $sesion['turno'];
         $fecha = $this->input('fecha') ?: $sesion['fecha'];
 
-        $this->model->update($sesionId, [
-            'fecha'         => $fecha,
-            'turno'         => $turno,
-            'supervisor_id' => $this->inputInt('supervisor_id') ?: $sesion['supervisor_id'],
-            'nivel'         => $this->input('nivel'),
-        ]);
+        // Hallazgo de auditoría: reg_inspeccion_atributos guarda su
+        // propia copia de fecha/turno (tomada de la sesión al momento
+        // de registrar cada inspección) — si después se editaba la
+        // fecha/turno de la sesión, esas filas ya guardadas quedaban
+        // con datos desactualizados, sin ninguna sincronización. Se
+        // envuelve todo en una transacción para que quede consistente.
+        $this->db->transaction(function($db) use (
+            $sesionId, $sesion, $fecha, $turno
+        ) {
+            $db->execute(
+                "UPDATE sesiones_registro
+                SET fecha = ?, turno = ?, supervisor_id = ?, nivel = ?
+                WHERE id = ?",
+                [
+                    $fecha,
+                    $turno,
+                    $this->inputInt('supervisor_id') ?: $sesion['supervisor_id'],
+                    $this->input('nivel'),
+                    $sesionId,
+                ]
+            );
+
+            if ($fecha !== $sesion['fecha'] || $turno !== $sesion['turno']) {
+                $db->execute(
+                    "UPDATE reg_inspeccion_atributos SET fecha = ?, turno = ? WHERE sesion_id = ?",
+                    [$fecha, $turno, $sesionId]
+                );
+            }
+        });
 
         $this->redirectWithSuccess(
             "/m2/sesion/{$sesionId}",

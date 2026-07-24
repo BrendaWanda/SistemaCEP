@@ -38,17 +38,27 @@ class InsumoController extends Controller
         if (!$insumo) {
             $this->flash('error', 'Insumo no encontrado.');
             $this->redirect('/m0/insumos');
+            return;
         }
 
-        // Stock disponible del insumo
+        // Hallazgo de auditoría: esta consulta hacía
+        // "JOIN proveedores p ON p.id = s.proveedor_id" — pero
+        // stock_mp NO tiene ninguna columna proveedor_id (solo
+        // insumo_id, recepcion_id, lote_proveedor...). Habría roto con
+        // un error SQL de columna desconocida en cuanto se ejecutara.
+        // El proveedor real se obtiene pasando por recepciones_mp.
         $stock = $this->db->fetchAll(
-            "SELECT s.*, p.nombre AS proveedor_nombre
+            "SELECT s.*, prov.nombre AS proveedor_nombre
             FROM stock_mp s
-            LEFT JOIN proveedores p ON p.id = s.proveedor_id
+            LEFT JOIN recepciones_mp r ON r.id = s.recepcion_id
+            LEFT JOIN proveedores prov ON prov.id = r.proveedor_id
             WHERE s.insumo_id = ? AND s.estado = 'disponible'
             ORDER BY s.fecha_vencimiento ASC",
             [(int)$params['id']]
         );
+
+        $modelParam = new \App\Models\ParametroInsumo();
+        $parametros = $modelParam->porInsumo((int)$params['id']);
 
         $this->render('m0_configuracion/insumos/ver', [
             'pageTitle'  => $insumo['descripcion'],
@@ -57,10 +67,12 @@ class InsumoController extends Controller
                 ['label'=>'Insumos','url'=>APP_URL.'/m0/insumos'],
                 ['label'=>$insumo['descripcion']],
             ],
-            'insumo'   => $insumo,
-            'stock'    => $stock,
-            'tipos'    => Insumo::TIPOS,
-            'canWrite' => Auth::canWrite('m0_configuracion'),
+            'insumo'     => $insumo,
+            'stock'      => $stock,
+            'parametros' => $parametros,
+            'tipos'      => Insumo::TIPOS,
+            'tiposParam' => \App\Models\ParametroInsumo::TIPOS,
+            'canWrite'   => Auth::canWrite('m0_configuracion'),
         ]);
     }
 
@@ -181,14 +193,6 @@ class InsumoController extends Controller
             'esp_sabor_olor'         => $this->input('esp_sabor_olor'),
             'esp_color'              => $this->input('esp_color'),
             'esp_descripcion_fisica' => $this->input('esp_descripcion_fisica'),
-            'esp_humedad_max'        => $this->inputFloat('esp_humedad_max') ?: null,
-            'esp_densidad_min'       => $this->inputFloat('esp_densidad_min') ?: null,
-            'esp_densidad_max'       => $this->inputFloat('esp_densidad_max') ?: null,
-            'esp_ph_min'             => $this->inputFloat('esp_ph_min') ?: null,
-            'esp_ph_max'             => $this->inputFloat('esp_ph_max') ?: null,
-            'esp_brix_max'           => $this->inputFloat('esp_brix_max') ?: null,
-            'esp_gluten_min'         => $this->inputFloat('esp_gluten_min') ?: null,
-            'esp_impurezas_max'      => $this->inputFloat('esp_impurezas_max') ?: null,
             'vida_util_referencia'   => $this->input('vida_util_referencia'),
         ];
     }

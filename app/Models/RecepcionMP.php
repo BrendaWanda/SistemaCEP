@@ -95,12 +95,20 @@ class RecepcionMP extends Model
             $params
         );
 
+        $totalPaginas = (int)ceil($total / $porPagina);
+
         return [
-            'data'          => $data,
-            'total'         => $total,
-            'pagina'        => $pagina,
-            'por_pagina'    => $porPagina,
-            'total_paginas' => (int)ceil($total / $porPagina),
+            'data'            => $data,
+            'total'           => $total,
+            'pagina'          => $pagina,
+            'por_pagina'      => $porPagina,
+            'total_paginas'   => $totalPaginas,
+            // Hallazgo de auditoría: historial.php revisa estas 2 claves
+            // para mostrar los enlaces "Anterior"/"Siguiente", pero nunca
+            // se devolvían — la paginación existía visualmente pero era
+            // imposible de usar, incluso con más de 20 registros.
+            'tiene_anterior'  => $pagina > 1,
+            'tiene_siguiente' => $pagina < $totalPaginas,
         ];
     }
 
@@ -127,7 +135,22 @@ class RecepcionMP extends Model
     }
 
     // Generar código único de recepción: REC-YYYYMMDD-NNN
-    public function generarCodigo(): string
+    //
+    // Hallazgo CRÍTICO de auditoría: el código se generaba UNA SOLA VEZ
+    // al abrir el formulario "Nueva recepción" (GET /m1/nueva) y se
+    // enviaba de vuelta en un campo oculto — si el formulario quedaba
+    // abierto varios minutos mientras se completaba (es un formulario
+    // largo, con análisis organoléptico y fisicoquímico), y alguien más
+    // abría el formulario y guardaba primero, ambos envíos cargaban el
+    // MISMO código — codigo_recepcion tiene UNIQUE KEY, así que el
+    // segundo INSERT fallaba con una excepción cruda de PDO. La ventana
+    // de colisión aquí era de minutos, no milisegundos como en
+    // lotes_produccion — más grave todavía.
+    //
+    // $intento permite pedir el "siguiente candidato" cuando el
+    // controller reintenta tras una colisión (ver
+    // RecepcionController::guardar()), sin repetir esta consulta.
+    public function generarCodigo(int $intento = 0): string
     {
         $fecha  = date('Ymd');
         $prefix = "REC-{$fecha}-";
@@ -137,9 +160,7 @@ class RecepcionMP extends Model
             ORDER BY id DESC LIMIT 1",
             [$prefix . '%']
         );
-        $num = $ultimo
-            ? (int)substr($ultimo, -3) + 1
-            : 1;
+        $num = ($ultimo ? (int)substr($ultimo, -3) + 1 : 1) + $intento;
         return $prefix . str_pad($num, 3, '0', STR_PAD_LEFT);
     }
 

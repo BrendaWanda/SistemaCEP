@@ -135,13 +135,14 @@ class InspeccionAtributosController extends Controller
         }
     }
 
-    // -------------------------------------------------------------------
     // POST /m2/sesion/:id/inspeccion-atributos/:parametro_id/eliminar
-    // Borra por completo el registro de inspección de un parámetro dentro
-    // de la sesión (a diferencia de reenviar el formulario, que actualiza
-    // in-place, esto quita el registro entero si el operador se equivocó
-    // de parámetro o quiere empezar de cero).
-    // -------------------------------------------------------------------
+    //
+    // Hallazgo de auditoría: la ruta ya existía en routes.php, pero este
+    // método nunca se implementó, y sesion.php tampoco tenía ningún
+    // botón que la llamara — la ruta estaba muerta. Se agrega por
+    // consistencia: valores simples y subgrupos SPC sí permiten
+    // eliminar por completo, y era inconsistente que inspección de
+    // atributos solo pudiera "corregirse" (upsert) pero no quitarse.
     public function eliminar(array $params): void
     {
         Auth::requireWrite('m2_registro_proceso');
@@ -155,17 +156,24 @@ class InspeccionAtributosController extends Controller
             $msg = 'Esta sesión ya está cerrada; no se pueden eliminar sus registros.';
             if ($this->isAjax()) { $this->jsonError($msg, 403); return; }
             $this->flash('error', $msg);
-            $this->redirect('/m2');
+            $this->redirect("/m2/sesion/{$sesionId}");
             return;
         }
 
-        $this->db->execute(
+        $filas = $this->db->execute(
             "DELETE FROM reg_inspeccion_atributos WHERE sesion_id = ? AND parametro_id = ?",
             [$sesionId, $parametroId]
         );
 
+        if ($filas === 0) {
+            if ($this->isAjax()) { $this->jsonError('Inspección no encontrada.', 404); return; }
+            $this->flash('error', 'Inspección no encontrada.');
+            $this->redirect("/m2/sesion/{$sesionId}");
+            return;
+        }
+
         if ($this->isAjax()) {
-            $this->jsonSuccess(['parametro_id' => $parametroId], 'Inspección eliminada correctamente.');
+            $this->jsonSuccess(null, 'Inspección eliminada correctamente.');
             return;
         }
         $this->redirectWithSuccess("/m2/sesion/{$sesionId}", 'Inspección eliminada correctamente.');

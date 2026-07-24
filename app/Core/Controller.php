@@ -131,8 +131,18 @@ abstract class Controller
     protected function input(string $key, mixed $default = null): mixed
     {
         $value = $_POST[$key] ?? $_GET[$key] ?? $default;
+        // CORREGIDO: antes esto aplicaba htmlspecialchars() aquí mismo,
+        // y las vistas TAMBIÉN aplican htmlspecialchars() al mostrar los
+        // datos (patrón usado en absolutamente todas las vistas del
+        // sistema) — esto causaba doble escape: un "&" guardado como
+        // "&amp;" se volvía a escapar a "&amp;amp;" al mostrarse, y el
+        // navegador terminaba mostrando literalmente "&amp;" en pantalla
+        // en vez del símbolo "&". El escape de HTML debe pasar en la
+        // SALIDA (que ya está cubierta en las vistas), no en la entrada.
+        // La seguridad contra inyección SQL no depende de esto — todas
+        // las consultas ya usan parámetros preparados (Database::query()).
         if (is_string($value)) {
-            return trim(htmlspecialchars($value, ENT_QUOTES, 'UTF-8'));
+            return trim($value);
         }
         return $value;
     }
@@ -175,6 +185,17 @@ abstract class Controller
     {
         $token = $_POST['_token'] ?? '';
         if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+            // Hallazgo de auditoría: esto SIEMPRE redirigía, incluso en
+            // peticiones AJAX (fetch/JSON) — el navegador seguía la
+            // redirección y el .json() del cliente fallaba con un error
+            // confuso ("Unexpected token '<'") en vez de un mensaje claro
+            // de "sesión expirada, recargue la página". Se detectó en
+            // varios módulos durante esta auditoría pero no se podía
+            // corregir sin tener este archivo.
+            if ($this->isAjax()) {
+                $this->jsonError('Token de seguridad inválido o sesión expirada. Recargue la página.', 419);
+                return;
+            }
             $this->flash('error', 'Token de seguridad inválido. Recargue la página.');
             $this->redirectBack();
         }

@@ -12,13 +12,27 @@ class LiberacionPT extends Model
         'supervisor_calidad_id','encargado_nutricion_id','jefe_produccion_id'
     ];
 
-    // Guardar liberación y actualizar estado del lote
+    // Guardar liberación, actualizar estado del lote, y cerrar la
+    // sesión — TODO en una sola transacción.
+    //
+    // Hallazgo de auditoría: antes el cierre de la sesión (estado
+    // 'completo' + hora_fin_registro) se hacía con una llamada SEPARADA
+    // desde el controller, DESPUÉS de que esta transacción ya hubiera
+    // confirmado. Si esa segunda llamada fallaba por cualquier motivo
+    // (ej. una desconexión transitoria), el lote quedaba liberado o en
+    // cuarentena, pero su sesión de registro seguía en 'en_proceso' —
+    // lo que significa que los datos de proceso de un lote YA LIBERADO
+    // seguirían siendo editables indefinidamente (RegistroDinamicoController
+    // bloquea la edición únicamente según sesion.estado). Se integra el
+    // cierre de sesión en la misma transacción para que ambas cosas
+    // sucedan juntas o ninguna.
     public function liberarYActualizarLote(array $data, int $loteId,
                                             string $codigoLote,
+                                            int $sesionId,
                                             int $usuarioId): int
     {
         return (int)$this->db->transaction(function($db) use (
-            $data, $loteId, $codigoLote, $usuarioId
+            $data, $loteId, $codigoLote, $sesionId, $usuarioId
         ) {
             // Insertar liberación
             $cols  = implode(',', array_keys($data));
@@ -36,6 +50,16 @@ class LiberacionPT extends Model
             $db->execute(
                 "UPDATE lotes_produccion SET estado = ? WHERE id = ?",
                 [$nuevoEstado, $loteId]
+            );
+
+            // Cerrar la sesión de registro — ya no se puede seguir
+            // editando datos de proceso de un lote que Calidad ya
+            // liberó o puso en cuarentena.
+            $db->execute(
+                "UPDATE sesiones_registro
+                SET estado = 'completo', hora_fin_registro = ?
+                WHERE id = ?",
+                [date('Y-m-d H:i:s'), $sesionId]
             );
 
             // Registrar evento de trazabilidad

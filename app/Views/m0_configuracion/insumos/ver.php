@@ -1,7 +1,13 @@
 <?php
-/** @var array $insumo @var array $stock @var array $tipos @var bool $canWrite */
+/** @var array $insumo
+ *  @var array $stock
+ *  @var array $parametros
+ *  @var array $tipos
+ *  @var array $tiposParam
+ *  @var bool  $canWrite */
 ?>
 <?php require __DIR__ . '/../_nav.php'; ?>
+<?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
 
 <div class="page-header">
     <div>
@@ -21,6 +27,10 @@
         <a href="<?= APP_URL ?>/m0/insumos/<?= $insumo['id'] ?>/editar"
             class="btn btn-secondary">
             <i class="bi bi-pencil"></i> Editar
+        </a>
+        <a href="<?= APP_URL ?>/m0/insumos/<?= $insumo['id'] ?>/parametros"
+            class="btn btn-primary">
+            <i class="bi bi-sliders"></i> Parámetros
         </a>
         <?php endif ?>
         <a href="<?= APP_URL ?>/m0/insumos" class="btn btn-secondary">
@@ -87,50 +97,86 @@
     </div>
 </div>
 
-<!-- Fisicoquímicas -->
-<?php if ($insumo['esp_humedad_max'] || $insumo['esp_ph_min'] || $insumo['esp_brix_max']): ?>
+<!-- AGREGADO: reemplaza la sección fija de fisicoquímicas — ahora
+     muestra los parámetros configurados dinámicamente por insumo,
+     igual que Producto muestra sus parámetros de proceso. -->
 <div class="card" style="margin-bottom:16px">
     <div class="card-header">
         <span class="card-title">
-            <i class="bi bi-droplet-fill" style="color:#4f8ef7;margin-right:6px"></i>
-            Especificaciones fisicoquímicas
+            <i class="bi bi-sliders" style="color:#4f8ef7;margin-right:6px"></i>
+            Parámetros fisicoquímicos configurados
         </span>
+        <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge badge-info"><?= count($parametros) ?> parámetros</span>
+            <?php if ($canWrite): ?>
+            <a href="<?= APP_URL ?>/m0/insumos/<?= $insumo['id'] ?>/parametros/nuevo"
+                class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-lg"></i> Agregar
+            </a>
+            <?php endif ?>
+        </div>
     </div>
-    <div class="card-body" style="padding:0">
+    <?php if (empty($parametros)): ?>
+    <div class="card-body text-center" style="padding:30px;color:#94a3b8">
+        <i class="bi bi-sliders" style="font-size:28px;display:block;
+                    margin-bottom:8px;color:#e2e8f0"></i>
+        Sin parámetros configurados para este insumo.
+        <?php if ($canWrite): ?>
+        <div style="margin-top:10px">
+            <a href="<?= APP_URL ?>/m0/insumos/<?= $insumo['id'] ?>/parametros/nuevo"
+                class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg"></i> Agregar el primero
+            </a>
+        </div>
+        <?php endif ?>
+    </div>
+    <?php else: ?>
+    <div class="table-wrap">
         <table class="data-table-bordered" style="font-size:var(--fs-dense-sm)">
             <thead>
                 <tr>
-                    <th>Parámetro</th>
-                    <th style="text-align:center">Valor</th>
+                    <th style="text-align:left">Parámetro</th>
+                    <th style="text-align:center">Tipo</th>
+                    <th style="text-align:center">Unidad</th>
+                    <th style="text-align:center">Mín / Máx</th>
+                    <th style="text-align:center">Obligatorio</th>
                 </tr>
             </thead>
             <tbody>
-            <?php foreach ([
-                ['Humedad máx',   $insumo['esp_humedad_max'],   '%'],
-                ['Densidad mín',  $insumo['esp_densidad_min'],  ''],
-                ['Densidad máx',  $insumo['esp_densidad_max'],  ''],
-                ['pH mín',        $insumo['esp_ph_min'],        ''],
-                ['pH máx',        $insumo['esp_ph_max'],        ''],
-                ['Brix máx',      $insumo['esp_brix_max'],      '°Bx'],
-                ['Gluten mín',    $insumo['esp_gluten_min'],    '%'],
-                ['Impurezas máx', $insumo['esp_impurezas_max'], '%'],
-            ] as [$lbl,$val,$uni]):
-                if ($val === null) continue;
-            ?>
+            <?php foreach ($parametros as $p): ?>
             <tr>
-                <td style="text-align:left;color:#64748b;font-size:var(--fs-dense-xs);font-weight:600">
-                    <?= $lbl ?>
+                <td style="text-align:left;font-weight:600"><?= htmlspecialchars($p['nombre']) ?></td>
+                <td style="text-align:center">
+                    <span class="badge badge-muted"><?= $tiposParam[$p['tipo_dato']] ?? $p['tipo_dato'] ?></span>
                 </td>
-                <td style="text-align:center;font-weight:700">
-                    <?= number_format((float)$val, 3) ?><?= $uni ?>
+                <td style="text-align:center">
+                    <code style="font-size:11px;background:#f1f5f9;padding:1px 6px;border-radius:4px">
+                        <?= htmlspecialchars($p['unidad']) ?: '—' ?>
+                    </code>
+                </td>
+                <td style="text-align:center;font-size:var(--fs-dense-xs)">
+                    <?php if ($p['valor_min'] !== null || $p['valor_max'] !== null): ?>
+                    <span style="color:#2563eb;font-weight:600">
+                        <?= $p['valor_min'] !== null ? number_format($p['valor_min'],3) : '—' ?>
+                    </span>
+                    <span style="color:#94a3b8"> / </span>
+                    <span style="color:#1d4ed8;font-weight:600">
+                        <?= $p['valor_max'] !== null ? number_format($p['valor_max'],3) : '—' ?>
+                    </span>
+                    <?php else: ?>—<?php endif ?>
+                </td>
+                <td style="text-align:center">
+                    <span class="badge <?= $p['obligatorio'] ? 'badge-warning' : 'badge-muted' ?>">
+                        <?= $p['obligatorio'] ? 'Sí' : 'No' ?>
+                    </span>
                 </td>
             </tr>
             <?php endforeach ?>
             </tbody>
         </table>
     </div>
+    <?php endif ?>
 </div>
-<?php endif ?>
 
 <!-- Stock disponible -->
 <div class="card">
@@ -152,7 +198,7 @@
         <table class="data-table-bordered" style="font-size:var(--fs-dense-sm)">
             <thead>
                 <tr>
-                    <th style="text-align:left">Código recepción</th>
+                    <th style="text-align:left">Lote proveedor</th>
                     <th style="text-align:left">Proveedor</th>
                     <th style="text-align:center">Cantidad</th>
                     <th style="text-align:center">Vencimiento</th>
@@ -169,7 +215,7 @@
             ?>
             <tr>
                 <td style="text-align:left;font-family:monospace;font-size:var(--fs-dense-xs);font-weight:700">
-                    <?= htmlspecialchars($s['codigo_recepcion'] ?? '—') ?>
+                    <?= htmlspecialchars($s['lote_proveedor'] ?? '—') ?>
                 </td>
                 <td style="text-align:left;font-size:var(--fs-dense-sm)">
                     <?= htmlspecialchars($s['proveedor_nombre'] ?? '—') ?>
