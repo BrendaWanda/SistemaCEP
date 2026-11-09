@@ -95,6 +95,23 @@ class Trazabilidad extends Model
             [$lote['id']]
         );
 
+        // 4b. Inspección de atributos (carta p) del lote, agrupada por
+        //     parámetro. Reemplaza las antiguas columnas fijas de
+        //     verificación de reg_liberacion_pt (codif_lote_legible,
+        //     inocuo, conf_color, ...), que ya no existen en la BD.
+        $lote['inspecciones'] = $this->db->fetchAll(
+            "SELECT pp.id AS parametro_id, pp.nombre AS parametro_nombre,
+                    pp.etapa,
+                    SUM(ia.n_inspeccionado) AS total_inspeccionado,
+                    SUM(ia.n_no_conformes)  AS total_no_conformes
+                FROM reg_inspeccion_atributos ia
+                JOIN parametros_proceso pp ON pp.id = ia.parametro_id
+                WHERE ia.lote_id = ?
+                GROUP BY pp.id, pp.nombre, pp.etapa
+                ORDER BY pp.orden_display, pp.nombre",
+            [$lote['id']]
+        );
+
         // 5. Eventos de trazabilidad
         $lote['eventos'] = $this->db->fetchAll(
             "SELECT t.*, u.nombre AS usuario_nombre

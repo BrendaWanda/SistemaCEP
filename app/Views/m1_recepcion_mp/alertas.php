@@ -5,7 +5,7 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">⚠️ Alertas de Vencimiento</div>
+        <div class="page-title"><i class="bi bi-exclamation-triangle-fill"></i> Alertas de Vencimiento</div>
         <div class="page-sub">
             Lotes de materia prima próximos a vencer o vencidos en el inventario.
         </div>
@@ -15,7 +15,7 @@
 <?php if (empty($alertas)): ?>
 <div class="card">
     <div class="card-body text-center" style="padding:60px;color:#94a3b8">
-        <div style="font-size:48px;margin-bottom:12px">✅</div>
+        <div style="font-size:48px;margin-bottom:12px"><i class="bi bi-check-circle-fill"></i></div>
         <div style="font-size:16px;font-weight:600;margin-bottom:6px;color:#15803d">
             Sin alertas de vencimiento
         </div>
@@ -34,21 +34,21 @@ $proximos = array_filter($alertas, fn($a) => (int)$a['dias_restantes'] >= 15);
 ?>
 <div class="stats-grid" style="margin-bottom:16px">
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fee2e2">⛔</div>
+        <div class="stat-icon" style="background:#fee2e2"><i class="bi bi-slash-circle-fill"></i></div>
         <div>
             <div class="stat-value" style="color:#dc2626"><?= count($vencidos) ?></div>
             <div class="stat-label">Lotes vencidos</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fff7ed">🚨</div>
+        <div class="stat-icon" style="background:#fff7ed"><i class="bi bi-exclamation-octagon-fill"></i></div>
         <div>
             <div class="stat-value" style="color:#c2410c"><?= count($criticos) ?></div>
             <div class="stat-label">Críticos (menos de 15 días)</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fef9c3">⚠️</div>
+        <div class="stat-icon" style="background:#fef9c3"><i class="bi bi-exclamation-triangle-fill"></i></div>
         <div>
             <div class="stat-value" style="color:#d97706"><?= count($proximos) ?></div>
             <div class="stat-label">Próximos a vencer</div>

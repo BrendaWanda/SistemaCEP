@@ -77,7 +77,7 @@ class Router
 
         if (!class_exists($class)) {
             if (APP_DEBUG) {
-                die("❌ Controlador no encontrado: {$class}");
+                die("Controlador no encontrado: {$class}");
             }
             http_response_code(500);
             require VIEWS_PATH . '/layouts/error_500.php';
@@ -88,7 +88,7 @@ class Router
 
         if (!method_exists($controller, $method)) {
             if (APP_DEBUG) {
-                die("❌ Método no encontrado: {$class}::{$method}()");
+                die("Método no encontrado: {$class}::{$method}()");
             }
             http_response_code(500);
             require VIEWS_PATH . '/layouts/error_500.php';

@@ -4,7 +4,7 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">📅 <?= htmlspecialchars($menu['nombre']) ?></div>
+        <div class="page-title"><i class="bi bi-calendar3"></i> <?= htmlspecialchars($menu['nombre']) ?></div>
         <div class="page-sub">
             T<?= $menu['trimestre'] ?> <?= $menu['anio'] ?> ·
             <?= date('d/m/Y', strtotime($menu['fecha_inicio'])) ?> al
@@ -13,7 +13,7 @@
     </div>
     <div class="page-actions">
         <a href="<?= APP_URL ?>/menu-trimestral/<?= $menu['id'] ?>/editar"
-            class="btn btn-secondary">✏️ Editar</a>
+            class="btn btn-secondary"><i class="bi bi-pencil-square"></i> Editar</a>
         <a href="<?= APP_URL ?>/menu-trimestral" class="btn btn-secondary">← Volver</a>
     </div>
 </div>
@@ -21,7 +21,7 @@
 <!-- Datos del menú -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
     <div class="card">
-        <div class="card-header"><span class="card-title">📋 Datos del menú</span></div>
+        <div class="card-header"><span class="card-title"><i class="bi bi-clipboard-data"></i> Datos del menú</span></div>
         <div class="card-body">
             <table style="width:100%;font-size:13px;border-collapse:collapse">
             <?php foreach ([
@@ -35,7 +35,7 @@
                 ['F. recepción',  $menu['fecha_recepcion']
                                     ? date('d/m/Y', strtotime($menu['fecha_recepcion']))
                                     : '—'],
-                ['Estado',        $menu['activo'] ? '✅ Activo' : 'Inactivo'],
+                ['Estado',        $menu['activo'] ? '<i class="bi bi-check-circle-fill"></i> Activo' : 'Inactivo'],
             ] as [$l,$v]): ?>
             <tr style="border-bottom:1px solid #f1f5f9">
                 <td style="padding:7px 0;color:#64748b;font-size:12px;width:40%">
@@ -57,7 +57,7 @@
     <!-- Resumen por producto -->
     <div class="card">
         <div class="card-header">
-            <span class="card-title">🍞 Producción por producto</span>
+            <span class="card-title"><i class="bi bi-basket"></i> Producción por producto</span>
         </div>
         <?php if (empty($menu['por_producto'])): ?>
         <div class="card-body text-muted text-center" style="padding:20px">
@@ -106,7 +106,7 @@
 <?php if (!empty($menu['lotes'])): ?>
 <div class="card">
     <div class="card-header">
-        <span class="card-title">🏭 Lotes producidos en el período</span>
+        <span class="card-title"><i class="bi bi-building-gear"></i> Lotes producidos en el período</span>
         <span class="badge badge-info"><?= count($menu['lotes']) ?> lotes</span>
     </div>
     <div class="table-wrap">

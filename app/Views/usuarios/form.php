@@ -7,7 +7,7 @@
 
 <div class="page-header">
     <div class="page-title">
-        <?= $esEditar ? '✏️ Editar Usuario' : '➕ Nuevo Usuario' ?>
+        <?= $esEditar ? '<i class="bi bi-pencil-square"></i> Editar Usuario' : '<i class="bi bi-plus-circle"></i> Nuevo Usuario' ?>
     </div>
 </div>
 
@@ -73,7 +73,7 @@
             <div style="border:1px solid #e2e8f0;border-radius:8px;
                         padding:14px;margin-top:8px">
                 <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:10px">
-                    🔐 Contraseña
+                    <i class="bi bi-shield-lock"></i> Contraseña
                     <?php if ($esEditar): ?>
                     <span style="font-weight:400;color:#94a3b8">
                         — Dejar vacío para no cambiar
@@ -104,7 +104,7 @@
         <div class="card-footer">
             <a href="<?= APP_URL ?>/usuarios" class="btn btn-secondary">Cancelar</a>
             <button type="submit" class="btn btn-primary">
-                <?= $esEditar ? '💾 Guardar cambios' : '✅ Crear usuario' ?>
+                <?= $esEditar ? '<i class="bi bi-floppy"></i> Guardar cambios' : '<i class="bi bi-check-circle-fill"></i> Crear usuario' ?>
             </button>
         </div>
     </form>

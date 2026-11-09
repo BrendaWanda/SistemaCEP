@@ -37,6 +37,7 @@ $router->post('/m0/lineas/nueva',      'M0_Configuracion\LineaController@crear')
 $router->get( '/m0/lineas/:id/editar', 'M0_Configuracion\LineaController@editar');
 $router->post('/m0/lineas/:id/editar', 'M0_Configuracion\LineaController@actualizar');
 $router->post('/m0/lineas/:id/toggle', 'M0_Configuracion\LineaController@toggleActivo');
+$router->post('/m0/lineas/:id/eliminar', 'M0_Configuracion\LineaController@eliminar');
 
 // Productos — fijas antes que :id
 $router->get( '/m0/productos',             'M0_Configuracion\ProductoController@index');
@@ -45,6 +46,7 @@ $router->post('/m0/productos/nuevo',       'M0_Configuracion\ProductoController@
 $router->get( '/m0/productos/:id/editar',  'M0_Configuracion\ProductoController@editar');
 $router->post('/m0/productos/:id/editar',  'M0_Configuracion\ProductoController@actualizar');
 $router->post('/m0/productos/:id/toggle',  'M0_Configuracion\ProductoController@toggleActivo');
+$router->post('/m0/productos/:id/eliminar','M0_Configuracion\ProductoController@eliminar');
 // Parámetros — fijas antes que :id
 $router->get( '/m0/productos/:id/parametros',       'M0_Configuracion\ParametroController@index');
 $router->get( '/m0/productos/:id/parametros/nuevo', 'M0_Configuracion\ParametroController@nuevo');
@@ -61,6 +63,7 @@ $router->get( '/m0/insumos/nuevo',      'M0_Configuracion\InsumoController@nuevo
 $router->post('/m0/insumos/nuevo',      'M0_Configuracion\InsumoController@crear');
 $router->get( '/m0/insumos/:id/editar', 'M0_Configuracion\InsumoController@editar');
 $router->post('/m0/insumos/:id/editar', 'M0_Configuracion\InsumoController@actualizar');
+$router->post('/m0/insumos/:id/eliminar','M0_Configuracion\InsumoController@eliminar');
 
 // Equipos
 $router->get( '/m0/equipos',            'M0_Configuracion\EquipoController@index');
@@ -69,6 +72,7 @@ $router->post('/m0/equipos/nuevo',      'M0_Configuracion\EquipoController@crear
 $router->get( '/m0/equipos/:id/editar', 'M0_Configuracion\EquipoController@editar');
 $router->post('/m0/equipos/:id/editar', 'M0_Configuracion\EquipoController@actualizar');
 $router->post('/m0/equipos/:id/toggle', 'M0_Configuracion\EquipoController@toggleActivo');
+$router->post('/m0/equipos/:id/eliminar','M0_Configuracion\EquipoController@eliminar');
 
 // Recetas — fijas antes que :id
 $router->get( '/m0/recetas',            'M0_Configuracion\RecetaController@index');
@@ -76,6 +80,7 @@ $router->get( '/m0/recetas/nueva',      'M0_Configuracion\RecetaController@nueva
 $router->post('/m0/recetas/nueva',      'M0_Configuracion\RecetaController@crear');
 $router->get( '/m0/recetas/:id/editar', 'M0_Configuracion\RecetaController@editar');
 $router->post('/m0/recetas/:id/editar', 'M0_Configuracion\RecetaController@actualizar');
+$router->post('/m0/recetas/:id/eliminar','M0_Configuracion\RecetaController@eliminar');
 $router->get( '/m0/recetas/:id',        'M0_Configuracion\RecetaController@ver');
 
 
@@ -86,8 +91,8 @@ $router->get( '/m0/parametros-insumo/:id/editar',   'M0_Configuracion\ParametroI
 $router->post('/m0/parametros-insumo/:id/editar',   'M0_Configuracion\ParametroInsumoController@actualizar');
 $router->post('/m0/parametros-insumo/:id/eliminar', 'M0_Configuracion\ParametroInsumoController@eliminar');
 $router->get( '/api/parametros-insumo',             'M0_Configuracion\ParametroInsumoController@porInsumo');
-
-$router->get('/api/parametros-insumo', 'M0_Configuracion\ParametroInsumoController@porInsumo');
+// :id al final (después de /m0/insumos/:id/parametros y /editar)
+$router->get( '/m0/insumos/:id',                    'M0_Configuracion\InsumoController@ver');
 
 // ── M1 — RECEPCIÓN DE MATERIA PRIMA ──────────────────────────────────────────
 // Fijas antes que :id
@@ -150,6 +155,7 @@ $router->get( '/m3/calendario', 'M3_Mantenimiento\MantenimientoController@calend
 $router->get( '/m3/:id',        'M3_Mantenimiento\MantenimientoController@ver');
 $router->get( '/m3/:id/editar', 'M3_Mantenimiento\MantenimientoController@editar');
 $router->post('/m3/:id/editar', 'M3_Mantenimiento\MantenimientoController@actualizar');
+$router->post('/m3/:id/eliminar', 'M3_Mantenimiento\MantenimientoController@eliminar');
 
 // ── M4 — SEGUIMIENTO DE PRODUCCIÓN ───────────────────────────────────────────
 // Fijas antes que :codigo
@@ -159,6 +165,7 @@ $router->post('/m4/nuevo-lote', 'M4_SeguimientoProduccion\LoteController@crearLo
 // :codigo al final
 $router->get( '/m4/lote/:codigo',                'M4_SeguimientoProduccion\LoteController@ver');
 $router->post('/m4/lote/:codigo/cerrar',          'M4_SeguimientoProduccion\LoteController@cerrarLote');
+$router->post('/m4/lote/:codigo/eliminar',        'M4_SeguimientoProduccion\LoteController@eliminar');
 $router->get( '/m4/lote/:codigo/imprimir',        'M4_SeguimientoProduccion\LoteController@imprimir');
 $router->get( '/m4/lote/:codigo/rendimiento',     'M4_SeguimientoProduccion\RendimientoController@ver');
 $router->post('/m4/lote/:codigo/rendimiento',     'M4_SeguimientoProduccion\RendimientoController@guardar');
@@ -224,5 +231,4 @@ $router->get('/api/recetas-por-producto',    'M0_Configuracion\RecetaController@
 $router->get('/api/parametros-por-producto', 'M0_Configuracion\ParametroController@porProducto');
 $router->get('/api/stock-disponible',        'M1_RecepcionMP\RecepcionController@stockDisponible');
 $router->get('/api/lotes-activos',           'M4_SeguimientoProduccion\LoteController@activos');
-$router->get('/api/spc-tiempo-real/:sesion', 'M6_SPC\SPCController@tiempoReal');
 $router->get('/api/kpi-resumen',             'M7_Dashboard\DashboardController@kpiResumen');

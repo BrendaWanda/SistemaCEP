@@ -4,7 +4,7 @@
  *  @var array $tipos
  *  @var string $accion */
 ?>
-<?php require __DIR__ . '/../../_nav.php'; ?>
+<?php require __DIR__ . '/../_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
 <?php $esEditar  = $accion === 'editar'; ?>
 <?php $v = fn($campo, $def='') => htmlspecialchars($parametro[$campo] ?? $def); ?>

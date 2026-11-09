@@ -95,7 +95,7 @@ document.querySelectorAll('.current-year').forEach(el => {
 function showLoading(btnEl) {
     if (!btnEl) return;
     btnEl._originalText = btnEl.innerHTML;
-    btnEl.innerHTML = '<span>⏳</span> Procesando...';
+    btnEl.innerHTML = '<i class="bi bi-hourglass-split"></i> Procesando...';
     btnEl.disabled = true;
 }
 function hideLoading(btnEl) {

@@ -4,7 +4,7 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">🔗 Trazabilidad</div>
+        <div class="page-title"><i class="bi bi-diagram-3"></i> Trazabilidad</div>
         <div class="page-sub">
             Consulta el árbol completo de un lote — desde la MP hasta la liberación PT.
         </div>
@@ -14,7 +14,7 @@
 <!-- Buscador -->
 <div class="card" style="margin-bottom:20px">
     <div class="card-header">
-        <span class="card-title">🔍 Buscar lote</span>
+        <span class="card-title"><i class="bi bi-search"></i> Buscar lote</span>
     </div>
     <form method="GET" action="<?= APP_URL ?>/m5">
     <div class="card-body">
@@ -30,7 +30,7 @@
             </div>
             <button type="submit" class="btn btn-primary"
                     style="padding:10px 24px">
-                🔍 Buscar
+                <i class="bi bi-search"></i> Buscar
             </button>
         </div>
     </div>
@@ -94,7 +94,7 @@
 <!-- Acceso rápido — últimos lotes -->
 <div class="card">
     <div class="card-header">
-        <span class="card-title">🕐 Últimos lotes producidos</span>
+        <span class="card-title"><i class="bi bi-clock-history"></i> Últimos lotes producidos</span>
     </div>
     <div class="table-wrap">
         <table class="data-table">
@@ -118,10 +118,10 @@
             <?php else: ?>
             <?php foreach ($ultimosLotes as $l):
                 $estColor = match($l['estado']) {
-                    'liberado'   => ['badge-success', '✅ Liberado'],
-                    'cuarentena' => ['badge-warning', '⚠️ Cuarentena'],
-                    'rechazado'  => ['badge-danger',  '❌ Rechazado'],
-                    'en_proceso' => ['badge-info',    '⚙️ En proceso'],
+                    'liberado'   => ['badge-success', '<i class="bi bi-check-circle-fill"></i> Liberado'],
+                    'cuarentena' => ['badge-warning', '<i class="bi bi-exclamation-triangle-fill"></i> Cuarentena'],
+                    'rechazado'  => ['badge-danger',  '<i class="bi bi-x-octagon-fill"></i> Rechazado'],
+                    'en_proceso' => ['badge-info',    '<i class="bi bi-gear-fill"></i> En proceso'],
                     default      => ['badge-muted',   ucfirst($l['estado'])],
                 };
             ?>
@@ -144,7 +144,7 @@
                 <td>
                     <a href="<?= APP_URL ?>/m5/lote/<?= urlencode($l['codigo_lote']) ?>"
                         class="btn btn-sm btn-secondary">
-                        🔗 Ver trazabilidad
+                        <i class="bi bi-diagram-3"></i> Ver trazabilidad
                     </a>
                 </td>
             </tr>

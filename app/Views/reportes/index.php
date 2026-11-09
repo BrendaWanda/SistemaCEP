@@ -4,7 +4,7 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">📄 Reportes</div>
+        <div class="page-title"><i class="bi bi-file-earmark-text"></i> Reportes</div>
         <div class="page-sub">
             Generación de reportes para el SIREMU y control interno.
         </div>
@@ -21,7 +21,7 @@
     <div class="card">
         <div class="card-header" style="background:#0891b2;color:#fff">
             <span class="card-title" style="color:#fff">
-                🚛 Recepción de Materia Prima
+                <i class="bi bi-truck"></i> Recepción de Materia Prima
             </span>
         </div>
         <div class="card-body">
@@ -45,7 +45,7 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary btn-full">
-                🖨️ Generar reporte
+                <i class="bi bi-printer"></i> Generar reporte
             </button>
             </form>
         </div>
@@ -55,7 +55,7 @@
     <div class="card">
         <div class="card-header" style="background:#d97706;color:#fff">
             <span class="card-title" style="color:#fff">
-                🏭 Seguimiento de Producción
+                <i class="bi bi-building-gear"></i> Seguimiento de Producción
             </span>
         </div>
         <div class="card-body">
@@ -79,7 +79,7 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary btn-full">
-                🖨️ Generar reporte
+                <i class="bi bi-printer"></i> Generar reporte
             </button>
             </form>
         </div>
@@ -89,7 +89,7 @@
     <div class="card">
         <div class="card-header" style="background:#7c3aed;color:#fff">
             <span class="card-title" style="color:#fff">
-                ✅ Liberación de Producto Terminado
+                <i class="bi bi-check-circle-fill"></i> Liberación de Producto Terminado
             </span>
         </div>
         <div class="card-body">
@@ -112,7 +112,7 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary btn-full">
-                🖨️ Generar reporte
+                <i class="bi bi-printer"></i> Generar reporte
             </button>
             </form>
         </div>
@@ -122,7 +122,7 @@
     <div class="card">
         <div class="card-header" style="background:#1d4ed8;color:#fff">
             <span class="card-title" style="color:#fff">
-                📊 SPC — Gráfico X̄-R y Capacidad
+                <i class="bi bi-bar-chart-line"></i> SPC — Gráfico X̄-R y Capacidad
             </span>
         </div>
         <div class="card-body">
@@ -157,7 +157,7 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary btn-full">
-                🖨️ Generar reporte
+                <i class="bi bi-printer"></i> Generar reporte
             </button>
             </form>
         </div>
@@ -167,7 +167,7 @@
     <div class="card">
         <div class="card-header" style="background:#374151;color:#fff">
             <span class="card-title" style="color:#fff">
-                🔧 Mantenimiento
+                <i class="bi bi-wrench"></i> Mantenimiento
             </span>
         </div>
         <div class="card-body">
@@ -190,7 +190,7 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary btn-full">
-                🖨️ Generar reporte
+                <i class="bi bi-printer"></i> Generar reporte
             </button>
             </form>
         </div>
@@ -200,7 +200,7 @@
     <div class="card">
         <div class="card-header" style="background:#15803d;color:#fff">
             <span class="card-title" style="color:#fff">
-                ⚡ KPIs y OEE del período
+                <i class="bi bi-lightning-charge"></i> KPIs y OEE del período
             </span>
         </div>
         <div class="card-body">
@@ -223,7 +223,7 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary btn-full">
-                🖨️ Generar reporte
+                <i class="bi bi-printer"></i> Generar reporte
             </button>
             </form>
         </div>
@@ -233,7 +233,7 @@
     <div class="card" style="grid-column:span 2">
         <div class="card-header" style="background:#1e3a5f;color:#fff">
             <span class="card-title" style="color:#fff">
-                🔗 Trazabilidad completa por lote
+                <i class="bi bi-diagram-3"></i> Trazabilidad completa por lote
             </span>
         </div>
         <div class="card-body">
@@ -253,7 +253,7 @@
                 </div>
                 <button type="submit" class="btn btn-primary"
                         style="padding:10px 24px">
-                    🔗 Ver trazabilidad
+                    <i class="bi bi-diagram-3"></i> Ver trazabilidad
                 </button>
             </div>
             </form>

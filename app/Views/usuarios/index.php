@@ -5,7 +5,7 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">👥 Usuarios del sistema</div>
+        <div class="page-title"><i class="bi bi-people"></i> Usuarios del sistema</div>
         <div class="page-sub">
             Gestión de accesos y roles. Solo el Administrador puede modificar usuarios.
         </div>

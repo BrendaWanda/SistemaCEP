@@ -4,7 +4,7 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">📦 Trazabilidad inversa — <?= htmlspecialchars($codigo) ?></div>
+        <div class="page-title"><i class="bi bi-box-seam"></i> Trazabilidad inversa — <?= htmlspecialchars($codigo) ?></div>
         <div class="page-sub">
             <?php if ($insumo): ?>
             <?= htmlspecialchars($insumo['descripcion']) ?> ·
@@ -89,7 +89,7 @@
                 </td>
                 <td>
                     <a href="<?= APP_URL ?>/m5/lote/<?= urlencode($l['codigo_lote']) ?>"
-                        class="btn btn-sm btn-secondary">🔗 Ver</a>
+                        class="btn btn-sm btn-secondary"><i class="bi bi-diagram-3"></i> Ver</a>
                 </td>
             </tr>
             <?php endforeach ?>

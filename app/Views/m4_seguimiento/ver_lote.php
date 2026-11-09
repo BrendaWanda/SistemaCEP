@@ -43,6 +43,18 @@ $colorR = $pct >= 95 ? '#15803d' : ($pct >= 85 ? '#d97706' : ($pct > 0 ? '#dc262
         <?php endif ?>
         <a href="<?= APP_URL ?>/m4/lote/<?= urlencode($lote['codigo_lote']) ?>/imprimir"
             class="btn btn-secondary" target="_blank"><i class="bi bi-printer-fill"></i></a>
+        <?php if ($canWrite): ?>
+        <?php $dep = $dependencias ?? []; ?>
+        <form method="POST"
+            action="<?= APP_URL ?>/m4/lote/<?= urlencode($lote['codigo_lote']) ?>/eliminar"
+            style="display:inline">
+            <input type="hidden" name="_token" value="<?= $csrfToken ?>">
+            <button type="submit" class="btn btn-danger"
+                    data-confirm="¿Eliminar el lote <?= htmlspecialchars($lote['codigo_lote'], ENT_QUOTES) ?>?&#10;&#10;También se eliminarán:&#10;- <?= (int)($dep['sesiones'] ?? 0) ?> sesión(es) de registro&#10;- <?= (int)($dep['subgrupos'] ?? 0) ?> subgrupo(s) SPC&#10;- <?= (int)($dep['inspecciones'] ?? 0) ?> inspección(es) de atributos&#10;- <?= (int)($dep['senales'] ?? 0) ?> señal(es) SPC&#10;- <?= (int)($dep['consumos'] ?? 0) ?> registro(s) de MP consumida (vuelven al stock)&#10;&#10;Esta acción no se puede deshacer.">
+                <i class="bi bi-trash"></i> Eliminar lote
+            </button>
+        </form>
+        <?php endif ?>
     </div>
 </div>
 

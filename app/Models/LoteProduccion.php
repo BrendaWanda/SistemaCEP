@@ -112,6 +112,72 @@ class LoteProduccion extends Model
     }
 
     // Lotes activos para select en M2
+    /**
+     * Cuántos registros dependen del lote (para el mensaje de
+     * confirmación antes de eliminarlo).
+     */
+    public function contarDependencias(int $loteId): array
+    {
+        $n = fn(string $sql) => (int)$this->db->fetchScalar($sql, [$loteId]);
+        return [
+            'sesiones'     => $n("SELECT COUNT(*) FROM sesiones_registro WHERE lote_id = ?"),
+            'subgrupos'    => $n("SELECT COUNT(*) FROM reg_subgrupos_spc sg
+                                  JOIN sesiones_registro s ON s.id = sg.sesion_id
+                                  WHERE s.lote_id = ?"),
+            'inspecciones' => $n("SELECT COUNT(*) FROM reg_inspeccion_atributos WHERE lote_id = ?"),
+            'senales'      => $n("SELECT COUNT(*) FROM spc_senales_detectadas WHERE lote_id = ?"),
+            'consumos'     => $n("SELECT COUNT(*) FROM consumo_mp_por_lote WHERE lote_id = ?"),
+        ];
+    }
+
+    /**
+     * Elimina el lote y TODO lo que depende de él, en una sola
+     * transacción y en el orden que exigen las claves foráneas:
+     *  - la MP consumida se devuelve al stock antes de borrar el consumo;
+     *  - sesiones de registro con sus subgrupos SPC, valores simples,
+     *    inspecciones de atributos, liberación y señales SPC;
+     *  - tiempos de producción y eventos de trazabilidad del lote;
+     *  - los mantenimientos que lo tenían como "lote afectado" se
+     *    conservan, solo se desvinculan (lote_afectado_id = NULL).
+     */
+    public function eliminarConDependencias(int $loteId, string $codigoLote): void
+    {
+        $this->db->transaction(function($db) use ($loteId, $codigoLote) {
+            // 1. Devolver al stock la MP consumida y borrar los consumos
+            $consumos = $db->fetchAll(
+                "SELECT id, stock_mp_id, cantidad_usada FROM consumo_mp_por_lote WHERE lote_id = ?",
+                [$loteId]
+            );
+            foreach ($consumos as $c) {
+                $db->execute(
+                    "UPDATE stock_mp
+                    SET cantidad_disponible = cantidad_disponible + ?,
+                        estado = IF(estado = 'agotado', 'disponible', estado)
+                    WHERE id = ?",
+                    [$c['cantidad_usada'], $c['stock_mp_id']]
+                );
+            }
+            $db->execute("DELETE FROM consumo_mp_por_lote WHERE lote_id = ?", [$loteId]);
+
+            // 2. Registros de proceso (señales antes que subgrupos por FK)
+            $sub = "SELECT id FROM sesiones_registro WHERE lote_id = ?";
+            $db->execute("DELETE FROM spc_senales_detectadas WHERE lote_id = ? OR sesion_id IN ($sub)", [$loteId, $loteId]);
+            $db->execute("DELETE FROM reg_subgrupos_spc WHERE sesion_id IN ($sub)", [$loteId]);
+            $db->execute("DELETE FROM reg_valores_simples WHERE sesion_id IN ($sub)", [$loteId]);
+            $db->execute("DELETE FROM reg_inspeccion_atributos WHERE lote_id = ? OR sesion_id IN ($sub)", [$loteId, $loteId]);
+            $db->execute("DELETE FROM reg_liberacion_pt WHERE sesion_id IN ($sub)", [$loteId]);
+            $db->execute("DELETE FROM sesiones_registro WHERE lote_id = ?", [$loteId]);
+
+            // 3. Otros vínculos del lote
+            $db->execute("DELETE FROM tiempos_produccion WHERE lote_id = ?", [$loteId]);
+            $db->execute("DELETE FROM trazabilidad_eventos WHERE codigo_lote = ?", [$codigoLote]);
+            $db->execute("UPDATE mantenimientos SET lote_afectado_id = NULL WHERE lote_afectado_id = ?", [$loteId]);
+
+            // 4. El lote
+            $db->execute("DELETE FROM lotes_produccion WHERE id = ?", [$loteId]);
+        });
+    }
+
     public function activosParaSelect(): array
     {
         $rows = $this->db->fetchAll(

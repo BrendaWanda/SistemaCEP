@@ -142,6 +142,46 @@ class Equipo extends Model
         );
     }
 
+    /**
+     * Recalcula fecha_ultimo_mant / fecha_prox_mant y fecha_ultima_calibr /
+     * fecha_prox_calibr a partir de los mantenimientos COMPLETADOS que
+     * quedan registrados. Se usa al eliminar un mantenimiento, para que
+     * las alertas de M3 no sigan mostrando la fecha del registro borrado.
+     */
+    public function recalcularFechas(int $id): void
+    {
+        $equipo = $this->find($id);
+        if (!$equipo) return;
+
+        $ultMant = $this->db->fetchScalar(
+            "SELECT MAX(DATE(fecha_inicio)) FROM mantenimientos
+            WHERE equipo_id = ? AND resultado = 'completado'
+            AND tipo IN ('preventivo','correctivo')",
+            [$id]
+        ) ?: null;
+        $ultCalibr = $this->db->fetchScalar(
+            "SELECT MAX(DATE(fecha_inicio)) FROM mantenimientos
+            WHERE equipo_id = ? AND resultado = 'completado'
+            AND tipo = 'calibracion'",
+            [$id]
+        ) ?: null;
+
+        $proxMant = ($ultMant && $equipo['frecuencia_mant_dias'])
+            ? date('Y-m-d', strtotime($ultMant . ' +' . $equipo['frecuencia_mant_dias'] . ' days'))
+            : null;
+        $proxCalibr = ($ultCalibr && $equipo['frecuencia_calibr_dias'])
+            ? date('Y-m-d', strtotime($ultCalibr . ' +' . $equipo['frecuencia_calibr_dias'] . ' days'))
+            : null;
+
+        $this->execute(
+            "UPDATE equipos
+            SET fecha_ultimo_mant = ?, fecha_prox_mant = ?,
+                fecha_ultima_calibr = ?, fecha_prox_calibr = ?
+            WHERE id = ?",
+            [$ultMant, $proxMant, $ultCalibr, $proxCalibr, $id]
+        );
+    }
+
     public function actualizarFechaProxCalibr(int $id, string $fechaCalibr): void
     {
         $equipo = $this->find($id);

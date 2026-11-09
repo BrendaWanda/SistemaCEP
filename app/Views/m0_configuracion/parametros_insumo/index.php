@@ -4,7 +4,7 @@
  *  @var array $tipos
  *  @var bool  $canWrite */
 ?>
-<?php require __DIR__ . '/../../_nav.php'; ?>
+<?php require __DIR__ . '/../_nav.php'; ?>
 <?php $csrfToken = \App\Core\Controller::csrfToken(); ?>
 
 <div class="page-header">

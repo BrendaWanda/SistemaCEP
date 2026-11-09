@@ -192,9 +192,32 @@ class LoteController extends Controller
             ],
             'lote'      => $lote,
             'resumenMP' => $resumenMP,
+            'dependencias' => $this->model->contarDependencias((int)$lote['id']),
             'estados'   => LoteProduccion::ESTADOS,
             'canWrite'  => Auth::canWrite('m4_seguimiento'),
         ]);
+    }
+
+    // POST /m4/lote/:codigo/eliminar
+    // Elimina el lote con todos sus registros dependientes (ver
+    // LoteProduccion::eliminarConDependencias). La MP consumida vuelve
+    // al stock. La vista pide confirmación indicando qué se borrará.
+    public function eliminar(array $params): void
+    {
+        Auth::requireWrite('m4_seguimiento');
+        $this->verifyCsrf();
+
+        $lote = $this->model->porCodigo($params['codigo']);
+        if (!$lote) {
+            $this->flash('error', 'Lote no encontrado.');
+            $this->redirect('/m4');
+            return;
+        }
+
+        $this->model->eliminarConDependencias((int)$lote['id'], $lote['codigo_lote']);
+
+        $this->redirectWithSuccess('/m4',
+            "Lote {$lote['codigo_lote']} eliminado correctamente, junto con sus registros asociados.");
     }
 
     // POST /m4/lote/:codigo/cerrar

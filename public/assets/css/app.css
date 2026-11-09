@@ -277,6 +277,11 @@ body {
     margin-left: var(--sb-width);
     flex: 1; display: flex; flex-direction: column;
     min-height: 100vh;
+    /* Sin min-width:0 un hijo ancho (gráficos SPC con muchos subgrupos,
+       tablas largas) estiraba todo el contenedor flex más allá de la
+       ventana y la página quedaba con scroll horizontal, tapando parte
+       del contenido con el sidebar. */
+    min-width: 0;
     transition: margin-left .22s cubic-bezier(.4,0,.2,1);
 }
 .main-content.expanded { margin-left: var(--sb-width-col); }

@@ -89,7 +89,7 @@
     <?php
     $comps = [
         [
-            'titulo' => '⏱️ Disponibilidad',
+            'titulo' => '<i class="bi bi-stopwatch"></i> Disponibilidad',
             'pct'    => $oee['disponibilidad']['pct'],
             'color'  => $oee['disponibilidad']['pct'] >= 90 ? '#15803d'
                       : ($oee['disponibilidad']['pct'] >= 75 ? '#d97706' : '#dc2626'),
@@ -101,7 +101,7 @@
             ],
         ],
         [
-            'titulo' => '⚙️ Rendimiento',
+            'titulo' => '<i class="bi bi-gear-fill"></i> Rendimiento',
             'pct'    => $oee['rendimiento']['pct'],
             'color'  => $oee['rendimiento']['pct'] >= 90 ? '#15803d'
                       : ($oee['rendimiento']['pct'] >= 75 ? '#d97706' : '#dc2626'),
@@ -113,7 +113,7 @@
             ],
         ],
         [
-            'titulo' => '✅ Calidad',
+            'titulo' => '<i class="bi bi-check-circle-fill"></i> Calidad',
             'pct'    => $oee['calidad']['pct'],
             'color'  => $oee['calidad']['pct'] >= 95 ? '#15803d'
                       : ($oee['calidad']['pct'] >= 85 ? '#d97706' : '#dc2626'),

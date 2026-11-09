@@ -460,11 +460,11 @@ $csrfToken = \App\Core\Controller::csrfToken();
         </div>
         <div id="capacidad-body">
             <div class="card-body">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
                     <!-- Izquierda: índices principales Cp/Cpk -->
-                    <div id="tabla-capacidad"></div>
+                    <div id="tabla-capacidad" style="min-width:0;overflow-x:auto"></div>
                     <!-- Derecha: Cpm, k, St + ANOVA -->
-                    <div>
+                    <div style="min-width:0;overflow-x:auto">
                         <div id="contenido-indices-adic"></div>
                         <div id="contenido-anova" style="margin-top:16px"></div>
                     </div>
@@ -797,7 +797,7 @@ function iniciarGuardarLimites() {
 
     if (!ultimoAnalisis.procesoEstable) {
         const confirmado = confirm(
-            '⚠️ ATENCIÓN: el proceso muestra señales de descontrol (violaciones a las reglas de Nelson).\n\n' +
+            'ATENCIÓN: el proceso muestra señales de descontrol (violaciones a las reglas de Nelson).\n\n' +
             'Los límites calculados sobre un proceso inestable pueden no ser representativos ' +
             'del comportamiento real del proceso (Montgomery, 2013, Cap.6, p.354).\n\n' +
             '¿Confirma que desea guardarlos de todas formas como límites vigentes?'
@@ -1264,7 +1264,7 @@ function renderHistograma(d) {
                color:${ad.normal?'#15803d':'#dc2626'}">
                <strong>Prueba Anderson-Darling</strong> (Montgomery 2013, Cap.3)<br>
                AD = ${ad.ad} · p-valor = ${ad.p_value} ·
-               ${ad.normal?'✔ Normalidad confirmada (p ≥ 0.05)':'✗ No normalidad (p < 0.05)'}
+               ${ad.normal?'<i class="bi bi-check-circle-fill"></i> Normalidad confirmada (p ≥ 0.05)':'<i class="bi bi-x-circle-fill"></i> No normalidad (p < 0.05)'}
            </div>` : '';
 
     const contenedor = document.getElementById('hist-ad-resultado');
@@ -1328,8 +1328,8 @@ function renderCapacidad(d) {
         : 'color:#64748b';
     const interp = v => {
         if (typeof v!=='number') return '—';
-        if (v>=1.67) return '✔ Excelente'; if (v>=1.33) return '✔ Capaz';
-        if (v>=1.00) return '⚠ Marginal';  return '✗ No capaz';
+        if (v>=1.67) return '<i class="bi bi-check-circle-fill"></i> Excelente'; if (v>=1.33) return '<i class="bi bi-check-circle-fill"></i> Capaz';
+        if (v>=1.00) return '<i class="bi bi-exclamation-triangle-fill"></i> Marginal';  return '<i class="bi bi-x-circle-fill"></i> No capaz';
     };
 
     // Advertencia visual si proceso inestable
@@ -2138,7 +2138,7 @@ function renderQQPlot(d) {
             color:${ad.normal?'#15803d':'#dc2626'}">
             <strong>Prueba Anderson-Darling</strong> (Montgomery 2013, Cap.3)<br>
             AD = ${ad.ad} &nbsp;·&nbsp; p-valor = ${ad.p_value} &nbsp;·&nbsp;
-            ${ad.normal ? '✔ Normalidad confirmada (p ≥ 0.05)' : '✗ No normalidad (p < 0.05)'}
+            ${ad.normal ? '<i class="bi bi-check-circle-fill"></i> Normalidad confirmada (p ≥ 0.05)' : '<i class="bi bi-x-circle-fill"></i> No normalidad (p < 0.05)'}
         </div>`;
     }
 }

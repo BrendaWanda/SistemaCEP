@@ -8,7 +8,7 @@
 
 <div class="page-header">
     <div class="page-title">
-        <?= $esEditar ? '✏️ Editar Proveedor' : '➕ Nuevo Proveedor' ?>
+        <?= $esEditar ? '<i class="bi bi-pencil-square"></i> Editar Proveedor' : '<i class="bi bi-plus-circle"></i> Nuevo Proveedor' ?>
     </div>
 </div>
 
@@ -67,7 +67,7 @@
                 Cancelar
             </a>
             <button type="submit" class="btn btn-primary">
-                <?= $esEditar ? '💾 Guardar cambios' : '✅ Crear proveedor' ?>
+                <?= $esEditar ? '<i class="bi bi-floppy"></i> Guardar cambios' : '<i class="bi bi-check-circle-fill"></i> Crear proveedor' ?>
             </button>
         </div>
     </form>

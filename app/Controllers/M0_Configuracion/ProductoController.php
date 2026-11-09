@@ -20,7 +20,9 @@ class ProductoController extends Controller
     public function __construct()
     {
         parent::__construct();
-        Auth::requireAccess('m0_configuracion');
+        // Las rutas /api/ de este controlador las usan M1/M2/M4 (roles
+        // sin acceso a M0), por eso solo exigen sesión iniciada.
+        $this->requireModuloOApi('m0_configuracion');
         $this->model      = new Producto();
         $this->modelLinea = new LineaProduccion();
     }

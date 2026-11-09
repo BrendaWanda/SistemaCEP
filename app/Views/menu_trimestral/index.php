@@ -4,7 +4,7 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">📅 Menú Trimestral</div>
+        <div class="page-title"><i class="bi bi-calendar3"></i> Menú Trimestral</div>
         <div class="page-sub">
             Registro de menús por trimestre · Contrato DBC-GAMLP Lote N°2
         </div>
@@ -21,7 +21,7 @@
 <?php if (empty($menus)): ?>
 <div class="card">
     <div class="card-body text-center" style="padding:60px;color:#94a3b8">
-        <div style="font-size:48px;margin-bottom:12px">📅</div>
+        <div style="font-size:48px;margin-bottom:12px"><i class="bi bi-calendar3"></i></div>
         <div style="font-size:16px;font-weight:600;margin-bottom:6px">
             No hay menús trimestrales registrados
         </div>

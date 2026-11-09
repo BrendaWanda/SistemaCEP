@@ -6,7 +6,7 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">🎯 KPIs y OEE</div>
+        <div class="page-title"><i class="bi bi-bullseye"></i> KPIs y OEE</div>
         <div class="page-sub">
             Indicadores del período ·
             <?= date('d/m/Y', strtotime($filtros['fechaDesde'])) ?>

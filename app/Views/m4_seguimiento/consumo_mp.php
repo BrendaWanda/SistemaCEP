@@ -139,9 +139,12 @@
     <?php endif ?>
 </div>
 
+<?php if ($canWrite): ?>
 <script>
 const appUrl = '<?= APP_URL ?>';
 
+// El formulario (y por tanto #insumoSel) solo existe para roles con
+// escritura en M4; para Gerente/Calidad (solo lectura) no se registra.
 document.getElementById('insumoSel').addEventListener('change', function() {
     const insumoId = this.value;
     const stockSel = document.getElementById('stockSel');
@@ -176,3 +179,4 @@ document.getElementById('insumoSel').addEventListener('change', function() {
         });
 });
 </script>
+<?php endif ?>

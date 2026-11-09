@@ -4,6 +4,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <meta charset="UTF-8">
 <title>Trazabilidad Lote <?= htmlspecialchars($codigo) ?></title>
 <style>
@@ -51,13 +52,13 @@ table.t td.center { text-align:center; }
     <button onclick="window.print()"
             style="background:#1e3a5f;color:#fff;padding:7px 18px;
                     border:none;border-radius:5px;cursor:pointer">
-        🖨️ Imprimir
+        <i class="bi bi-printer"></i> Imprimir
     </button>
     <button onclick="window.close()"
             style="background:#f1f5f9;color:#374151;padding:7px 14px;
                     border:1px solid #e2e8f0;border-radius:5px;
                     cursor:pointer;margin-left:6px">
-        ✕ Cerrar
+        <i class="bi bi-x-lg"></i> Cerrar
     </button>
 </div>
 
@@ -200,14 +201,6 @@ table.t td.center { text-align:center; }
                         .' '.($lib['supervisor_cal_apellidos'] ?? '')) ?>
                 </div>
             </div>
-            <?php if ($lib['resultado_humedad_pct']): ?>
-            <div>
-                <div class="campo-label">Humedad PT (%)</div>
-                <div class="campo-valor">
-                    <?= number_format($lib['resultado_humedad_pct'],2) ?>%
-                </div>
-            </div>
-            <?php endif ?>
         </div>
     </div>
 </div>

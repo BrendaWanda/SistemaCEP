@@ -8,7 +8,7 @@
 
 <div class="page-header">
     <div class="page-title">
-        <?= $esEditar ? '✏️ Editar Menú Trimestral' : '➕ Nuevo Menú Trimestral' ?>
+        <?= $esEditar ? '<i class="bi bi-pencil-square"></i> Editar Menú Trimestral' : '<i class="bi bi-plus-circle"></i> Nuevo Menú Trimestral' ?>
     </div>
 </div>
 
@@ -122,7 +122,7 @@
             Cancelar
         </a>
         <button type="submit" class="btn btn-primary">
-            <?= $esEditar ? '💾 Guardar cambios' : '✅ Registrar menú' ?>
+            <?= $esEditar ? '<i class="bi bi-floppy"></i> Guardar cambios' : '<i class="bi bi-check-circle-fill"></i> Registrar menú' ?>
         </button>
     </div>
     </form>

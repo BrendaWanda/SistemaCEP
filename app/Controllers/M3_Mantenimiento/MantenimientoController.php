@@ -286,6 +286,31 @@ class MantenimientoController extends Controller
         $this->redirectWithSuccess("/m3/{$id}", 'Mantenimiento actualizado.');
     }
 
+    // POST /m3/:id/eliminar
+    // Elimina el registro de mantenimiento y recalcula las fechas de
+    // último/próximo mantenimiento (o calibración) del equipo con los
+    // registros que quedan, todo en una sola transacción.
+    public function eliminar(array $params): void
+    {
+        Auth::requireWrite('m3_mantenimiento');
+        $this->verifyCsrf();
+        $id   = (int)$params['id'];
+        $mant = $this->model->find($id);
+
+        if (!$mant) {
+            $this->flash('error', 'Registro no encontrado.');
+            $this->redirect('/m3');
+            return;
+        }
+
+        $this->db->transaction(function($db) use ($id, $mant) {
+            $this->model->delete($id);
+            $this->modelEquipo->recalcularFechas((int)$mant['equipo_id']);
+        });
+
+        $this->redirectWithSuccess('/m3', 'Registro de mantenimiento eliminado correctamente.');
+    }
+
     // Lotes para el selector de "lote afectado" — se limita a los últimos
     // 100 para no cargar todo el histórico en el <select>. Si se está
     // editando un registro cuyo lote ya no está entre los 100 más

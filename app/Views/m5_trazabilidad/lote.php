@@ -5,7 +5,7 @@
 <div class="page-header">
     <div>
         <div class="page-title" style="font-family:monospace">
-            🔗 Lote <?= htmlspecialchars($codigo) ?>
+            <i class="bi bi-diagram-3"></i> Lote <?= htmlspecialchars($codigo) ?>
         </div>
         <div class="page-sub">
             <?= htmlspecialchars($datos['producto_nombre']) ?> ·
@@ -16,7 +16,7 @@
     <div class="page-actions">
         <a href="<?= APP_URL ?>/m5/lote/<?= urlencode($codigo) ?>/pdf"
             class="btn btn-secondary" target="_blank">
-            🖨️ Exportar PDF
+            <i class="bi bi-printer"></i> Exportar PDF
         </a>
         <a href="<?= APP_URL ?>/m5" class="btn btn-secondary">← Volver</a>
     </div>
@@ -25,11 +25,11 @@
 <!-- Estado del lote -->
 <?php
 $estMap = [
-    'liberado'   => ['bg'=>'#f0fdf4','border'=>'#86efac','color'=>'#15803d','label'=>'✅ PRODUCTO LIBERADO'],
-    'cuarentena' => ['bg'=>'#fffbeb','border'=>'#fde68a','color'=>'#d97706','label'=>'⚠️ EN CUARENTENA'],
-    'rechazado'  => ['bg'=>'#fef2f2','border'=>'#fca5a5','color'=>'#dc2626','label'=>'❌ RECHAZADO'],
-    'en_proceso' => ['bg'=>'#eff6ff','border'=>'#93c5fd','color'=>'#1d4ed8','label'=>'⚙️ EN PROCESO'],
-    'cerrado'    => ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'=>'#475569','label'=>'🔒 CERRADO'],
+    'liberado'   => ['bg'=>'#f0fdf4','border'=>'#86efac','color'=>'#15803d','label'=>'<i class="bi bi-check-circle-fill"></i> PRODUCTO LIBERADO'],
+    'cuarentena' => ['bg'=>'#fffbeb','border'=>'#fde68a','color'=>'#d97706','label'=>'<i class="bi bi-exclamation-triangle-fill"></i> EN CUARENTENA'],
+    'rechazado'  => ['bg'=>'#fef2f2','border'=>'#fca5a5','color'=>'#dc2626','label'=>'<i class="bi bi-x-octagon-fill"></i> RECHAZADO'],
+    'en_proceso' => ['bg'=>'#eff6ff','border'=>'#93c5fd','color'=>'#1d4ed8','label'=>'<i class="bi bi-gear-fill"></i> EN PROCESO'],
+    'cerrado'    => ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'=>'#475569','label'=>'<i class="bi bi-lock-fill"></i> CERRADO'],
 ];
 $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'=>'#475569','label'=>ucfirst($datos['estado'])];
 ?>
@@ -50,7 +50,7 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
 <div class="card" style="margin-bottom:14px">
     <div class="card-header" style="background:#1e3a5f;color:#fff">
         <span class="card-title" style="color:#fff">
-            📦 Nivel 1 — Producto Terminado
+            <i class="bi bi-box-seam"></i> Nivel 1 — Producto Terminado
         </span>
     </div>
     <div class="card-body">
@@ -90,7 +90,7 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
 <div class="card" style="margin-bottom:14px">
     <div class="card-header" style="background:#0891b2;color:#fff">
         <span class="card-title" style="color:#fff">
-            🚛 Nivel 2 — Materia Prima consumida
+            <i class="bi bi-truck"></i> Nivel 2 — Materia Prima consumida
             <span style="font-size:12px;opacity:.8;margin-left:8px">
                 (Trazabilidad hacia proveedores)
             </span>
@@ -122,8 +122,8 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
             <tbody>
             <?php foreach ($datos['mp_consumida'] as $mp):
                 $decMap = [
-                    'aprobado'   => ['badge-success','✓'],
-                    'rechazado'  => ['badge-danger','✕'],
+                    'aprobado'   => ['badge-success','<i class="bi bi-check-lg"></i>'],
+                    'rechazado'  => ['badge-danger','<i class="bi bi-x-lg"></i>'],
                     'observado'  => ['badge-warning','!'],
                     'cuarentena' => ['badge-purple','?'],
                 ];
@@ -186,7 +186,7 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
 <div class="card" style="margin-bottom:14px">
     <div class="card-header" style="background:#d97706;color:#fff">
         <span class="card-title" style="color:#fff">
-            ⚙️ Nivel 3 — Registro de proceso
+            <i class="bi bi-gear-fill"></i> Nivel 3 — Registro de proceso
         </span>
         <span style="color:#fff;font-size:12px">
             <?= count($datos['sesiones']) ?> sesión(es)
@@ -204,10 +204,10 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
                     <th style="text-align:center">Fecha</th>
                     <th style="text-align:center">Turno</th>
                     <th>Supervisor</th>
-                    <th style="text-align:center">Subgrupos pesos</th>
+                    <th style="text-align:center">Subgrupos SPC</th>
                     <th style="text-align:center">Señales SPC</th>
-                    <th style="text-align:center">Horneado</th>
-                    <th style="text-align:center">Envasado</th>
+                    <th style="text-align:center">Valores simples</th>
+                    <th style="text-align:center">Insp. atributos</th>
                     <th style="text-align:center">Estado</th>
                     <th>Ver</th>
                 </tr>
@@ -228,26 +228,26 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
                 </td>
                 <td style="text-align:center">
                     <span class="badge badge-info">
-                        <?= (int)$s['total_pesos'] ?>
+                        <?= (int)$s['total_subgrupos_spc'] ?>
                     </span>
                 </td>
                 <td style="text-align:center">
                     <?php if ($s['senales_spc'] > 0): ?>
                     <span class="badge badge-danger">
-                        ⚠️ <?= $s['senales_spc'] ?>
+                        <i class="bi bi-exclamation-triangle-fill"></i> <?= $s['senales_spc'] ?>
                     </span>
                     <?php else: ?>
-                    <span class="badge badge-success">✓ OK</span>
+                    <span class="badge badge-success"><i class="bi bi-check-lg"></i> OK</span>
                     <?php endif ?>
                 </td>
                 <td style="text-align:center">
-                    <span class="badge <?= $s['total_horneado'] > 0 ? 'badge-success' : 'badge-muted' ?>">
-                        <?= $s['total_horneado'] > 0 ? '✓' : '—' ?>
+                    <span class="badge <?= $s['total_valores_simples'] > 0 ? 'badge-success' : 'badge-muted' ?>">
+                        <?= $s['total_valores_simples'] > 0 ? (int)$s['total_valores_simples'] : '—' ?>
                     </span>
                 </td>
                 <td style="text-align:center">
-                    <span class="badge <?= $s['total_envasado'] > 0 ? 'badge-success' : 'badge-muted' ?>">
-                        <?= $s['total_envasado'] > 0 ? '✓' : '—' ?>
+                    <span class="badge <?= $s['total_inspecciones_atributos'] > 0 ? 'badge-success' : 'badge-muted' ?>">
+                        <?= $s['total_inspecciones_atributos'] > 0 ? (int)$s['total_inspecciones_atributos'] : '—' ?>
                     </span>
                 </td>
                 <td style="text-align:center">
@@ -276,7 +276,7 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
 <div class="card" style="margin-bottom:14px">
     <div class="card-header" style="background:#7c3aed;color:#fff">
         <span class="card-title" style="color:#fff">
-            ✅ Nivel 4 — Liberación de Producto Terminado
+            <i class="bi bi-check-circle-fill"></i> Nivel 4 — Liberación de Producto Terminado
         </span>
     </div>
     <?php if (!$datos['liberacion']): ?>
@@ -301,8 +301,8 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
                                 color:<?= $lib['decision_final']==='liberado'
                                     ? '#15803d' : '#d97706' ?>">
                         <?= $lib['decision_final'] === 'liberado'
-                            ? '✅ PRODUCTO LIBERADO'
-                            : '⚠️ EN CUARENTENA' ?>
+                            ? '<i class="bi bi-check-circle-fill"></i> PRODUCTO LIBERADO'
+                            : '<i class="bi bi-exclamation-triangle-fill"></i> EN CUARENTENA' ?>
                     </div>
                     <div style="font-size:11px;color:#64748b;margin-top:6px">
                         Supervisor calidad:
@@ -311,51 +311,30 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
                                 .' '.($lib['supervisor_cal_apellidos'] ?? '')) ?>
                         </strong>
                     </div>
-                    <?php if ($lib['resultado_humedad_pct']
-                                || $lib['resultado_ph']): ?>
-                    <div style="margin-top:6px;font-size:12px">
-                        <?php if ($lib['resultado_humedad_pct']): ?>
-                        Humedad PT:
-                        <strong><?= number_format($lib['resultado_humedad_pct'],2) ?>%</strong>
-                        <?php endif ?>
-                        <?php if ($lib['resultado_ph']): ?>
-                        · pH PT:
-                        <strong><?= number_format($lib['resultado_ph'],2) ?></strong>
-                        <?php endif ?>
-                    </div>
-                    <?php endif ?>
                 </div>
             </div>
             <div>
                 <div style="font-size:11px;font-weight:700;color:#64748b;
                             text-transform:uppercase;margin-bottom:8px">
-                    Verificaciones
+                    Inspección de atributos (carta p)
                 </div>
-                <?php
-                $verifs = [
-                    'Codif. lote legible'  => $lib['codif_lote_legible'],
-                    'Codif. lote correcto' => $lib['codif_lote_correcto'],
-                    'F. venc. legible'     => $lib['codif_fvenc_legible'],
-                    'Envase primario'      => $lib['envase_primario'],
-                    'Inocuidad'           => $lib['inocuo'],
-                    'Color PT'             => $lib['conf_color'],
-                    'Sabor PT'             => $lib['conf_sabor'],
-                ];
-                foreach ($verifs as $label => $val):
-                    $confMap = [
-                        'conforme'    => ['badge-success','✓ Conforme'],
-                        'no_conforme' => ['badge-danger','✕ No conforme'],
-                        'na'          => ['badge-muted','N/A'],
-                    ];
-                    $conf = $confMap[$val ?? ''] ?? null;
+                <?php if (empty($datos['inspecciones'])): ?>
+                <div style="color:#94a3b8;font-size:var(--fs-dense-xs)">
+                    Sin inspecciones de atributos registradas para este lote.
+                </div>
+                <?php endif ?>
+                <?php foreach ($datos['inspecciones'] as $ins):
+                    $nIns = (int)$ins['total_inspeccionado'];
+                    $nNc  = (int)$ins['total_no_conformes'];
+                    $pPct = $nIns > 0 ? $nNc / $nIns * 100 : 0;
                 ?>
                 <div style="display:flex;justify-content:space-between;
                             padding:4px 0;border-bottom:1px solid #f1f5f9;
-                            font-size:12px">
-                    <span style="color:#64748b"><?= $label ?></span>
-                    <?= $conf
-                        ? "<span class=\"badge {$conf[0]}\" style=\"font-size:10px\">{$conf[1]}</span>"
-                        : '<span style="color:#94a3b8">—</span>' ?>
+                            font-size:var(--fs-dense-xs)">
+                    <span style="color:#64748b"><?= htmlspecialchars($ins['parametro_nombre']) ?></span>
+                    <span class="badge <?= $nNc === 0 ? 'badge-success' : 'badge-warning' ?>">
+                        <?= $nNc ?>/<?= $nIns ?> no conf. (<?= number_format($pPct, 1) ?>%)
+                    </span>
                 </div>
                 <?php endforeach ?>
             </div>
@@ -368,7 +347,7 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
 <?php if (!empty($datos['eventos'])): ?>
 <div class="card" style="margin-bottom:14px">
     <div class="card-header">
-        <span class="card-title">📅 Línea de tiempo — Eventos del lote</span>
+        <span class="card-title"><i class="bi bi-calendar3"></i> Línea de tiempo — Eventos del lote</span>
     </div>
     <div class="card-body">
         <div style="position:relative;padding-left:20px">
@@ -376,13 +355,13 @@ $est = $estMap[$datos['estado']] ?? ['bg'=>'#f8fafc','border'=>'#e2e8f0','color'
                         width:2px;background:#e2e8f0"></div>
             <?php foreach ($datos['eventos'] as $ev):
                 $evIcon = match($ev['tipo_evento']) {
-                    'apertura_lote'   => ['🏭','#dbeafe'],
-                    'recepcion_mp'    => ['📦','#dcfce7'],
-                    'registro_proceso'=> ['⚙️','#fef9c3'],
-                    'liberacion'      => ['✅','#dcfce7'],
-                    'cuarentena'      => ['⚠️','#fff7ed'],
-                    'cierre_lote'     => ['🔒','#f1f5f9'],
-                    default           => ['📌','#f1f5f9'],
+                    'apertura_lote'   => ['<i class="bi bi-building-gear"></i>','#dbeafe'],
+                    'recepcion_mp'    => ['<i class="bi bi-box-seam"></i>','#dcfce7'],
+                    'registro_proceso'=> ['<i class="bi bi-gear-fill"></i>','#fef9c3'],
+                    'liberacion'      => ['<i class="bi bi-check-circle-fill"></i>','#dcfce7'],
+                    'cuarentena'      => ['<i class="bi bi-exclamation-triangle-fill"></i>','#fff7ed'],
+                    'cierre_lote'     => ['<i class="bi bi-lock-fill"></i>','#f1f5f9'],
+                    default           => ['<i class="bi bi-pin-angle"></i>','#f1f5f9'],
                 };
             ?>
             <div style="display:flex;gap:12px;margin-bottom:12px;

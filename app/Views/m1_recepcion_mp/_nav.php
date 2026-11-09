@@ -5,12 +5,12 @@ $uri      = ($basePath && str_starts_with($uriRaw, $basePath))
             ? substr($uriRaw, strlen($basePath)) : $uriRaw;
 
 $navItems = [
-    ['url'=>'/m1',                    'label'=>'Inicio',      'icon'=>'🏠', 'prefijo'=>'/m1'],
-    ['url'=>'/m1/nueva',              'label'=>'Nueva recep.','icon'=>'➕', 'prefijo'=>'/m1/nueva'],
-    ['url'=>'/m1/historial',          'label'=>'Historial',   'icon'=>'📋', 'prefijo'=>'/m1/historial'],
-    ['url'=>'/m1/stock',              'label'=>'Stock MP',    'icon'=>'📦', 'prefijo'=>'/m1/stock'],
-    ['url'=>'/m1/alertas-vencimiento','label'=>'Alertas',     'icon'=>'⚠️', 'prefijo'=>'/m1/alertas'],
-    ['url'=>'/m1/proveedores',        'label'=>'Proveedores', 'icon'=>'🚛', 'prefijo'=>'/m1/proveedores'],
+    ['url'=>'/m1',                    'label'=>'Inicio',      'icon'=>'<i class="bi bi-house"></i>', 'prefijo'=>'/m1'],
+    ['url'=>'/m1/nueva',              'label'=>'Nueva recep.','icon'=>'<i class="bi bi-plus-circle"></i>', 'prefijo'=>'/m1/nueva'],
+    ['url'=>'/m1/historial',          'label'=>'Historial',   'icon'=>'<i class="bi bi-clipboard-data"></i>', 'prefijo'=>'/m1/historial'],
+    ['url'=>'/m1/stock',              'label'=>'Stock MP',    'icon'=>'<i class="bi bi-box-seam"></i>', 'prefijo'=>'/m1/stock'],
+    ['url'=>'/m1/alertas-vencimiento','label'=>'Alertas',     'icon'=>'<i class="bi bi-exclamation-triangle-fill"></i>', 'prefijo'=>'/m1/alertas'],
+    ['url'=>'/m1/proveedores',        'label'=>'Proveedores', 'icon'=>'<i class="bi bi-truck"></i>', 'prefijo'=>'/m1/proveedores'],
 ];
 ?>
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px">

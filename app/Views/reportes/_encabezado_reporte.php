@@ -1,14 +1,15 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <div class="no-print" style="text-align:right;margin-bottom:10px">
     <button onclick="window.print()"
             style="background:#1e3a5f;color:#fff;padding:7px 18px;
                     border:none;border-radius:5px;cursor:pointer;font-size:12px">
-        🖨️ Imprimir
+        <i class="bi bi-printer"></i> Imprimir
     </button>
     <button onclick="window.close()"
             style="background:#f1f5f9;color:#374151;padding:7px 14px;
                     border:1px solid #e2e8f0;border-radius:5px;
                     cursor:pointer;font-size:12px;margin-left:6px">
-        ✕ Cerrar
+        <i class="bi bi-x-lg"></i> Cerrar
     </button>
 </div>
 

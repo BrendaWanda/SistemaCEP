@@ -84,7 +84,7 @@
         <td style="text-align:center"><?= $durMin > 0 ? $durFmt : '—' ?></td>
         <td style="text-align:center;color:<?= $m['paro_produccion'] ? '#dc2626' : '#15803d' ?>">
             <?= $m['paro_produccion']
-                ? '⚠️ '.($m['tiempo_paro_min'] ?? 0).'min' : 'No' ?>
+                ? '<i class="bi bi-exclamation-triangle-fill"></i> '.($m['tiempo_paro_min'] ?? 0).'min' : 'No' ?>
         </td>
         <td><?= htmlspecialchars($m['ejecutado_nombre'] ?? '—') ?></td>
         <td style="text-align:center"><?= ucfirst($m['resultado']) ?></td>

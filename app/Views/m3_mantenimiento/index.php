@@ -40,7 +40,7 @@
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon" style="background:#fee2e2">⏱️</div>
+        <div class="stat-icon" style="background:#fee2e2"><i class="bi bi-stopwatch"></i></div>
         <div>
             <div class="stat-value" style="color:#dc2626">
                 <?= number_format($stats['horas_paro'], 1) ?>h
@@ -216,6 +216,16 @@
                         <?php if ($canWrite): ?>
                         <a href="<?= APP_URL ?>/m3/<?= $m['id'] ?>/editar"
                             class="btn btn-sm btn-secondary">Editar</a>
+                        <form method="POST"
+                                action="<?= APP_URL ?>/m3/<?= $m['id'] ?>/eliminar"
+                                style="display:inline">
+                            <input type="hidden" name="_token"
+                                    value="<?= \App\Core\Controller::csrfToken() ?>">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Eliminar"
+                                    data-confirm="¿Eliminar este registro de mantenimiento de '<?= htmlspecialchars($m['equipo_nombre'] ?? '', ENT_QUOTES) ?>'? Esta acción no se puede deshacer.">
+                                <i class="bi bi-trash"></i> Eliminar
+                            </button>
+                        </form>
                         <?php endif ?>
                     </td>
                 </tr>

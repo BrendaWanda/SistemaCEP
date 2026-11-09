@@ -208,6 +208,39 @@ abstract class Controller
     {
         return ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
     }
+    /**
+     * true si la petición actual es a un endpoint /api/... (datos de
+     * apoyo para selects dinámicos). Estos endpoints los consumen
+     * formularios de otros módulos (ej. M1 usa /api/parametros-insumo,
+     * M4 usa /api/recetas-por-producto), por lo que solo deben exigir
+     * sesión iniciada, no permiso sobre el módulo dueño del controlador.
+     */
+    protected function isApiRequest(): bool
+    {
+        $uri      = explode('?', $_SERVER['REQUEST_URI'] ?? '')[0];
+        $basePath = rtrim(parse_url(APP_URL, PHP_URL_PATH) ?? '', '/');
+        if ($basePath !== '' && str_starts_with($uri, $basePath)) {
+            $uri = substr($uri, strlen($basePath));
+        }
+        return str_starts_with($uri, '/api/');
+    }
+
+    /**
+     * Control de acceso para el constructor de un controlador: en rutas
+     * /api/ basta con estar autenticado; en el resto se exige acceso al
+     * módulo indicado.
+     */
+    protected function requireModuloOApi(string $modulo): void
+    {
+        if ($this->isApiRequest()) {
+            if (!Auth::check()) {
+                $this->jsonError('Sesión expirada. Inicie sesión nuevamente.', 401);
+            }
+            return;
+        }
+        Auth::requireAccess($modulo);
+    }
+
     protected function isPost(): bool { return $_SERVER['REQUEST_METHOD'] === 'POST'; }
     protected function isGet(): bool  { return $_SERVER['REQUEST_METHOD'] === 'GET'; }
 }

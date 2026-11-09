@@ -28,6 +28,14 @@ $durFmt = $durMin >= 60
     <div class="page-actions">
         <a href="<?= APP_URL ?>/m3/<?= $mant['id'] ?>/editar"
             class="btn btn-secondary"><i class="bi bi-pencil"></i> Editar</a>
+        <form method="POST" action="<?= APP_URL ?>/m3/<?= $mant['id'] ?>/eliminar"
+                style="display:inline">
+            <input type="hidden" name="_token" value="<?= \App\Core\Controller::csrfToken() ?>">
+            <button type="submit" class="btn btn-danger"
+                    data-confirm="¿Eliminar este registro de mantenimiento? Esta acción no se puede deshacer.">
+                <i class="bi bi-trash"></i> Eliminar
+            </button>
+        </form>
     </div>
     <?php endif ?>
 </div>

@@ -61,7 +61,11 @@ class AuthController extends Controller
             "SELECT id, nombre, apellidos, cargo, email, rol_id FROM usuarios WHERE id = ?",
             [Auth::id()]
         );
-        $this->render('auth/perfil', compact('usuario'));
+        $this->render('auth/perfil', [
+            'pageTitle'  => 'Mi perfil',
+            'breadcrumb' => [['label' => 'Mi perfil']],
+            'usuario'    => $usuario,
+        ]);
     }
 
     // ── POST /auth/perfil ─────────────────────────────────────────────────────

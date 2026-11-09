@@ -5,12 +5,12 @@
 
 <div class="page-header">
     <div>
-        <div class="page-title">📦 Stock de Materia Prima</div>
+        <div class="page-title"><i class="bi bi-box-seam"></i> Stock de Materia Prima</div>
         <div class="page-sub">Inventario disponible por insumo con fechas de vencimiento.</div>
     </div>
     <div class="page-actions">
         <a href="<?= APP_URL ?>/m1/alertas-vencimiento"
-            class="btn btn-secondary">⚠️ Ver alertas</a>
+            class="btn btn-secondary"><i class="bi bi-exclamation-triangle-fill"></i> Ver alertas</a>
     </div>
 </div>
 
@@ -99,8 +99,8 @@
                         </span>
                         <div style="font-size:10px;color:<?= $colorV ?>">
                             <?= $diasVence < 0
-                                ? '⛔ Vencido'
-                                : ($diasVence < 30 ? '⚠️ En '.$diasVence.'d' : 'En '.$diasVence.'d') ?>
+                                ? '<i class="bi bi-slash-circle-fill"></i> Vencido'
+                                : ($diasVence < 30 ? '<i class="bi bi-exclamation-triangle-fill"></i> En '.$diasVence.'d' : 'En '.$diasVence.'d') ?>
                         </div>
                         <?php else: ?>
                         <span style="color:#94a3b8">—</span>

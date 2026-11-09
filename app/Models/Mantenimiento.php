@@ -88,12 +88,14 @@ class Mantenimiento extends Model
                     u1.nombre AS ejecutado_nombre,
                     u1.apellidos AS ejecutado_apellidos,
                     u2.nombre AS supervisado_nombre,
-                    u2.apellidos AS supervisado_apellidos
+                    u2.apellidos AS supervisado_apellidos,
+                    lp.codigo_lote AS lote_afectado_codigo
                 FROM mantenimientos m
                 JOIN equipos e ON e.id = m.equipo_id
                 JOIN lineas_produccion l ON l.id = e.linea_id
                 LEFT JOIN usuarios u1 ON u1.id = m.ejecutado_por_id
                 LEFT JOIN usuarios u2 ON u2.id = m.supervisado_por_id
+                LEFT JOIN lotes_produccion lp ON lp.id = m.lote_afectado_id
                 WHERE m.id = ?",
             [$id]
         );

@@ -202,6 +202,18 @@
                             class="btn btn-sm btn-secondary">Ver</a>
                         <a href="<?= APP_URL ?>/m4/lote/<?= urlencode($l['codigo_lote']) ?>/imprimir"
                             class="btn btn-sm btn-secondary" target="_blank"><i class="bi bi-printer-fill"></i></a>
+                        <?php if ($canWrite): ?>
+                        <form method="POST"
+                                action="<?= APP_URL ?>/m4/lote/<?= urlencode($l['codigo_lote']) ?>/eliminar"
+                                style="display:inline">
+                            <input type="hidden" name="_token"
+                                    value="<?= \App\Core\Controller::csrfToken() ?>">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Eliminar lote"
+                                    data-confirm="¿Eliminar el lote <?= htmlspecialchars($l['codigo_lote'], ENT_QUOTES) ?>?&#10;&#10;También se eliminarán sus sesiones de registro, subgrupos SPC, inspecciones, liberación y señales. La materia prima consumida se devuelve al stock.&#10;&#10;Esta acción no se puede deshacer.">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                        <?php endif ?>
                     </td>
                 </tr>
                 <?php endforeach ?>

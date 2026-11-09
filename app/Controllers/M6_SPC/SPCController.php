@@ -166,7 +166,7 @@ class SpcController extends Controller
 
         $this->jsonSuccess(
             ['parametro_id' => $parametroId],
-            '✅ Límites anulados. M2 volverá a usar la especificación de M0 (valor mín/máx) '
+            'Límites anulados. M2 volverá a usar la especificación de M0 (valor mín/máx) '
             . 'hasta que se guarde un nuevo análisis.'
         );
     }
@@ -600,7 +600,7 @@ class SpcController extends Controller
             [$usuarioId, $senalId]
         );
 
-        $this->jsonSuccess(['id' => $senalId], '✅ Señal asignada y marcada como en investigación.');
+        $this->jsonSuccess(['id' => $senalId], 'Señal asignada y marcada como en investigación.');
     }
 
     // POST /m6/senales/:id/resolver — investigando/nueva → resuelta | falsa_alarma
@@ -634,8 +634,8 @@ class SpcController extends Controller
         );
 
         $msg = $estadoFinal === 'resuelta'
-            ? '✅ Señal marcada como resuelta.'
-            : '✅ Señal marcada como falsa alarma.';
+            ? 'Señal marcada como resuelta.'
+            : 'Señal marcada como falsa alarma.';
         $this->jsonSuccess(['id' => $senalId], $msg);
     }
 
@@ -799,7 +799,7 @@ class SpcController extends Controller
 
         $this->jsonSuccess(
             ['parametro_id' => $parametroId, 'vigente_desde' => $data['calculado_en']],
-            '✅ Límites de control guardados como vigentes. M2 los usará desde ahora para detectar señales en tiempo real.'
+            'Límites de control guardados como vigentes. M2 los usará desde ahora para detectar señales en tiempo real.'
         );
     }
 

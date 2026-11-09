@@ -41,7 +41,7 @@ class Database
         } catch (PDOException $e) {
             // En producción no exponemos detalles del error
             if (APP_DEBUG) {
-                die('<pre>❌ Error de conexión BD: ' . $e->getMessage() . '</pre>');
+                die('<pre>Error de conexión BD: ' . $e->getMessage() . '</pre>');
             }
             die('Error interno del servidor. Contacte al administrador.');
         }
